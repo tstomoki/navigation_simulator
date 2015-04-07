@@ -5,7 +5,7 @@ import pdb
 
 # import own modules #
 sys.path.append('../public')
-import my_modules
+from my_modules import *
 # import own modules #
 
 # import models #
@@ -16,9 +16,15 @@ from engine    import Engine
 from propeller import Propeller
 # import models #
 
+def simmulate():
+    # load history data
+    history_data = load_history_data()
 
-hull = Hull(1)
-hull.showinfo()
+    # generate sinario
+    base_sinario = Sinario(history_data)
+    base_sinario.show_history_data()
 
-engine = Engine(1)
-engine.showinfo()
+# authorize exeucation as main script
+if __name__ == '__main__':
+    simmulate()
+

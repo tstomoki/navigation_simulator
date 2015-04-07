@@ -5,7 +5,7 @@ import pdb
 
 # import own modules #
 sys.path.append('../public')
-import my_modules
+from my_modules import *
 # import own modules #
 
 class Engine:

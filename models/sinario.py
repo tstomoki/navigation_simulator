@@ -5,15 +5,17 @@ import pdb
 
 # import own modules #
 sys.path.append('../public')
-import my_modules
+from my_modules import *
 # import own modules #
 
 class Sinario:
-    def __init__(self, sinario_num):
-        # read designated sinario infomation
-        self.sinario_num = sinario_num
+    def __init__(self, history_data=None):
+        self.history_data = load_history_data() if history_data is None else history_data
 
-    def showinfo(self):
+    def show_history_data(self):
         print '----------------------'
-        print "  sinario-%d infomation" % (self.sinario_num)
+        print '- - history data - - '
         print '----------------------'
+
+        for data in self.history_data:
+            print "%10s : %10lf" % (data['date'], data['price'])
