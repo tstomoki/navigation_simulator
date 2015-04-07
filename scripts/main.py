@@ -23,6 +23,7 @@ def simmulate():
     # generate sinario
     base_sinario = Sinario(history_data)
     base_sinario.show_history_data()
+    base_sinario.draw_history_data()
 
 # authorize exeucation as main script
 if __name__ == '__main__':
