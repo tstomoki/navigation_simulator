@@ -18,12 +18,13 @@ from propeller import Propeller
 
 def simmulate():
     # load history data
-    history_data = load_history_data()
+    from_date = '2004/01/01'
+    to_date = '2014/01/01'
+    history_data = load_monthly_history_data(from_date, to_date)
 
     # generate sinario
     base_sinario = Sinario(history_data)
-    base_sinario.show_history_data()
-    base_sinario.draw_history_data()
+    base_sinario.generate_sinario()
 
 # authorize exeucation as main script
 if __name__ == '__main__':
