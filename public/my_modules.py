@@ -57,14 +57,14 @@ def load_monthly_history_data(from_date=None, to_date=None):
                          usecols=[0,1],
                          skiprows=1)
 
-    # from_date    
+    # from_date
     if not from_date is None:
         from_datetime = datetime.datetime.strptime(from_date, "%Y/%m/%d")
         for index in range(len(data)):
             datetime_key = datetime.datetime.strptime(data['date'][index], "%Y/%m/%d")
             if from_datetime <= datetime_key:
                 break
-    data = data[index:]
+        data = data[index:]
 
     # to_date
     if not to_date is None:
@@ -73,9 +73,9 @@ def load_monthly_history_data(from_date=None, to_date=None):
             datetime_key = datetime.datetime.strptime(data['date'][index], "%Y/%m/%d")
             if to_datetime <= datetime_key:
                 break
-    ret_data = data[:index]
+        data = data[:index]
     
-    return ret_data
+    return data
 
 # substitute inf to nan in values
 def inf_to_nan_in_array(values):
@@ -85,3 +85,24 @@ def inf_to_nan_in_array(values):
         values[inf_induces[i]] = float('nan')
 
     return values
+
+# load history data of world scale
+## monthly
+def load_world_scale_history_data(from_date=None, to_date=None):
+    history_data_path = '../data/world_scale.csv'
+    # read data
+    dt   = np.dtype({'names': ('date', 'ws'),
+                   'formats': ('S10' , np.float)})
+    data = np.genfromtxt(history_data_path,
+                         delimiter=',',
+                         dtype=dt,
+                         usecols=[0,1],
+                         skiprows=1)
+    index = 0
+    if not from_date is None:
+        from_datetime = datetime.datetime.strptime(from_date, "%Y/%m/%d")
+        for index in range(len(data)):
+            datetime_key = datetime.datetime.strptime(data['date'][index], "%Y/%m/%d")
+            if from_datetime <= datetime_key:
+                break
+    return data[index:]

@@ -15,14 +15,15 @@ from my_modules import *
 RESULTSDIR = '../results/'
 # constants #
 
-class Sinario:
+class WorldScale:
     def __init__(self, history_data=None, neu=None, sigma=None, u=None, d=None, p=None):
         self.default_xlabel = "date".title()
-        self.default_ylabel = "oil price".title() + " [$/barrel]"
-        self.history_data   = load_monthly_history_data() if history_data is None else history_data
+        self.default_ylabel = "world scale".title()
+        self.history_data   = load_world_scale_history_data() if history_data is None else history_data
         # initialize parameters
         if (neu is None or sigma is None or u is None or d is None or p is None):
-            self.calc_params_from_history()
+            #self.calc_params_from_history()
+            print ""
         else:
             self.neu, self.sigma, self.u, self.d, self.p = neu, sigma, u, d, p
 
@@ -32,26 +33,28 @@ class Sinario:
         print '----------------------'
 
         for data in self.history_data:
-            print "%10s : %10lf" % (data['date'], data['price'])
+            print "%10s : %10lf" % (data['date'], data['ws'])
 
     def draw_history_data(self):
-        title = "oil price history data".title()
+        title = "world scale history data".title()
         graphInitializer("history data",
                          self.default_xlabel,
                          self.default_ylabel)
 
-        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.history_data]
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in self.history_data]
         draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
         
         plt.plot(draw_data.transpose()[0],
                  draw_data.transpose()[1],
                  color='#9370DB', lw=5, markersize=0, marker='o')
+        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])
 
         output_file_path = RESULTSDIR + title + '.png'
         plt.savefig(output_file_path)
 
     # generate predicted sinario
     def generate_sinario(self):
+       
         pdb.set_trace()
 
     # calc new and sigma from history data

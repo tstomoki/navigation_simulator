@@ -10,10 +10,11 @@ from my_modules import *
 
 # import models #
 sys.path.append('../models')
-from hull      import Hull
-from sinario   import Sinario
-from engine    import Engine
-from propeller import Propeller
+from hull        import Hull
+from sinario     import Sinario
+from engine      import Engine
+from propeller   import Propeller
+from world_scale import WorldScale
 # import models #
 
 def simmulate():
@@ -22,9 +23,12 @@ def simmulate():
     to_date = '2014/01/01'
     history_data = load_monthly_history_data(from_date, to_date)
 
+    # generate world scale
+    world_scale = WorldScale(load_world_scale_history_data())
+    world_scale.draw_history_data()
     # generate sinario
     base_sinario = Sinario(history_data)
-    base_sinario.generate_sinario()
+    #base_sinario.generate_sinario()
 
 # authorize exeucation as main script
 if __name__ == '__main__':
