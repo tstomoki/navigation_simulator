@@ -76,4 +76,12 @@ class Agent:
         return design['hull'], design['engine'], design['propeller'], design['NPV']
 
     def simmulate(self, hull, engine, propeller, sinario, world_scale, retrofit_mode):
-        pdb.set_trace()
+        # initialize retrofit_count
+        if retrofit_mode == RETROFIT_MODE['none']:
+            retrofit_count = 0
+
+        # start navigation
+        for current_date in sinario.predicted_data['date']:
+            # calculate optimized speed
+            v_knot = self.calc_velosity()
+            pdb.set_trace()
