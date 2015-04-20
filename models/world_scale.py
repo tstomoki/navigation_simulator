@@ -16,16 +16,15 @@ RESULTSDIR = '../results/'
 # constants #
 
 class WorldScale:
-    def __init__(self, history_data=None, neu=None, sigma=None, u=None, d=None, p=None):
+    def __init__(self, history_data=None, neu=None, sigma=None, u=None, d=None, p=None, alpha=None, beta=None):
         self.default_xlabel = "date".title()
         self.default_ylabel = "world scale".title()
         self.history_data   = load_world_scale_history_data() if history_data is None else history_data
         # initialize parameters
-        if (neu is None or sigma is None or u is None or d is None or p is None):
-            #self.calc_params_from_history()
-            print ""
+        if (neu is None or sigma is None or u is None or d is None or p is None or alpha is None or beta is None):
+            self.calc_params_from_history()
         else:
-            self.neu, self.sigma, self.u, self.d, self.p = neu, sigma, u, d, p
+            self.neu, self.sigma, self.u, self.d, self.p, self.alpha, self.beta = neu, sigma, u, d, p, alpha, beta
 
     def show_history_data(self):
         print '----------------------'
@@ -54,7 +53,6 @@ class WorldScale:
 
     # generate predicted sinario
     def generate_sinario(self):
-       
         pdb.set_trace()
 
     # calc new and sigma from history data
@@ -77,10 +75,17 @@ class WorldScale:
 
         # substitute inf to nan in values
         values = inf_to_nan_in_array(values)
+
+
+        #[WIP] calc alpha and beta
+        alpha = 0.1932
+        beta  = 6.713
+        
         self.neu    = np.nanmean(values)
         self.sigma  = np.nanstd(values)
         self.u      = np.exp(self.sigma * np.sqrt(delta_t))
         self.d      = np.exp(self.sigma * (-1) * np.sqrt(delta_t))
         self.p      = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
+        self.alpha, self.beta = alpha, beta
 
         return

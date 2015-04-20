@@ -51,7 +51,7 @@ class Sinario:
         plt.savefig(output_file_path)
 
     # generate predicted sinario
-    def generate_sinario(self):
+    def generate_sinario(self, predict_years=None):
         pdb.set_trace()
 
     # calc new and sigma from history data
