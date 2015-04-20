@@ -26,7 +26,6 @@ class Sinario:
             self.calc_params_from_history()
         else:
             self.neu, self.sigma, self.u, self.d, self.p = neu, sigma, u, d, p
-        self.generate_sinario
 
     def show_history_data(self):
         print '----------------------'
@@ -71,9 +70,10 @@ class Sinario:
         plt.savefig(output_file_path)        
 
     # generate predicted sinario
-    def generate_sinario(self, predict_years=DEFAULT_PREDICT_YEARS):
+    def generate_sinario(self, sinario_mode, predict_years=DEFAULT_PREDICT_YEARS):
+        # default predict_years is 15 years [180 months]
         self.predict_years  = predict_years
-        
+
         # predicted data type
         dt   = np.dtype({'names': ('date', 'price'),
                          'formats': ('S10' , np.float)})
@@ -90,9 +90,20 @@ class Sinario:
         for predict_month_num in range(predict_months_num):
             current_date        = add_month(current_date)
             current_date_str    = datetime.datetime.strftime(current_date, '%Y/%m/%d')
-            current_oilprice    = self.calc_oilprice(current_oilprice)
-            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_oilprice)], dtype=dt))
 
+            # change oil_price by mode
+            if sinario_mode == DERIVE_SINARIO_MODE['high']:
+                current_oilprice = HIGH_OIL_PRICE
+            elif sinario_mode == DERIVE_SINARIO_MODE['low']:
+                current_oilprice = LOW_OIL_PRICE
+            elif sinario_mode == DERIVE_SINARIO_MODE['maintain']:
+                current_oilprice = current_oilprice
+            else:
+                current_oilprice    = self.calc_oilprice(current_oilprice)
+            # change oil_price by mode
+                
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_oilprice)], dtype=dt))
+            
         return
             
     # calc new and sigma from history data

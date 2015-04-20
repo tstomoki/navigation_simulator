@@ -30,6 +30,48 @@ def graphInitializer(title, x_label, y_label):
 def mkdate(text):
     return datetime.datetime.strptime(text, '%Y/%m/%d')
 
+def load_hull_list(path=None):
+    if path is None:
+        path = '../data/components_lists/hull_list.csv'
+        
+    # read data
+    dt = np.dtype({'names'  : ('id'  , 'Loa'   , 'Lpp'   , 'Disp'  , 'DWT'   , 'Bmld'  , 'Dmld'  , 'draft_full', 'draft_ballast', 'Cb'    , 'S'     , 'ehp0_ballast', 'ehp1_ballast', 'ehp2_ballast', 'ehp3_ballast', 'ehp4_ballast', 'ehp0_full', 'ehp1_full', 'ehp2_full', 'ehp3_full', 'ehp4_full'),
+                   'formats': (np.int16, np.float, np.float, np.float, np.float, np.float, np.float, np.float    ,  np.float      , np.float, np.float, np.float      , np.float      , np.float      , np.float      , np.float      , np.float   , np.float   , np.float   , np.float   , np.float)})
+
+    hull_list = np.genfromtxt(path,
+                              delimiter=',',
+                              dtype=dt,
+                              skiprows=1)    
+    return hull_list
+
+def load_engine_list(path=None):
+    if path is None:
+        path = '../data/components_lists/engine_list.csv'
+        
+    # read data
+    dt = np.dtype({'names'  : ('id'    , 'name', 'sfoc0' , 'sfoc1' , 'sfoc2' , 'bhp0'  , 'bhp1'  , 'bhp2'  , 'N_max' , 'max_load'),
+                   'formats': (np.int16, 'S10' , np.float, np.float, np.float, np.float, np.float, np.float, np.float, np.float)})
+
+    engine_list = np.genfromtxt(path,
+                                delimiter=',',
+                                dtype=dt,
+                                skiprows=1)    
+    return engine_list
+
+def load_propeller_list(path=None):
+    if path is None:
+        path = '../data/components_lists/propeller_list.csv'
+        
+    # read data
+    dt = np.dtype({'names'  : ('id'    , 'P_D'   , 'EAR'   , 'D'     , 'blade_num', 'Rn'),
+                   'formats': (np.int16, np.float, np.float, np.float, np.float   , np.float)})
+
+    propeller_list = np.genfromtxt(path,
+                                   delimiter=',',
+                                   dtype=dt,
+                                   skiprows=1)    
+    return propeller_list
+
 # load history data of crude oil
 ## daily
 def load_history_data(from_date=None, to_date=None):

@@ -19,7 +19,7 @@ from world_scale import WorldScale
 from agent       import Agent
 # import models #
 
-def simmulate():
+def run():
     # load history data
     from_date = '2004/01/01'
     to_date = '2014/01/01'
@@ -30,17 +30,28 @@ def simmulate():
     # generate world scale
     world_scale = WorldScale(load_world_scale_history_data())
 
-
     # initiate a simmulation
+    # for design 0
+    retrofit_mode = RETROFIT_MODE['none']
+    sinario_mode  = DERIVE_SINARIO_MODE['maintain']
+    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
+
     '''
-    hull      = Hull(base_sinario, world_scale)
-    engine    = Engine(base_sinario, world_scale)
-    propeller = Propeller(base_sinario, world_scale)
+    # for design 1
+    retrofit_mode = RETROFIT_MODE['high']
+    sinario_mode  = DERIVE_SINARIO_MODE['propeller']
+    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
+
+    # for design 2
+    retrofit_mode = RETROFIT_MODE['high']
+    sinario_mode  = DERIVE_SINARIO_MODE['propeller_and_engine']
+    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
     '''
-    mode = DERIVE_MODE['none']
-    agent = Agent(base_sinario, world_scale, mode)
+    
+
+
 
 # authorize exeucation as main script
 if __name__ == '__main__':
-    simmulate()
+    run()
 

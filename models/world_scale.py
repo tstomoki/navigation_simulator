@@ -89,3 +89,12 @@ class WorldScale:
         self.alpha, self.beta = alpha, beta
 
         return
+
+    # set flat_rate [%]
+    def set_flat_rate(self, flat_rate):
+        self.flat_rate = 50
+        return
+    
+    # flat_rate [%]
+    def calc_fare(self, oil_price, flat_rate):
+        return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)
