@@ -5,7 +5,14 @@ import pdb
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import calendar as cal
+import random
 # import common modules #
+
+# import own modules #
+sys.path.append('../public')
+from constants  import *
+# import own modules #
 
 def graphInitializer(title, x_label, y_label):
     # clear graph
@@ -106,3 +113,14 @@ def load_world_scale_history_data(from_date=None, to_date=None):
             if from_datetime <= datetime_key:
                 break
     return data[index:]
+
+def add_month(current_date):
+    _d, days = cal.monthrange(current_date.year, current_date.month)
+    return current_date + datetime.timedelta(days=days)
+
+# return true with a prob_value [%] possibility
+def prob(prob_value):
+    N = 100
+    array  = [False] * (N - prob_value) + [True] * (N)
+    random.shuffle(array)
+    return random.choice(array)

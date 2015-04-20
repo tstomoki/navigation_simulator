@@ -9,6 +9,7 @@ import numpy as np
 # import own modules #
 sys.path.append('../public')
 from my_modules import *
+from constants  import *
 # import own modules #
 
 # constants #
@@ -46,14 +47,53 @@ class Sinario:
         plt.plot(draw_data.transpose()[0],
                  draw_data.transpose()[1],
                  color='#9370DB', lw=5, markersize=0, marker='o')
+        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])                
 
         output_file_path = RESULTSDIR + title + '.png'
         plt.savefig(output_file_path)
 
-    # generate predicted sinario
-    def generate_sinario(self, predict_years=None):
-        pdb.set_trace()
+    def draw_predicted_data(self):
+        title = "oil price predicted data".title()
+        graphInitializer("history data",
+                         self.default_xlabel,
+                         self.default_ylabel)
 
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.predicted_data]
+        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+
+        plt.plot(draw_data.transpose()[0],
+                 draw_data.transpose()[1],
+                 color='#9370DB', lw=5, markersize=0, marker='o')
+        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
+
+        output_file_path = RESULTSDIR + title + '.png'
+        plt.savefig(output_file_path)        
+
+    # generate predicted sinario
+    def generate_sinario(self, predict_years=DEFAULT_PREDICT_YEARS):
+        self.predict_years  = predict_years
+        
+        # predicted data type
+        dt   = np.dtype({'names': ('date', 'price'),
+                         'formats': ('S10' , np.float)})
+        self.predicted_data = np.array([], dtype=dt)
+        
+        predict_months_num = self.predict_years * 12
+
+        # latest date from history_data
+        latest_history_date_str, latest_oilprice = self.history_data[-1]
+        latest_history_date                      = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
+
+        current_date  = latest_history_date
+        current_oilprice = latest_oilprice
+        for predict_month_num in range(predict_months_num):
+            current_date        = add_month(current_date)
+            current_date_str    = datetime.datetime.strftime(current_date, '%Y/%m/%d')
+            current_oilprice    = self.calc_oilprice(current_oilprice)
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_oilprice)], dtype=dt))
+
+        return
+            
     # calc new and sigma from history data
     def calc_params_from_history(self):
         index   = 0
@@ -81,3 +121,6 @@ class Sinario:
         self.p      = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
 
         return
+
+    def calc_oilprice(self, current_oilprice):
+        return self.u * current_oilprice if prob(self.p * 100) else self.d * current_oilprice

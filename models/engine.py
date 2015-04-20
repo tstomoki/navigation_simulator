@@ -6,6 +6,7 @@ import pdb
 # import own modules #
 sys.path.append('../public')
 from my_modules import *
+from constants  import *
 # import own modules #
 
 class Engine:
