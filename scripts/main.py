@@ -16,6 +16,7 @@ from sinario     import Sinario
 from engine      import Engine
 from propeller   import Propeller
 from world_scale import WorldScale
+from agent       import Agent
 # import models #
 
 def simmulate():
@@ -26,11 +27,18 @@ def simmulate():
 
     # generate sinario
     base_sinario = Sinario(history_data)
-    base_sinario.generate_sinario()
-    base_sinario.draw_predicted_data()
     # generate world scale
     world_scale = WorldScale(load_world_scale_history_data())
-    world_scale.draw_history_data()
+
+
+    # initiate a simmulation
+    '''
+    hull      = Hull(base_sinario, world_scale)
+    engine    = Engine(base_sinario, world_scale)
+    propeller = Propeller(base_sinario, world_scale)
+    '''
+    mode = DERIVE_MODE['none']
+    agent = Agent(base_sinario, world_scale, mode)
 
 # authorize exeucation as main script
 if __name__ == '__main__':

@@ -26,6 +26,7 @@ class Sinario:
             self.calc_params_from_history()
         else:
             self.neu, self.sigma, self.u, self.d, self.p = neu, sigma, u, d, p
+        self.generate_sinario
 
     def show_history_data(self):
         print '----------------------'
