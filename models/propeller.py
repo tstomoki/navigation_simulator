@@ -9,11 +9,17 @@ from my_modules import *
 # import own modules #
 
 class Propeller:
-    def __init__(self, propeller_num):
+    def __init__(self, propeller_info):
         # read designated propeller infomation
-        self.propeller_num = propeller_num
+        if not propeller_info is None:
+            self.propeller_id   = propeller_info['id']
+            self.propeller_data = self.get_propeller(propeller_info)            
 
     def showinfo(self):
         print '----------------------'
         print "  propeller-%d infomation" % (self.propeller_num)
         print '----------------------'
+
+    def get_propeller(self, propeller_info):
+        self.base_data = propeller_info
+        return         

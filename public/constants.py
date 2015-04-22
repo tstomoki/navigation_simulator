@@ -62,3 +62,7 @@ INSURANCE            = 240000
 # Port [USD]
 PORT_CHARGES    = 100000
 PORT_DWELL_DAYS = 2
+
+# Log columns
+LOG_COLUMNS = ['ballast', 'full']
+

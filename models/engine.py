@@ -10,11 +10,11 @@ from constants  import *
 # import own modules #
 
 class Engine:
-    def __init__(self, engine_id=None):
+    def __init__(self, engine_info):
         # read designated engine infomation
-        if not engine_id is None:
-            self.engine_id      = engine_id
-            self.engine_data    = get_engine_with_id(engine_id)
+        if not engine_info is None:
+            self.engine_id   = engine_info['id']
+            self.engine_data = self.get_engine(engine_info)        
 
     def showinfo(self):
         print '----------------------'
@@ -23,6 +23,14 @@ class Engine:
 
     def get_engine(self, sinario, world_scale):
         print 'get_engine'
+
+    def get_engine(self, engine_info):
+        self.base_data = engine_info
+        return 
         
-    def get_engine_with_id(self, engine_id):
-        print 'get_engine_with_id'
+    def calc_sfoc(self, bhp):
+        load = self.calc_load(bhp)
+        return sfoc
+
+    def calc_load(self, bhp):
+        pdb.set_trace()
