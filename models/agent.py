@@ -98,6 +98,7 @@ class Agent:
         self.previous_oil_price   = self.sinario.history_data[-2]['price']
         self.oil_price            = self.sinario.history_data[-1]['price']
         self.current_fare         = self.world_scale.calc_fare(self.previous_oil_price)
+        self.log                  = init_dict_from_keys_with_array(LOAD_CONDITION.values())
         for current_date in self.operation_date_array:
             # define voyage_date
             if self.voyage_date is None:
@@ -105,10 +106,14 @@ class Agent:
                 
             # calculate optimized speed and rps
             self.elapsed_days = 0
-            v_knot, rps  = self.calc_optimal_velosity(current_date, hull)
+            v_knot, rpm  = self.calc_optimal_velosity(current_date, hull, engine)
 
             # update
             current_distance += 0
+            if len(self.log[load_condition_to_human(self.load_condition)]) == 0:
+                self.log[load_condition_to_human(self.load_condition)] = np.append(self.log[load_condition_to_human(self.load_condition)], [v_knot, rpm])
+            else:
+                self.log[load_condition_to_human(self.load_condition)] = np.vstack((self.log[load_condition_to_human(self.load_condition)], [v_knot, rpm]))
 
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
@@ -145,10 +150,7 @@ class Agent:
         # calc bhp [WW]
         fitness_bhp0 = self.calc_bhp_with_rps(          rps, hull, engine, propeller)
         fitness_bhp1 = self.calc_bhp_with_ehp(velocity, rps, hull, engine, propeller, load_condition)
-        '''
-        if velocity == 8.8:
-            pdb.set_trace()                
-        '''
+
         # reject bhp over the engine Max load
         if fitness_bhp0 is None or fitness_bhp1 is None or fitness_bhp0 > engine['max_load'] or fitness_bhp1 > engine['max_load']:
             return None
@@ -200,7 +202,7 @@ class Agent:
 
         return bhp    
     
-    def calc_optimal_velosity(self, current_date, hull):
+    def calc_optimal_velosity(self, current_date, hull, engine):
         combinations        = np.array([])
         round_trip_distance = NAVIGATION_DISTANCE * 2.0
         left_distance       = round_trip_distance - self.current_distance
@@ -211,15 +213,15 @@ class Agent:
                 tmp_combinations = np.array([])
                 for rpm_second, velocity_second in self.velocity_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
                     ND     = self.calc_ND(left_distance, velocity_first, velocity_second, False, hull)
-                    CF_day = self.calc_cash_flow(current_date, hull, ND)
+                    CF_day = self.calc_cash_flow(current_date, velocity_first, velocity_second, hull, engine, ND)
                     pdb.set_trace()
             else:
                 ## when the ship is full (return trip)
                 ND     = self.calc_ND(left_distance, velocity_first, 0, True, hull)
-                CF_day = self.calc_cash_flow(current_date, hull, ND)
+                CF_day = self.calc_cash_flow(current_date, velocity_first, 0, hull, engine, ND)
                 pdb.set_trace()
                 
-                    
+        return v_knot, rpm            
 
     # calc advance constant
     def calc_advance_constant(self, velocity, rps, diameter):
@@ -250,12 +252,12 @@ class Agent:
 
         return self.elapsed_days + first_clause + second_clause
             
-    def calc_cash_flow(self, current_date, hull, ND):
+    def calc_cash_flow(self, current_date, velocity_first, velocity_second, hull, engine, ND):
         # Income_day
         I      = self.current_fare * hull.base_data['DWT']
         I_day  = I / float(ND)
         # Fuel Consumption_day
-        C_fuel = 0
+        C_fuel = self.calc_fuel_cost(current_date, engine, ND, velocity_first, velocity_second)
         # Cost for fix_day
         C_fix  = self.calc_fix_cost()
         # Cost for port_day
@@ -263,6 +265,19 @@ class Agent:
         
         return (1 - DEFAULT_ICR_RATE) * I_day - C_fuel - C_fix - C_port
 
+    # calc fuel cost per day    
+    def calc_fuel_cost(self, current_date, engine, ND, velocity_first, velocity_second):
+        ret_fuel_cost = 0
+        if is_ballast(self.load_condition):
+            # ballast
+            fuel_cost_ballast = 0
+            fuel_cost_full    = 0
+            
+        else:
+            # full
+        
+        return fuel_cost
+    
     # calc fix cost per day
     def calc_fix_cost(self):
         total_fix_cost = 0

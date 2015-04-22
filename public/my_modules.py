@@ -211,3 +211,9 @@ def ms2mileday(ms):
 def knot2mileday(knot):
     ms = knot2ms(knot)
     return km2mile( ms / 1000.0 * 3600.0 * 24)
+
+def init_dict_from_keys_with_array(keys):
+    ret_dict = {}
+    for key in keys:
+        ret_dict[key] = np.array([])
+    return ret_dict
