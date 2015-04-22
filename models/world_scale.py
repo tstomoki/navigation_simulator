@@ -96,5 +96,5 @@ class WorldScale:
         return
     
     # flat_rate [%]
-    def calc_fare(self, oil_price, flat_rate):
-        return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)
+    def calc_fare(self, oil_price):
+        return (self.alpha * oil_price + self.beta) * (self.flat_rate / 100.0)

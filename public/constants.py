@@ -1,4 +1,6 @@
-DEFAULT_PREDICT_YEARS = 15
+DEFAULT_PREDICT_YEARS    = 15
+
+OPERATION_DURATION_YEARS = 15
 
 DERIVE_SINARIO_MODE   = {'high': 0,
                          'low': 1,
@@ -17,10 +19,10 @@ LOW_OIL_PRICE = 80
 
 
 # load condition [ballast, full]
-LOAD_CONDITION = {'ballast': 0,
-                  'full'   : 1}
-# initial load condition
-INITIAL_LOAD_CONDITION = LOAD_CONDITION['ballast']
+LOAD_CONDITION = {0: 'ballast',
+                  1: 'full'   }
+# initial load condition 'ballast'
+INITIAL_LOAD_CONDITION = 0
 
 # default velocity range [knot] #
 VELOCITY_RANGE = {'from'  : 8.0,
@@ -39,3 +41,24 @@ WAKE_COEFFICIENT = 0.97
 
 # eta
 ETA_S = 0.97
+
+# navigation infomation [mile]
+NAVIGATION_DISTANCE = 6590
+
+# icr
+DEFAULT_ICR_RATE = 0.05
+
+## fix value ##
+# dry dock maintenance [USD/year] #
+DRY_DOCK_MAINTENANCE = 800000
+# maintenance [USD/year] #
+MAINTENANCE          = 240000
+# crew labor cost [USD/year] #
+CREW_LABOR_COST      = 2400000 
+# Insurance [USD/year] #
+INSURANCE            = 240000
+## fix value ##
+
+# Port [USD]
+PORT_CHARGES    = 100000
+PORT_DWELL_DAYS = 2

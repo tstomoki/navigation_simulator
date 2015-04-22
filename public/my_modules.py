@@ -156,9 +156,19 @@ def load_world_scale_history_data(from_date=None, to_date=None):
                 break
     return data[index:]
 
+def first_day_of_month(d):
+    return datetime.date(d.year, d.month, 1)
+
 def add_month(current_date):
     _d, days = cal.monthrange(current_date.year, current_date.month)
     return current_date + datetime.timedelta(days=days)
+
+def add_year(start_date, year_num=1):
+    current_date = start_date
+    for year_index in range(year_num):
+        for month_index in range(12):
+            current_date = add_month(current_date)
+    return current_date
 
 # return true with a prob_value [%] possibility
 def prob(prob_value):
@@ -166,3 +176,38 @@ def prob(prob_value):
     array  = [False] * (N - prob_value) + [True] * (N)
     random.shuffle(array)
     return random.choice(array)
+
+# preconditions: there is only 2 conditions
+def get_another_condition(load_condition):
+    if not load_condition in LOAD_CONDITION.keys():
+        raise 'UNVALID CONDITION ERROR'
+
+    return [condition for condition in LOAD_CONDITION.keys() if not condition == load_condition][0]
+    
+def load_condition_to_human(load_condition):
+    return LOAD_CONDITION[load_condition]
+
+def is_ballast(load_condition):
+    return LOAD_CONDITION[load_condition] == 'ballast'
+
+def is_full(load_condition):
+    return not is_ballast(load_condition)
+
+def km2mile(km):
+    return km * 0.62137
+
+def mile2km(mile):
+    return mile * 1.6093
+
+def ms2knot(ms):
+    return ms / 0.5144444
+
+def knot2ms(knot):
+    return knot * 0.5144444
+
+def ms2mileday(ms):
+    return km2mile( ms / 1000.0 * 3600.0 * 24)
+
+def knot2mileday(knot):
+    ms = knot2ms(knot)
+    return km2mile( ms / 1000.0 * 3600.0 * 24)
