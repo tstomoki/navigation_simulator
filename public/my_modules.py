@@ -63,8 +63,8 @@ def load_propeller_list(path=None):
         path = '../data/components_lists/propeller_list.csv'
         
     # read data
-    dt = np.dtype({'names'  : ('id'    , 'P_D'   , 'EAR'   , 'D'     , 'blade_num', 'Rn'),
-                   'formats': (np.int16, np.float, np.float, np.float, np.float   , np.float)})
+    dt = np.dtype({'names'  : ('id'    , 'name', 'P_D'   , 'EAR'   , 'blade_num', 'Rn'    , 'D'     , 'KT0'   , 'KT1'   , 'KT2'   , 'KQ0'   , 'KQ1'   , 'KQ2'),
+                   'formats': (np.int16, 'S10' , np.float, np.float, np.float   , np.float, np.float, np.float, np.float, np.float, np.float, np.float, np.float)})
 
     propeller_list = np.genfromtxt(path,
                                    delimiter=',',
