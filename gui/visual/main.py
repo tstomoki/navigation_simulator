@@ -1,46 +1,50 @@
 #!/usr/bin/env python
 import random
+import pdb
 import sys
+import numpy as np
+import matplotlib
+matplotlib.use("Qt5Agg")
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QTAgg as NavigationToolbar
+from matplotlib.figure import Figure
+
 from PyQt5.QtCore import (QLineF, QPointF, QRectF, Qt, QTimer)
 from PyQt5.QtGui import (QBrush, QColor, QPainter, QIntValidator)
 from PyQt5.QtWidgets import (QApplication, QWidget, QGraphicsView, QGraphicsScene, QGraphicsItem,
-                             QGridLayout, QVBoxLayout, QHBoxLayout,
+                             QGridLayout, QVBoxLayout, QHBoxLayout, QSizePolicy,
                              QLabel, QLineEdit, QPushButton, QComboBox)
 
-class MatplotlibWindow(QGraphicsItem):
-    def __init__(self, width=500, height=500, size=5):
-        super(MatplotlibWindow, self).__init__()
+class MatplotlibWindow(FigureCanvas):
+    def __init__(self, parent=None, width=500, height=500, dpi=100):
+        # initializer
+        # matplotlib
+        fig = Figure(figsize=(width, height), dpi=dpi)        
+        self.axes = fig.add_subplot(111)
+        self.axes.hold(False)                
+        super(MatplotlibWindow, self).__init__(fig)
+        self.setParent(parent)
+        FigureCanvas.setSizePolicy(self,
+                                   QSizePolicy.Expanding,
+                                   QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+        self.x  = np.arange(0, 4*np.pi, 0.1)
+        self.y  = np.sin(self.x)
+        
         self.width = width
         self.height = height
-        self.size = size
-        self.NH = self.height//size
-        self.NW = self.width//size
-        self.board = []
-        for y in range(self.NH):
-            self.board.append([0] * self.NW)
-        self.board[0][self.NW//2] = 1
-        self.pos = 0
+        self.draw_graph()
+        # initializer
 
+    def draw_graph(self):
+        self.axes.plot(self.x, self.y)
+        self.draw()
+        
     def update_graph(self):
-        for y in range(self.NH):
-            for x in range(self.NW):
-                self.board[y][x] = 0
-        self.board[0][self.NW//2] = 1
-        self.pos = 0
         self.update()
         
     def paint(self, painter, option, widget):
-        painter.setPen(QColor(220,220,220))
-        for y in range(self.NH):
-            painter.drawLine(0, y*self.size, self.width, y*self.size)
-        for x in range(self.NW):
-            painter.drawLine(x*self.size, 0, x*self.size, self.height)
-
-        painter.setBrush(Qt.black)
-        for y in range(self.NH):
-            for x in range(self.NW):
-                if self.board[y][x] == 1:
-                    painter.drawRect(self.size*x, self.size*y, self.size, self.size)
+        pass
                     
     def boundingRect(self):
         return QRectF(0,0,self.width,self.height)                    
@@ -48,15 +52,18 @@ class MatplotlibWindow(QGraphicsItem):
 class MainWindow(QWidget):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        self.graphicsView = QGraphicsView()
-        scene = QGraphicsScene(self.graphicsView)
-        scene.setSceneRect(0, 0, 400, 400)
-        self.graphicsView.setScene(scene)
-        self.MatplotlibWindow = MatplotlibWindow(400,400)
-        scene.addItem(self.MatplotlibWindow)
 
-
-        buttonLayout = QVBoxLayout()
+        # Layout
+        LeftBoxLayout  = QVBoxLayout()
+        RightBoxLayout = QVBoxLayout()
+        MainLayout     = QHBoxLayout()
+        LeftBoxLayout.setAlignment(Qt.AlignTop)
+        RightBoxLayout.setAlignment(Qt.AlignTop)
+        MainLayout.setAlignment(Qt.AlignTop)
+        
+        # for matplotlib graph
+        self.MatplotlibWindow = MatplotlibWindow(width=200,height=200)
+        LeftBoxLayout.addWidget(self.MatplotlibWindow)
         
         # ComboBox
         self.combo = QComboBox(self)
@@ -67,31 +74,18 @@ class MainWindow(QWidget):
         self.combo.addItem("Gentoo")
         self.combo.activated.connect(self.onActivated)
         self.combo.activated[str].connect(self.onActivatedstr)
-        
-        buttonLayout.addWidget(self.combo)
+        RightBoxLayout.addWidget(self.combo)
         
         # button
         self.update = QPushButton("&Update")
         self.update.clicked.connect(self.update_graph)
-        buttonLayout.addWidget(self.update)
+        RightBoxLayout.addWidget(self.update)
 
-       
-        propertyLayout = QVBoxLayout()
-        propertyLayout.setAlignment(Qt.AlignTop)
-        propertyLayout.addLayout(buttonLayout)
-
-        mainLayout = QHBoxLayout()
-        mainLayout.setAlignment(Qt.AlignTop)
-        mainLayout.addWidget(self.graphicsView)
-        mainLayout.addLayout(propertyLayout)
+        MainLayout.addLayout(LeftBoxLayout)
+        MainLayout.addLayout(RightBoxLayout)
         
-
-        self.setLayout(mainLayout)
+        self.setLayout(MainLayout)
         self.setWindowTitle("Matplotlib Window")
-        
-        #combo.activated.connect(self.onActivated)
-        #combo.activated[str].connect(self.onActivatedstr)
-
         
     def update_graph(self):
         self.MatplotlibWindow.update_graph()
