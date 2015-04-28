@@ -11,6 +11,7 @@ RETROFIT_MODE = {'none': 0,
                  'propeller': 1,
                  'propeller_and_engine': 2}
 
+LOAD_DAYS = 2
 
 # 150 [dollars/barrel]
 HIGH_OIL_PRICE = 150

@@ -103,26 +103,62 @@ class Agent:
         self.current_fare         = self.world_scale.calc_fare(self.previous_oil_price)
         self.log                  = init_dict_from_keys_with_array(LOG_COLUMNS)
         self.round_trip_distance  = NAVIGATION_DISTANCE * 2.0
+        self.total_distance       = 0
+        self.total_cash_flow      = 0
+        self.loading_flag         = False
+        self.loading_days         = 0
 
         for current_date in self.operation_date_array:
             # define voyage_date
             if self.voyage_date is None:
                 self.voyage_date = current_date
+
+            if self.is_loading():
+                continue
                 
             # calculate optimized speed and rps
             self.elapsed_days = 0
+            pdb.set_trace()
             rpm, v_knot  = self.calc_optimal_velosity(current_date, hull, engine, propeller)
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
             # update variables
-            ## distance on a day
-            self.current_distance += knot2mileday(v_knot)
+            ## update with the distance on a day
+            navigated_distance = knot2mileday(v_knot)
+            updated_distance   = self.current_distance + knot2mileday(v_knot)
+            if (self.current_distance < NAVIGATION_DISTANCE) and (updated_distance >= NAVIGATION_DISTANCE):
+                # ballast -> full
+                print 'ballast trip finished'
+                # calc distance to the port
+                navigated_distance = NAVIGATION_DISTANCE - self.current_distance                
+                self.current_distance = NAVIGATION_DISTANCE
+                # loading flags
+                self.initiate_loading()
+                self.change_load_condition()
+            elif updated_distance >= self.round_trip_distance:
+                # full -> ballast
+                print 'navigation finished'
+                self.change_load_condition()
+                # reset current_distance
+                self.current_distance = 0
+                # calc distance to the port
+                navigated_distance = self.round_trip_distance - self.current_distance
+                pdb.set_trace()
+            else:
+                # full -> full or ballast -> ballast
+                self.current_distance += navigated_distance
+            
+            # update total distance
+            self.total_distance += navigated_distance
+            
+            # display current infomation
             print "--------------Finished Date: %s--------------" % (current_date)
-            print "current_distance: %lf [mile]" % (self.current_distance)
-            print "rpm: %lf, velocity: %lf" % (rpm, v_knot)
-
-
+            print "%20s: %10s" % ('load condition', self.load_condition_to_human())
+            print "%20s: %10.3lf [mile]" % ('current_distance', self.current_distance)
+            print "%20s: %10.3lf [mile]" % ('total_distance', self.total_distance)
+            print "%20s: %10.3lf [rpm]" % ('rpm', rpm)
+            print "%20s: %10.3lf [knot]" % ('velocity', v_knot)
 
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
@@ -354,3 +390,21 @@ class Agent:
 
     def update_velocity_log(self, rpm, v_knot):
         self.log[self.load_condition_to_human()] = append_for_np_array(self.log[self.load_condition_to_human()], [rpm, v_knot])
+
+    def change_load_condition(self):
+        self.load_condition = self.get_another_load_condition()
+        return
+
+    def is_loading(self):
+        if (self.loading_flag and self.loading_days < LOAD_DAYS):
+            self.loading_days += 1
+            return True
+        else:
+            self.loading_flag = False
+        
+        return 
+
+    def initiate_loading(self):
+        self.loading_flag = True
+        self.loading_days = 0
+        return 
