@@ -51,7 +51,7 @@ class Agent:
 
         ## hull
         ### list has only 1 hull
-        ret_hull = Hull(hull_list)
+        ret_hull = Hull(hull_list, 1)
 
         ## engine and propeller
         ### full search with sinario and world_scale
@@ -98,8 +98,8 @@ class Agent:
         self.current_distance     = 0
         self.voyage_date          = self.origin_date
         self.previous_oil_price   = self.sinario.history_data[-2]['price']
-        self.oilprice_ballast    = self.sinario.history_data[-1]['price']
-        self.oilprice_full       = self.sinario.history_data[-1]['price']
+        self.oilprice_ballast     = self.sinario.history_data[-1]['price']
+        self.oilprice_full        = self.sinario.history_data[-1]['price']
         self.current_fare         = self.world_scale.calc_fare(self.previous_oil_price)
         self.log                  = init_dict_from_keys_with_array(LOG_COLUMNS)
         self.round_trip_distance  = NAVIGATION_DISTANCE * 2.0
@@ -111,19 +111,18 @@ class Agent:
                 
             # calculate optimized speed and rps
             self.elapsed_days = 0
-            v_knot, rpm  = self.calc_optimal_velosity(current_date, hull, engine, propeller)
-
-            # update
+            rpm, v_knot  = self.calc_optimal_velosity(current_date, hull, engine, propeller)
+            ## update velocity log
+            self.update_velocity_log(rpm, v_knot)
+            
+            # update variables
             ## distance on a day
             self.current_distance += knot2mileday(v_knot)
+            print "--------------Finished Date: %s--------------" % (current_date)
+            print "current_distance: %lf [mile]" % (self.current_distance)
+            print "rpm: %lf, velocity: %lf" % (rpm, v_knot)
 
-            ## log
-            condition_tag    = load_condition_to_human(self.load_condition)
-            insert_data      = [v_knot, rpm]
-            if len(self.log[condition_tag]) == 0:
-                self.log[condition_tag] = np.append(self.log[condition_tag], insert_data)
-            else:
-                self.log[condition_tag] = np.vstack((self.log[condition_tag], insert_data))
+
 
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
@@ -142,7 +141,7 @@ class Agent:
     
                     # calc error of fitness bhp values
                     error = self.rps_velocity_fitness(hull, engine, propeller, velocity, rps, load_condition)
-                    tmp_combinations = np.append(tmp_combinations, [rpm, velocity, error]) if len(tmp_combinations) == 0 else np.vstack((tmp_combinations, [rpm, velocity, error]))
+                    tmp_combinations = append_for_np_array(tmp_combinations, [rpm, velocity, error])
                 # remove None error value
                 remove_induces = np.array([])
                 for index, element in enumerate(tmp_combinations):
@@ -151,7 +150,7 @@ class Agent:
                 tmp_combinations = np.delete(tmp_combinations, remove_induces, 0)
                 min_combination = tmp_combinations[np.argmin(tmp_combinations[:, 2])]
 
-                combinations = np.append(combinations, [min_combination[0],min_combination[1]]) if len(combinations) == 0 else np.vstack((combinations, [min_combination[0],min_combination[1]]))
+                combinations = append_for_np_array(combinations, [min_combination[0],min_combination[1]])
             ret_combinations[load_condition_to_human(load_condition)] = combinations
 
         return ret_combinations
@@ -195,7 +194,7 @@ class Agent:
         ehp_coefficients = dict.fromkeys(['ehp0', 'ehp1', 'ehp2', 'ehp3', 'ehp4'], 0)
         for ehp_coefficients_key in ehp_coefficients.keys():
             data_key = "%s_%s" % (ehp_coefficients_key, load_condition_to_human(load_condition))
-            ehp_coefficients[ehp_coefficients_key] = hull.base_data[data_key][0]
+            ehp_coefficients[ehp_coefficients_key] = hull.base_data[data_key]
 
         # advance constants
         J = self.calc_advance_constant(velocity, rps, propeller.base_data['D'])
@@ -214,22 +213,28 @@ class Agent:
     
     def calc_optimal_velosity(self, current_date, hull, engine, propeller):
         combinations        = np.array([])
+
         for rpm_first, velocity_first in self.velocity_combination[load_condition_to_human(self.load_condition)]:
             # ignore second parameter when the navigation is return trip
             if is_ballast(self.load_condition):
                 ## when the ship is ballast
                 tmp_combinations = np.array([])
+                # decide velocity of full                
                 for rpm_second, velocity_second in self.velocity_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
                     ND     = self.calc_ND(velocity_first, velocity_second, False, hull)
                     CF_day = self.calc_cash_flow(current_date, rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
-                    pdb.set_trace()
+                    tmp_combinations = append_for_np_array(tmp_combinations, [CF_day, rpm_second, velocity_second])
+                CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
             else:
                 ## when the ship is full (return trip)
                 ND     = self.calc_ND(velocity_first, 0, True, hull)
                 CF_day = self.calc_cash_flow(current_date, velocity_first, 0, hull, engine, ND)
-                pdb.set_trace()
                 
-        return v_knot, rpm            
+            combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
+
+        # decide the velocity
+        CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
+        return optimal_rpm, optimal_velocity
 
     # calc advance constant
     def calc_advance_constant(self, velocity, rps, diameter):
@@ -281,26 +286,24 @@ class Agent:
             bhp_ballast       = self.calc_bhp_with_rps(rpm2rps(rpm_first),  hull, engine, propeller)
             sfoc_ballast      = engine.calc_sfoc(bhp_ballast)
             bhp_full          = self.calc_bhp_with_rps(rpm2rps(rpm_second), hull, engine, propeller)
-            sfoc_full         = 0
+            sfoc_full         = engine.calc_sfoc(bhp_full)
+            # calc fuel_cost per day
             fuel_cost_ballast = (1000 * self.oilprice_ballast) / 159.0 * bhp_ballast * sfoc_ballast * (24.0 / 1000000.0)
             fuel_cost_full    = (1000 * self.oilprice_full)    / 159.0 * bhp_full    * sfoc_full    * (24.0 / 1000000.0)
 
-            pdb.set_trace()
             # for the navigated distance
-            if len(self.log[self.load_condition_to_human()]):
+            if len(self.log[self.load_condition_to_human()]) == 0:
                 first_clause = 0
             else:
-                pdb.set_trace()                
                 average_v    = np.average(self.log[self.load_condition_to_human()])
                 average_rps  = np.average(self.log[self.load_condition_to_human()])
                 first_clause = fuel_cost_ballast * (self.current_distance / 3)
 
             fuel_cost  = first_clause
             # go navigation
-            fuel_cost += fuel_cost_ballast * ( (self.calc_left_distance() - NAVIGATION_DISTANCE) / velocity_first)
+            fuel_cost += fuel_cost_ballast * ( (self.calc_left_distance() - NAVIGATION_DISTANCE) / knot2mileday(velocity_first) )
             # return navigation
-            fuel_cost += fuel_cost_ballast * ( NAVIGATION_DISTANCE / velocity_second)
-            
+            fuel_cost += fuel_cost_full * ( NAVIGATION_DISTANCE / knot2mileday(velocity_second) )
             fuel_cost /= float(ND)
         else:
             # full
@@ -342,3 +345,12 @@ class Agent:
 
     def load_condition_to_human(self):
         return load_condition_to_human(self.load_condition)
+
+    def get_another_load_condition(self):
+        return get_another_condition(self.load_condition)
+
+    def get_another_load_condition_to_human(self):
+        return load_condition_to_human(self.get_another_load_condition())
+
+    def update_velocity_log(self, rpm, v_knot):
+        self.log[self.load_condition_to_human()] = append_for_np_array(self.log[self.load_condition_to_human()], [rpm, v_knot])

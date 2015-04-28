@@ -221,3 +221,12 @@ def init_dict_from_keys_with_array(keys):
 
 def rpm2rps(rpm):
     return rpm / 60.0
+
+# append for np_array
+def append_for_np_array(base_array, add_array):
+    if len(base_array) == 0:
+        base_array = np.append(base_array, add_array)
+    else:
+        base_array = np.vstack((base_array, add_array))
+
+    return base_array

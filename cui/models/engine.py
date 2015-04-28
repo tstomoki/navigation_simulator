@@ -30,7 +30,8 @@ class Engine:
         
     def calc_sfoc(self, bhp):
         load = self.calc_load(bhp)
-        return sfoc
+        return self.base_data['sfoc0'] + self.base_data['sfoc1'] * load + self.base_data['sfoc2'] * math.pow(load, 2)
 
+    # return bhp / max_load  
     def calc_load(self, bhp):
-        pdb.set_trace()
+        return float(bhp) / self.base_data['max_load']

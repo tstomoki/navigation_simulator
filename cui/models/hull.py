@@ -10,10 +10,10 @@ from constants  import *
 # import own modules #
 
 class Hull:
-    def __init__(self, hull_list):
+    def __init__(self, hull_list, hull_id):
         # read designated hull infomation
         if not hull_list is None:
-            self.hull_id   = hull_list['id']
+            self.hull_id   = hull_id
             self.hull_data = self.get_hull_with_id(hull_list)
 
     def showinfo(self):
@@ -25,6 +25,6 @@ class Hull:
         print 'get_hull'
         
     def get_hull_with_id(self, hull_list):
-        self.base_data = hull_list[np.where(hull_list['id']==self.hull_id)]
+        self.base_data = hull_list[np.where(hull_list['id']==self.hull_id)][0]
         return 
 
