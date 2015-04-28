@@ -44,7 +44,7 @@ WAKE_COEFFICIENT = 0.97
 ETA_S = 0.97
 
 # navigation infomation [mile]
-NAVIGATION_DISTANCE = 6590
+NAVIGATION_DISTANCE = 1000
 
 # icr
 DEFAULT_ICR_RATE = 0.05
@@ -66,4 +66,3 @@ PORT_DWELL_DAYS = 2
 
 # Log columns
 LOG_COLUMNS = ['ballast', 'full']
-

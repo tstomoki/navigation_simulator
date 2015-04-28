@@ -213,10 +213,13 @@ def knot2mileday(knot):
     ms = knot2ms(knot)
     return km2mile( ms / 1000.0 * 3600.0 * 24)
 
-def init_dict_from_keys_with_array(keys):
+def init_dict_from_keys_with_array(keys, dtype=None):
     ret_dict = {}
     for key in keys:
-        ret_dict[key] = np.array([])
+        if dtype is None:
+            ret_dict[key] = np.array([])
+        else:
+            ret_dict[key] = np.array([], dtype=dtype)
     return ret_dict
 
 def rpm2rps(rpm):
@@ -228,5 +231,29 @@ def append_for_np_array(base_array, add_array):
         base_array = np.append(base_array, add_array)
     else:
         base_array = np.vstack((base_array, add_array))
-
     return base_array
+
+def print_with_notice(display_str):
+    notice_str = '*' * 60
+    print "%60s" % (notice_str)
+    print "%10s %s %10s" % ('*' * 10, display_str, '*' * 10)
+    print "%60s" % (notice_str)
+    return 
+
+def datetime_to_human(datetime_var):
+    return datetime.datetime.strftime(datetime_var, "%Y/%m/%d")
+
+def str_to_datetime(datetime_str):
+    return datetime.datetime.strptime(datetime_str, "%Y/%m/%d")
+
+def search_near_index(current_date, date_list):
+    tmp_array = np.array([])
+    for index, date_elem in enumerate(date_list):
+        day_delta = ( date2datetime(current_date) - str_to_datetime(date_elem) ).days
+        day_delta = np.abs(day_delta)
+        tmp_array = append_for_np_array(tmp_array, [day_delta, index])
+    day_delta, index = tmp_array[np.argmin(tmp_array, axis=0)[0]]
+    return date_list[index]
+
+def date2datetime(current_date):
+    return datetime.datetime.combine(current_date, datetime.datetime.min.time())
