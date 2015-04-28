@@ -107,19 +107,23 @@ class Agent:
         self.total_cash_flow      = 0
         self.loading_flag         = False
         self.loading_days         = 0
+        self.elapsed_days         = 0
+        self.total_elapsed_days   = 0
 
         for current_date in self.operation_date_array:
             # define voyage_date
             if self.voyage_date is None:
                 self.voyage_date = current_date
 
+            # update total elapsed days
+            self.total_elapsed_days = (current_date - self.voyage_date).days
+                
+            # for loading duration
             if self.is_loading():
                 continue
                 
             # calculate optimized speed and rps
-            self.elapsed_days = 0
-            pdb.set_trace()
-            rpm, v_knot  = self.calc_optimal_velosity(current_date, hull, engine, propeller)
+            CF_day, rpm, v_knot  = self.calc_optimal_velosity(current_date, hull, engine, propeller)
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -131,7 +135,12 @@ class Agent:
                 # ballast -> full
                 print 'ballast trip finished'
                 # calc distance to the port
-                navigated_distance = NAVIGATION_DISTANCE - self.current_distance                
+                navigated_distance = NAVIGATION_DISTANCE   - self.current_distance                                
+                # subtract unnavigated cash flow which depends on the distance
+                pdb.set_trace()
+                discanted_distance = updated_distance - NAVIGATION_DISTANCE
+                CF_day -= self.calc_fuel_cost_with_distance(discanted_distance, rpm, v_knot, hull, engine, propeller)
+                
                 self.current_distance = NAVIGATION_DISTANCE
                 # loading flags
                 self.initiate_loading()
@@ -139,11 +148,16 @@ class Agent:
             elif updated_distance >= self.round_trip_distance:
                 # full -> ballast
                 print 'navigation finished'
+                # calc distance to the port
+                navigated_distance = self.round_trip_distance - self.current_distance                
+                # subtract unnavigated cash flow which depends on the distance
+                discanted_distance = updated_distance - self.current_distance
+                pdb.set_trace()
+                CF_day -= self.calc_fuel_cost_with_distance(discanted_distance, rpm, v_knot, hull, engine, propeller)
                 self.change_load_condition()
                 # reset current_distance
                 self.current_distance = 0
-                # calc distance to the port
-                navigated_distance = self.round_trip_distance - self.current_distance
+
                 pdb.set_trace()
             else:
                 # full -> full or ballast -> ballast
@@ -152,13 +166,23 @@ class Agent:
             # update total distance
             self.total_distance += navigated_distance
             
+            # update elapsed_days
+            self.elapsed_days   += 1
+
+            # update cash flow
+            self.total_cash_flow += CF_day
+          
             # display current infomation
             print "--------------Finished Date: %s--------------" % (current_date)
-            print "%20s: %10s" % ('load condition', self.load_condition_to_human())
-            print "%20s: %10.3lf [mile]" % ('current_distance', self.current_distance)
-            print "%20s: %10.3lf [mile]" % ('total_distance', self.total_distance)
-            print "%20s: %10.3lf [rpm]" % ('rpm', rpm)
-            print "%20s: %10.3lf [knot]" % ('velocity', v_knot)
+            print "%20s: %10d [days]"     % ('elapsed_days', self.elapsed_days)
+            print "%20s: %10d [days]"     % ('total_elapsed_days', self.elapsed_days)
+            print "%20s: %10s"            % ('load condition', self.load_condition_to_human())
+            print "%20s: %10.3lf [mile]"  % ('current_distance', self.current_distance)
+            print "%20s: %10.3lf [mile]"  % ('total_distance', self.total_distance)
+            print "%20s: %10.3lf [rpm]"   % ('rpm', rpm)
+            print "%20s: %10.3lf [knot]"  % ('velocity', v_knot)
+            print "%20s: %10.3lf [$/day]" % ('Cash flow', CF_day)
+            print "%20s: %10.3lf [$]"     % ('Total Cash flow', self.total_cash_flow)
 
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
@@ -252,7 +276,7 @@ class Agent:
 
         for rpm_first, velocity_first in self.velocity_combination[load_condition_to_human(self.load_condition)]:
             # ignore second parameter when the navigation is return trip
-            if is_ballast(self.load_condition):
+            if self.is_ballast():
                 ## when the ship is ballast
                 tmp_combinations = np.array([])
                 # decide velocity of full                
@@ -262,6 +286,7 @@ class Agent:
                     tmp_combinations = append_for_np_array(tmp_combinations, [CF_day, rpm_second, velocity_second])
                 CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
             else:
+                pdb.set_trace()
                 ## when the ship is full (return trip)
                 ND     = self.calc_ND(velocity_first, 0, True, hull)
                 CF_day = self.calc_cash_flow(current_date, velocity_first, 0, hull, engine, ND)
@@ -270,7 +295,7 @@ class Agent:
 
         # decide the velocity
         CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
-        return optimal_rpm, optimal_velocity
+        return CF_day, optimal_rpm, optimal_velocity
 
     # calc advance constant
     def calc_advance_constant(self, velocity, rps, diameter):
@@ -317,7 +342,7 @@ class Agent:
     # calc fuel cost per day    
     def calc_fuel_cost(self, current_date, hull, engine, propeller, ND, rpm_first, velocity_first, rpm_second, velocity_second):
         ret_fuel_cost = 0
-        if self.is_ballast:
+        if self.is_ballast():
             # ballast
             bhp_ballast       = self.calc_bhp_with_rps(rpm2rps(rpm_first),  hull, engine, propeller)
             sfoc_ballast      = engine.calc_sfoc(bhp_ballast)
@@ -331,9 +356,13 @@ class Agent:
             if len(self.log[self.load_condition_to_human()]) == 0:
                 first_clause = 0
             else:
-                average_v    = np.average(self.log[self.load_condition_to_human()])
-                average_rps  = np.average(self.log[self.load_condition_to_human()])
-                first_clause = fuel_cost_ballast * (self.current_distance / 3)
+                # use averaged rps for navigated distance
+                averaged_v    = np.average(self.log[self.load_condition_to_human()])
+                averaged_rpm  = np.average(self.log[self.load_condition_to_human()])
+                averaged_bhp  = self.calc_bhp_with_rps(rpm2rps(averaged_rpm),  hull, engine, propeller)
+                averaged_sfoc = engine.calc_sfoc(averaged_bhp)
+                averaged_fuel_cost = (1000 * self.oilprice_ballast) / 159.0 * averaged_bhp * averaged_sfoc * (24.0 / 1000000.0)
+                first_clause = averaged_fuel_cost * (self.current_distance / knot2mileday(averaged_v) )
 
             fuel_cost  = first_clause
             # go navigation
@@ -344,6 +373,7 @@ class Agent:
         else:
             # full
             print 'WIP'
+            pdb.set_trace()
         
         return fuel_cost
     
@@ -407,4 +437,19 @@ class Agent:
     def initiate_loading(self):
         self.loading_flag = True
         self.loading_days = 0
-        return 
+        return
+    
+    # calc cash flow which depends on the distance
+    def calc_fuel_cost_with_distance(self, discanted_distance, rpm, v_knot, hull, engine, propeller):
+        ret_fuel_cost = 0
+
+        if self.is_ballast():
+            # ballast
+            bhp_ballast       = self.calc_bhp_with_rps(rpm2rps(rpm), hull, engine, propeller)
+            sfoc_ballast      = engine.calc_sfoc(bhp_ballast)
+            # calc fuel_cost per day
+            fuel_cost_ballast = (1000 * self.oilprice_ballast) / 159.0 * bhp_ballast * sfoc_ballast * (24.0 / 1000000.0)
+            fuel_cost         = fuel_cost_ballast * ( (discanted_distance) / knot2mileday(velocity_first) )
+        else:
+            pdb.set_trace()
+        return ret_fuel_cost
