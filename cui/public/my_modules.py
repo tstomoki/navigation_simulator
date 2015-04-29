@@ -316,4 +316,33 @@ def write_csv(ret_hull, engine, propeller, NPV, output_file_path):
     
     f.close()
     return
-    
+
+# for the callback results
+def flatten_3d_to_2d(array_3d):
+    ret_combinations = np.array([])
+    for array_2d in array_3d:
+        if len(ret_combinations) == 0:
+            ret_combinations = array_2d
+        else:
+            ret_combinations = np.r_[ret_combinations, array_2d]
+    return ret_combinations
+
+'''
+def devide_array(combinations, devide_num):
+    ret_combinations   = np.array([])
+    combinations_num   = len(combinations)
+    stride             = math.floor( combinations_num / devide_num)
+    combinations_index = 0
+    while True:
+        if combinations_index + stride >= combinations_num:
+            break
+        start_index   = combinations_index
+        end_index     = combinations_index + stride
+        devided_array = combinations[start_index:end_index]
+        pdb.set_trace()
+        ret_combinations = np.vstack((ret_combinations, devided_array))        
+        combinations_index += stride
+    pdb.set_trace()
+    ret_combinations  = np.vstack((ret_combinations, combinations[start_index:]))
+    return retu_combinations
+'''

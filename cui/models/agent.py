@@ -8,12 +8,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 # import common modules #
 
+# append the load path
+sys.path.append('../public')
+sys.path.append('../models')
+# append the load path
+
 # for multi processing
 import multiprocessing as mp
+import multiprocess_with_instance_methods
 # for multi processing
 
 # import own modules #
-sys.path.append('../public')
 from my_modules import *
 from constants  import *
 # import own modules #
@@ -23,7 +28,6 @@ RESULTSDIR = '../results/'
 # constants #
 
 # import models #
-sys.path.append('../models')
 from hull        import Hull
 from sinario     import Sinario
 from engine      import Engine
@@ -31,7 +35,7 @@ from propeller   import Propeller
 from world_scale import WorldScale
 # import models #
 
-class Agent:
+class Agent(object):
     def __init__(self, sinario, world_scale, retrofit_mode, sinario_mode, hull=None, engine=None, propeller=None):
         self.sinario       = sinario
         self.world_scale   = world_scale
@@ -162,7 +166,8 @@ class Agent:
                 self.voyage_date = self.current_date            
                 
             # calculate optimized speed and rps
-            CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
+            CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)
+            #CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -370,6 +375,26 @@ class Agent:
         # decide the velocity
         CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
         return CF_day, optimal_rpm, optimal_velocity
+
+    def calc_optimal_velosity_m(self, hull, engine, propeller):
+        # devide the range
+        combinations         = self.velocity_combination[load_condition_to_human(self.load_condition)]
+        devided_combinations = np.vsplit(combinations, PROC_NUM)
+
+        # initialize
+        pool = mp.Pool(PROC_NUM)
+
+        # multi processing #
+        callback = [pool.apply_async(self.calc_combinations, args=(index, devided_combinations, hull, engine, propeller)) for index in xrange(PROC_NUM)]
+        callback_combinations = [p.get() for p in callback]
+        ret_combinations      = flatten_3d_to_2d(callback_combinations)
+        pool.close()
+        pool.join()
+        # multi processing #
+        
+        # decide the velocity
+        CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(combinations, axis=0)[0]]
+        return CF_day, optimal_rpm, optimal_velocity    
 
     # calc advance constant
     def calc_advance_constant(self, velocity, rps, diameter):
@@ -681,3 +706,26 @@ class Agent:
 
     def is_dockin(self):
         return self.dockin_flag and (self.current_date <= self.latest_dockin_date)
+
+    ## multi processing method ##
+    def calc_combinations(self, index, devided_combinations, hull, engine, propeller):
+        combinations = np.array([])
+        for rpm_first, velocity_first in devided_combinations[index]:
+            # ignore second parameter when the navigation is return trip
+            if self.is_ballast():
+                ## when the ship is ballast
+                tmp_combinations = np.array([])
+                # decide velocity of full                
+                for rpm_second, velocity_second in self.velocity_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
+                    ND     = self.calc_ND(velocity_first, velocity_second, hull)
+                    CF_day = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
+                    tmp_combinations = append_for_np_array(tmp_combinations, [CF_day, rpm_second, velocity_second])
+                CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
+            else:
+                ## when the ship is full (return trip)
+                ND     = self.calc_ND(velocity_first, 0, hull)
+                CF_day = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
+            combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
+        return combinations
+    ## multi processing method ##
+    
