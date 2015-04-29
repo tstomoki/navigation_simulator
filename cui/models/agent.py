@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 # import common modules #
 
+# for multi processing
+import multiprocessing as mp
+# for multi processing
+
 # import own modules #
 sys.path.append('../public')
 from my_modules import *
