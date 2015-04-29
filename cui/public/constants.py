@@ -11,7 +11,14 @@ RETROFIT_MODE = {'none': 0,
                  'propeller': 1,
                  'propeller_and_engine': 2}
 
+# days taken to load 
 LOAD_DAYS = 2
+
+# dock-in
+## dock-in period [years] 
+DOCK_IN_PERIOD   = 1
+## dock-in duration [month]
+DOCK_IN_DURATION = 1
 
 # 150 [dollars/barrel]
 HIGH_OIL_PRICE = 150

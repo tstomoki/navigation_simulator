@@ -1,6 +1,7 @@
 # import common modules #
 import sys
 import math
+import copy
 import pdb
 import matplotlib.pyplot as plt
 import numpy as np
@@ -125,7 +126,8 @@ class Agent:
         self.loading_flag          = False
         self.loading_days          = 0
         self.elapsed_days          = 0
-
+        self.latest_dockin_date    = self.origin_date
+        self.dockin_flag           = False
         self.ballast_trip_days     = 0
         self.return_trip_days      = 0
         
@@ -135,7 +137,19 @@ class Agent:
 
             # for loading duration
             if self.is_loading():
-                print_with_notice("loading on %s" % (self.current_date))
+                if self.is_ballast():
+                    print_with_notice("unloading on %s" % (self.current_date))
+                else:
+                    print_with_notice("loading on %s" % (self.current_date))
+                # update total elapsed days
+                self.total_elapsed_days += 1
+                continue
+
+            # for dock-in
+            if self.is_dockin():
+                print_with_notice("docking in on %s" % (self.current_date))
+                # update total elapsed days
+                self.total_elapsed_days += 1
                 continue
 
             # define voyage_date
@@ -202,6 +216,9 @@ class Agent:
                 if self.current_date > datetime.date(2014, 1,30):
                     break
                 '''
+                # dock-in flag
+                if self.update_dockin_flag():
+                    self.initiate_dockin()
                 continue
             else:
                 # full -> full or ballast -> ballast
@@ -527,8 +544,6 @@ class Agent:
     def is_loading(self):
         if (self.loading_flag and self.loading_days < LOAD_DAYS):
             self.loading_days += 1
-            # update total elapsed days
-            self.total_elapsed_days += 1
             return True
         else:
             self.loading_flag = False
@@ -647,3 +662,17 @@ class Agent:
     def update_whole_NPV(self):
         self.total_NPV = np.sum(self.NPV['NPV_in_navigation'])
         return self.total_NPV
+
+    def update_dockin_flag(self):
+        latest_dockin_date = copy.deepcopy(self.latest_dockin_date)
+        next_dockin_date   = add_year(latest_dockin_date, DOCK_IN_PERIOD)
+        return self.current_date >= next_dockin_date
+
+    def initiate_dockin(self):
+        left_dock_date          = add_month(copy.deepcopy(self.current_date), DOCK_IN_DURATION)
+        self.latest_dockin_date = left_dock_date
+        self.dockin_flag = True
+        return
+
+    def is_dockin(self):
+        return self.dockin_flag and (self.current_date <= self.latest_dockin_date)

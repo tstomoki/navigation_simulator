@@ -163,15 +163,16 @@ def get_days_num_in_the_month(current_date):
 def first_day_of_month(d):
     return datetime.date(d.year, d.month, 1)
 
-def add_month(current_date):
-    _d, days = cal.monthrange(current_date.year, current_date.month)
-    return current_date + datetime.timedelta(days=days)
+def add_month(current_date, num=1):
+    for _n in range(num):    
+        _d, days      = cal.monthrange(current_date.year, current_date.month)
+        current_date += datetime.timedelta(days=days)
+    return current_date
 
 def add_year(start_date, year_num=1):
     current_date = start_date
     for year_index in range(year_num):
-        for month_index in range(12):
-            current_date = add_month(current_date)
+        current_date = add_month(current_date, 12)
     return current_date
 
 # return true with a prob_value [%] possibility
