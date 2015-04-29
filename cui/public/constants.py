@@ -1,3 +1,7 @@
+# dir path from models
+RESULT_DIR_PATH    = '../results'
+AGNET_LOG_DIR_PATH = "%s/agent_log" % (RESULT_DIR_PATH)
+
 DEFAULT_PREDICT_YEARS    = 15
 
 OPERATION_DURATION_YEARS = 15
@@ -16,7 +20,7 @@ LOAD_DAYS = 2
 
 # dock-in
 ## dock-in period [years] 
-DOCK_IN_PERIOD   = 1
+DOCK_IN_PERIOD   = 2
 ## dock-in duration [month]
 DOCK_IN_DURATION = 1
 
@@ -51,7 +55,9 @@ WAKE_COEFFICIENT = 0.97
 ETA_S = 0.97
 
 # navigation infomation [mile]
-NAVIGATION_DISTANCE = 1000
+NAVIGATION_DISTANCE = 6590
+## for dev
+#NAVIGATION_DISTANCE = 1000
 
 # icr
 DEFAULT_ICR_RATE = 0.05

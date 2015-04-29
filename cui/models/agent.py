@@ -3,6 +3,7 @@ import sys
 import math
 import copy
 import pdb
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 # import common modules #
@@ -38,13 +39,15 @@ class Agent:
         self.rpm_array      = np.arange(RPM_RANGE['from'], RPM_RANGE['to'], RPM_RANGE['stride'])            
         
         if (hull is None or engine is None or propeller is None):
-            NPV, self.hull, self.engine, self.propeller = self.get_initial_design()
+            output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
+            initializeDirHierarchy(output_dir_path)
+            NPV, self.hull, self.engine, self.propeller = self.get_initial_design(output_dir_path)
         else:
             self.hull, self.engine, self.propeller = hull, engine, propeller
        
            
     ### full search with hull, engine and propeller
-    def get_initial_design(self):
+    def get_initial_design(self, output_dir_path):
         # load components list
         hull_list           = load_hull_list()
         engine_list         = load_engine_list()
@@ -73,19 +76,17 @@ class Agent:
                                         ret_hull.base_data['id'],
                                         engine.base_data['id'],
                                         propeller.base_data['id'])],
-                                      dtype=dtype)
+                                        dtype=dtype)
                 design_array = append_for_np_array(design, add_design)
                 # update design #
-
+                # write simmulation result
+                output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
+                write_csv(ret_hull, engine, propeller, NPV, output_file_path)
         # get design whose NPV is the maximum
         NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
         hull      = Hull(hull_list, 1)
         engine    = Engine(engine_list, engine_id) 
         propeller = Propeller(propeller_list, propeller_id)
-        
-        # write simmulation result
-        pass
-        
         return NPV, hull, engine, propeller
 
     def simmulate(self, hull, engine, propeller):

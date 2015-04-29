@@ -1,5 +1,6 @@
 # import common modules #
 import math
+import os
 import sys
 import pdb
 import datetime
@@ -7,12 +8,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 import calendar as cal
 import random
+import csv
 # import common modules #
 
 # import own modules #
 sys.path.append('../public')
 from constants  import *
 # import own modules #
+
+#initialize dir_name
+def initializeDir(dir_name):
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    return
+
+#initialize dir_name
+def initializeDirHierarchy(dir_name):
+    split_dir_names = dir_name.split('/')
+    if len(split_dir_names) == 0:
+        return 
+    initialize_dir = split_dir_names[0]
+    initializeDir(initialize_dir)
+    for split_dir_name in split_dir_names[1:]:
+        initialize_dir += '/' + split_dir_name
+        initializeDir(initialize_dir)
+    return
 
 def graphInitializer(title, x_label, y_label):
     # clear graph
@@ -26,6 +46,7 @@ def graphInitializer(title, x_label, y_label):
     plt.ylabel(y_label,       fontweight="bold")
     # draw origin line
     plt.axhline(linewidth=1.5, color='k')
+    return
 
 def mkdate(text):
     return datetime.datetime.strptime(text, '%Y/%m/%d')
@@ -268,4 +289,31 @@ def number_with_delimiter(num):
     import locale
     locale.setlocale(locale.LC_ALL, 'en_US')
     return locale.format("%0.4lf", num, grouping=True)
+
+def generate_timestamp():
+    return datetime.datetime.now().strftime('%Y%m%d%H%M')
+
+def write_csv(ret_hull, engine, propeller, NPV, output_file_path):
+    # for initial write
+    write_column_flg = False if os.path.exists(output_file_path) else True
+    
+    # input data #
+    columns = ['hull_id',
+               'engine_name',
+               'propeller_name',
+               'NPV']
+    row     = [ret_hull.base_data['id'],
+               engine.base_data['name'],
+               propeller.base_data['name'],
+               NPV]
+    
+    # write file
+    f = open(output_file_path, 'a')
+    csvWriter = csv.writer(f)
+    if write_column_flg:
+        csvWriter.writerow(columns)
+    csvWriter.writerow(row)
+    
+    f.close()
+    return
     
