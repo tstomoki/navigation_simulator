@@ -77,7 +77,7 @@ class Agent:
                                         engine.base_data['id'],
                                         propeller.base_data['id'])],
                                         dtype=dtype)
-                design_array = append_for_np_array(design, add_design)
+                design_array = append_for_np_array(design_array, add_design)
                 # update design #
                 # write simmulation result
                 output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
