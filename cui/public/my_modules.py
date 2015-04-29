@@ -156,6 +156,10 @@ def load_world_scale_history_data(from_date=None, to_date=None):
                 break
     return data[index:]
 
+def get_days_num_in_the_month(current_date):
+    _, days_num = cal.monthrange(current_date.year, current_date.month)
+    return days_num
+
 def first_day_of_month(d):
     return datetime.date(d.year, d.month, 1)
 
@@ -234,10 +238,10 @@ def append_for_np_array(base_array, add_array):
     return base_array
 
 def print_with_notice(display_str):
-    notice_str = '*' * 60
-    print "%60s" % (notice_str)
+    notice_str = '*' * 80
+    print "%80s" % (notice_str)
     print "%10s %s %10s" % ('*' * 10, display_str, '*' * 10)
-    print "%60s" % (notice_str)
+    print "%80s" % (notice_str)
     return 
 
 def datetime_to_human(datetime_var):
@@ -257,3 +261,10 @@ def search_near_index(current_date, date_list):
 
 def date2datetime(current_date):
     return datetime.datetime.combine(current_date, datetime.datetime.min.time())
+
+# return string num
+def number_with_delimiter(num):
+    import locale
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    return locale.format("%0.4lf", num, grouping=True)
+    

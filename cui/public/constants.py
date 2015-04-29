@@ -66,3 +66,6 @@ PORT_DWELL_DAYS = 2
 
 # Log columns
 LOG_COLUMNS = ['ballast', 'full']
+
+# discount rate
+DISCOUNT_RATE = 0.05

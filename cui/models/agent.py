@@ -92,9 +92,21 @@ class Agent:
         # load condition [ballast, full]
         self.load_condition = INITIAL_LOAD_CONDITION
 
+        # static variables 
         self.operation_date_array  = self.generate_operation_date(self.sinario.predicted_data['date'][0])
         self.origin_date           = self.operation_date_array[0]
         self.retire_date           = self.operation_date_array[-1]
+        self.round_trip_distance   = NAVIGATION_DISTANCE * 2.0
+        self.NPV                   = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
+                                                           'formats': ('S20' , np.float)}))        
+        self.log                   = init_dict_from_keys_with_array(LOG_COLUMNS,
+                                                                    np.dtype({'names': ('rpm', 'velocity'),
+                                                                              'formats': (np.float , np.float)}))
+        self.total_cash_flow       = 0
+        self.total_distance        = 0
+        self.total_elapsed_days    = 0
+
+        # dynamic variables
         self.current_distance      = 0
         self.left_distance_to_port = NAVIGATION_DISTANCE
         self.voyage_date           = self.origin_date
@@ -102,32 +114,26 @@ class Agent:
         self.oilprice_ballast      = self.sinario.history_data[-1]['price']
         self.oilprice_full         = self.sinario.history_data[-1]['price']
         self.current_fare          = self.world_scale.calc_fare(self.previous_oilprice)
-        self.log                   = init_dict_from_keys_with_array(LOG_COLUMNS,
-                                                                    np.dtype({'names': ('rpm', 'velocity'),
-                                                                              'formats': (np.float , np.float)}))
-        self.round_trip_distance   = NAVIGATION_DISTANCE * 2.0
-        self.total_distance        = 0
         self.cash_flow             = 0
-        self.total_cash_flow       = 0
         self.loading_flag          = False
         self.loading_days          = 0
         self.elapsed_days          = 0
-        self.total_elapsed_days    = 0
+
         self.ballast_trip_days     = 0
         self.return_trip_days      = 0
-        self.NPV = np.array([],np.dtype({'names': ('navigation', 'PV'),
-                                         'formats': ('S10' , np.float)}))
+        
         for current_date in self.operation_date_array:
             # update current_date
             self.current_date = current_date
-            # define voyage_date
-            if self.voyage_date is None:
-                self.voyage_date = self.current_date
 
             # for loading duration
             if self.is_loading():
                 print_with_notice("loading on %s" % (self.current_date))
                 continue
+
+            # define voyage_date
+            if self.voyage_date is None:
+                self.voyage_date = self.current_date            
                 
             # calculate optimized speed and rps
             CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
@@ -164,6 +170,8 @@ class Agent:
                 # subtract unnavigated cash flow which depends on the distance
                 discounted_distance = updated_distance - self.round_trip_distance
                 CF_day -= self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
+                # loading flags (unloading)
+                self.initiate_loading()
                 self.change_load_condition()
                 # update oil price'
                 self.update_oilprice_and_fare()
@@ -173,6 +181,15 @@ class Agent:
 
                 # calc Net Present Value
                 self.update_NPV_in_navigation()
+                # NPV
+                self.display_latest_NPV()
+                # initialize the vairables
+                self.current_distance = 0
+                self.cash_flow     = 0
+                self.elapsed_days  = 0
+                self.voyage_date   = None
+                self.left_distance_to_port = NAVIGATION_DISTANCE
+                continue
             else:
                 # full -> full or ballast -> ballast
                 self.current_distance      += navigated_distance
@@ -192,19 +209,19 @@ class Agent:
 
             # display current infomation
             print "--------------Finished Date: %s--------------" % (self.current_date)
-            print "%25s: %10d [days]"     % ('ballast trip days', self.ballast_trip_days)
-            print "%25s: %10d [days]"     % ('return trip days', self.return_trip_days)
-            print "%25s: %10d [days]"     % ('elapsed_days', self.elapsed_days)
-            print "%25s: %10d [days]"     % ('total_elapsed_days', self.total_elapsed_days)
-            print "%25s: %10s"            % ('load condition', self.load_condition_to_human())
-            print "%25s: %10.3lf [mile]"  % ('navigated_distance', navigated_distance)
-            print "%25s: %10.3lf [mile]"  % ('current_distance', self.current_distance)
+            print "%25s: %10d [days]"     % ('ballast trip days'    , self.ballast_trip_days)
+            print "%25s: %10d [days]"     % ('return trip days'     , self.return_trip_days)
+            print "%25s: %10d [days]"     % ('elapsed_days'         , self.elapsed_days)
+            print "%25s: %10d [days]"     % ('total_elapsed_days'   , self.total_elapsed_days)
+            print "%25s: %10s"            % ('load condition'       , self.load_condition_to_human())
+            print "%25s: %10.3lf [mile]"  % ('navigated_distance'   , navigated_distance)
+            print "%25s: %10.3lf [mile]"  % ('current_distance'     , self.current_distance)
             print "%25s: %10.3lf [mile]"  % ('left_distance_to_port', self.left_distance_to_port)
-            print "%25s: %10.3lf [mile]"  % ('total_distance', self.total_distance)
-            print "%25s: %10.3lf [rpm]"   % ('rpm', rpm)
-            print "%25s: %10.3lf [knot]"  % ('velocity', v_knot)
-            print "%25s: %10.3lf [$/day]" % ('Cash flow', CF_day)
-            print "%25s: %10.3lf [$]"     % ('Total Cash flow', self.total_cash_flow)
+            print "%25s: %10.3lf [mile]"  % ('total_distance'       , self.total_distance)
+            print "%25s: %10.3lf [rpm]"   % ('rpm'                  , rpm)
+            print "%25s: %10.3lf [knot]"  % ('velocity'             , v_knot)
+            print "%25s: %10s [$/day]"    % ('Cash flow'            , number_with_delimiter(CF_day))
+            print "%25s: %10s [$]"        % ('Total Cash flow'      , number_with_delimiter(self.total_cash_flow))
 
         # update whole NPV in vessel life time
         self.update_whole_NPV()
@@ -484,6 +501,12 @@ class Agent:
         self.log[self.load_condition_to_human()] = append_for_np_array(self.log[self.load_condition_to_human()], add_array)
         return
 
+    def update_NPV_log(self, NPV_in_navigation):
+        dtype     = np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),'formats': ('S20' , np.float)})
+        add_array = np.array([(datetime_to_human(self.current_date), NPV_in_navigation)], dtype=dtype)
+        self.NPV = append_for_np_array(self.NPV, add_array)
+        return
+
     def change_load_condition(self):
         self.load_condition = self.get_another_load_condition()
         return
@@ -572,11 +595,12 @@ class Agent:
         pdb.set_trace()
         return    
 
-    # PV = CF_in_navigation / (1-r)^elapsed_month
+    # PV = CF_in_navigation / (1-Discount_rate)^elapsed_month
     def update_NPV_in_navigation(self):
-        denominator = 0
-        self.cash_flow / self.elapsed_days
-        pdb.set_trace()
+        denominator       = math.pow( (1 - DISCOUNT_RATE), self.calc_elapsed_month())
+        numerator         = self.cash_flow
+        NPV_in_navigation = numerator / denominator
+        self.update_NPV_log(NPV_in_navigation)
         return
                 
     def calc_present_value_in_navigation(self, left_days, CF_day):
@@ -591,4 +615,22 @@ class Agent:
         ret_present_value += self.cash_flow
         ret_present_value += CF_day * left_days
         return ret_present_value            
+
+    # including a potential error
+    def calc_elapsed_month(self):
+        days_delta_from_voyage = (self.current_date - self.voyage_date).days
+        days_num               = get_days_num_in_the_month(self.current_date)
+        ret_elapsed_month      = days_delta_from_voyage / float(days_num)
+        return ret_elapsed_month
+
+    def display_latest_NPV(self):
+        try:
+            date, npv = self.NPV[-1]
+        except:
+            date, npv = self.NPV[-1][0]
+        print_with_notice("Present Value on %15s: %20s" % (date, number_with_delimiter(npv)))
+        return 
         
+    def update_whole_NPV(self):
+        pdb.set_trace()
+        return
