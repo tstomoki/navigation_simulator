@@ -5,6 +5,12 @@ AGNET_LOG_DIR_PATH = "%s/agent_log" % (RESULT_DIR_PATH)
 # dir path from scripts
 NOHUP_LOG_DIR_PATH    = '../nohup'
 
+# for multiprocessing
+import getpass
+current_user = getpass.getuser()
+PROC_NUM = 15 if current_user == 'tsaito' else 1
+# for multiprocessing
+
 DEFAULT_PREDICT_YEARS    = 15
 
 OPERATION_DURATION_YEARS = 15
