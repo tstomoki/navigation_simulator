@@ -10,20 +10,21 @@ from constants  import *
 # import own modules #
 
 class Engine:
-    def __init__(self, engine_info):
+    def __init__(self, engine_list, engine_id):
         # read designated engine infomation
-        if not engine_info is None:
-            self.engine_id   = engine_info['id']
-            self.engine_data = self.get_engine(engine_info)        
+        if not engine_list is None:
+            self.engine_id   = engine_id
+            self.engine_data = self.get_engine_with_id(engine_list)        
 
     def showinfo(self):
         print '----------------------'
         print "  engine-%d infomation" % (self.engine_num)
         print '----------------------'
 
-    def get_engine(self, sinario, world_scale):
-        print 'get_engine'
-
+    def get_engine_with_id(self, engine_list):
+        self.base_data = engine_list[np.where(engine_list['id']==self.engine_id)][0]
+        return
+    
     def get_engine(self, engine_info):
         self.base_data = engine_info
         return 

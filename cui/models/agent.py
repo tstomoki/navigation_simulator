@@ -37,7 +37,7 @@ class Agent:
         self.rpm_array      = np.arange(RPM_RANGE['from'], RPM_RANGE['to'], RPM_RANGE['stride'])            
         
         if (hull is None or engine is None or propeller is None):
-            self.hull, self.engine, self.propeller = self.get_initial_design()
+            NPV, self.hull, self.engine, self.propeller = self.get_initial_design()
         else:
             self.hull, self.engine, self.propeller = hull, engine, propeller
        
@@ -59,27 +59,33 @@ class Agent:
         ### default flat_rate is 50 [%]
         self.world_scale.set_flat_rate(50)
 
-        design = {}
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),'formats': (np.int , np.int, np.int, np.float)})
+        design_array = np.array([], dtype=dtype)
         for engine_info in engine_list:
-            engine = Engine(engine_info)
+            engine = Engine(engine_list, engine_info['id'])
             for propeller_info in propeller_list:
-                propeller = Propeller(propeller_info)
+                propeller = Propeller(propeller_list, propeller_info['id'])
                 # conduct simmulation
                 NPV = self.simmulate(ret_hull, engine, propeller)
                 # update design #
-                if len(design) == 0:
-                    design['hull']      = ret_hull
-                    design['engine']    = engine
-                    design['propeller'] = propeller
-                    design['NPV']       = NPV
-                elif design['NPV'] < NPV:
-                    design['hull']      = ret_hull
-                    design['engine']    = engine
-                    design['propeller'] = propeller
-                    design['NPV']       = NPV
+                add_design   = np.array([(NPV,
+                                        ret_hull.base_data['id'],
+                                        engine.base_data['id'],
+                                        propeller.base_data['id'])],
+                                      dtype=dtype)
+                design_array = append_for_np_array(design, add_design)
                 # update design #
 
-        return design['hull'], design['engine'], design['propeller'], design['NPV']
+        # get design whose NPV is the maximum
+        NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
+        hull      = Hull(hull_list, 1)
+        engine    = Engine(engine_list, engine_id) 
+        propeller = Propeller(propeller_list, propeller_id)
+        
+        # write simmulation result
+        pass
+        
+        return NPV, hull, engine, propeller
 
     def simmulate(self, hull, engine, propeller):
         # initialize retrofit_count
@@ -103,6 +109,7 @@ class Agent:
                                                                     np.dtype({'names': ('rpm', 'velocity'),
                                                                               'formats': (np.float , np.float)}))
         self.total_cash_flow       = 0
+        self.total_NPV             = 0
         self.total_distance        = 0
         self.total_elapsed_days    = 0
 
@@ -189,6 +196,12 @@ class Agent:
                 self.elapsed_days  = 0
                 self.voyage_date   = None
                 self.left_distance_to_port = NAVIGATION_DISTANCE
+
+                '''
+                # for dev
+                if self.current_date > datetime.date(2014, 1,30):
+                    break
+                '''
                 continue
             else:
                 # full -> full or ballast -> ballast
@@ -224,7 +237,7 @@ class Agent:
             print "%25s: %10s [$]"        % ('Total Cash flow'      , number_with_delimiter(self.total_cash_flow))
 
         # update whole NPV in vessel life time
-        self.update_whole_NPV()
+        return self.update_whole_NPV()
 
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
@@ -632,5 +645,5 @@ class Agent:
         return 
         
     def update_whole_NPV(self):
-        pdb.set_trace()
-        return
+        self.total_NPV = np.sum(self.NPV['NPV_in_navigation'])
+        return self.total_NPV
