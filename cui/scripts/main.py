@@ -53,5 +53,7 @@ def run():
 
 # authorize exeucation as main script
 if __name__ == '__main__':
+    #nohup_dir_path = "%s/%s" % (NOHUP_LOG_DIR_PATH, generate_timestamp())
+    #initializeDirHierarchy(nohup_dir_path)
     run()
 

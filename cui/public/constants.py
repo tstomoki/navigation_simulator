@@ -2,6 +2,9 @@
 RESULT_DIR_PATH    = '../results'
 AGNET_LOG_DIR_PATH = "%s/agent_log" % (RESULT_DIR_PATH)
 
+# dir path from scripts
+NOHUP_LOG_DIR_PATH    = '../nohup'
+
 DEFAULT_PREDICT_YEARS    = 15
 
 OPERATION_DURATION_YEARS = 15
