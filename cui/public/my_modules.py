@@ -293,26 +293,16 @@ def number_with_delimiter(num):
 def generate_timestamp():
     return datetime.datetime.now().strftime('%Y%m%d%H%M')
 
-def write_csv(ret_hull, engine, propeller, NPV, output_file_path):
+def write_csv(column_names, write_data, output_file_path):
     # for initial write
     write_column_flg = False if os.path.exists(output_file_path) else True
-    
-    # input data #
-    columns = ['hull_id',
-               'engine_name',
-               'propeller_name',
-               'NPV']
-    row     = [ret_hull.base_data['id'],
-               engine.base_data['name'],
-               propeller.base_data['name'],
-               NPV]
     
     # write file
     f = open(output_file_path, 'a')
     csvWriter = csv.writer(f)
     if write_column_flg:
-        csvWriter.writerow(columns)
-    csvWriter.writerow(row)
+        csvWriter.writerow(column_names)
+    csvWriter.writerow(write_data)
     
     f.close()
     return

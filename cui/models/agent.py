@@ -73,11 +73,18 @@ class Agent(object):
         self.world_scale.set_flat_rate(50)
 
         dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),'formats': (np.int , np.int, np.int, np.float)})
-        design_array = np.array([], dtype=dtype)
+        design_array    = np.array([], dtype=dtype)
+        simmulate_count = 0
+        column_names    = ['simmulate_count',
+                           'ret_hull',
+                           'engine',
+                           'propeller',
+                           'NPV']
         for engine_info in engine_list:
             engine = Engine(engine_list, engine_info['id'])
             for propeller_info in propeller_list:
                 propeller = Propeller(propeller_list, propeller_info['id'])
+                print_with_notice("conducting the %10d th combination" % (simmulate_count + 1))
                 # conduct simmulation
                 NPV = self.simmulate(ret_hull, engine, propeller)
                 # update design #
@@ -90,7 +97,13 @@ class Agent(object):
                 # update design #
                 # write simmulation result
                 output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-                write_csv(ret_hull, engine, propeller, NPV, output_file_path)
+                write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV], output_file_path)
+                simmulate_count += 1
+                # for dev # 
+                #if simmulate_count == 2:
+                    #break
+                # for dev #                 
+                    
         # get design whose NPV is the maximum
         NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
         hull      = Hull(hull_list, 1)

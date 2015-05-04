@@ -11,9 +11,13 @@ current_user = getpass.getuser()
 PROC_NUM = 15 if current_user == 'tsaito' else 2
 # for multiprocessing
 
-DEFAULT_PREDICT_YEARS    = 15
-
 OPERATION_DURATION_YEARS = 15
+DEFAULT_PREDICT_YEARS    = OPERATION_DURATION_YEARS
+
+# navigation infomation [mile]
+NAVIGATION_DISTANCE = 6590
+## for dev
+#NAVIGATION_DISTANCE = 1000
 
 DERIVE_SINARIO_MODE   = {'high': 0,
                          'low': 1,
@@ -62,11 +66,6 @@ WAKE_COEFFICIENT = 0.97
 
 # eta
 ETA_S = 0.97
-
-# navigation infomation [mile]
-NAVIGATION_DISTANCE = 6590
-## for dev
-#NAVIGATION_DISTANCE = 1000
 
 # icr
 DEFAULT_ICR_RATE = 0.05
