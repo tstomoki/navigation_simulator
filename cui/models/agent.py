@@ -50,6 +50,7 @@ class Agent(object):
             output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
             initializeDirHierarchy(output_dir_path)
             NPV, self.hull, self.engine, self.propeller = self.get_initial_design(output_dir_path)
+            # NPV, self.hull, self.engine, self.propeller = self.get_initial_design_m(output_dir_path)
         else:
             self.hull, self.engine, self.propeller = hull, engine, propeller
        
@@ -90,6 +91,46 @@ class Agent(object):
                 # write simmulation result
                 output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
                 write_csv(ret_hull, engine, propeller, NPV, output_file_path)
+        # get design whose NPV is the maximum
+        NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
+        hull      = Hull(hull_list, 1)
+        engine    = Engine(engine_list, engine_id) 
+        propeller = Propeller(propeller_list, propeller_id)
+        return NPV, hull, engine, propeller
+
+    ### full search with hull, engine and propeller
+    # multi processing method #
+    def get_initial_design_m(self, output_dir_path):
+        # load components list
+        hull_list           = load_hull_list()
+        engine_list         = load_engine_list()
+        propeller_list      = load_propeller_list()
+
+        ## hull
+        ### list has only 1 hull
+        ret_hull = Hull(hull_list, 1)
+
+        # devide the range of propeller list
+        propeller_combinations = np.array_split(propeller_list, PROC_NUM)
+        
+        ### full search with sinario and world_scale
+        self.sinario.generate_sinario(self.sinario_mode)
+        ### default flat_rate is 50 [%]
+        self.world_scale.set_flat_rate(50)
+
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),'formats': (np.int , np.int, np.int, np.float)})
+        # initialize
+        pool = mp.Pool(PROC_NUM)
+
+        # multi processing #
+        callback = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
+        callback_combinations = [p.get() for p in callback]
+        ret_combinations      = flatten_3d_to_2d(callback_combinations)
+        pool.close()
+        pool.join()
+        # multi processing #
+        pdb.set_trace()
+        
         # get design whose NPV is the maximum
         NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
         hull      = Hull(hull_list, 1)
@@ -166,8 +207,8 @@ class Agent(object):
                 self.voyage_date = self.current_date            
                 
             # calculate optimized speed and rps
-            CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)
             #CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
+            CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)            
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -376,6 +417,7 @@ class Agent(object):
         CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
         return CF_day, optimal_rpm, optimal_velocity
 
+    # multi processing method #
     def calc_optimal_velosity_m(self, hull, engine, propeller):
         # devide the range
         combinations         = self.velocity_combination[load_condition_to_human(self.load_condition)]
@@ -393,7 +435,7 @@ class Agent(object):
         # multi processing #
         
         # decide the velocity
-        CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(combinations, axis=0)[0]]
+        CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(ret_combinations, axis=0)[0]]
         return CF_day, optimal_rpm, optimal_velocity    
 
     # calc advance constant
@@ -727,5 +769,26 @@ class Agent(object):
                 CF_day = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
             combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
         return combinations
+    
+    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list):
+        design_array = np.array([])
+        for propeller_info in propeller_combinations[index]:
+            propeller = Propeller(propeller_list, propeller_info['id'])
+            for engine_info in engine_list:
+                engine = Engine(engine_list, engine_info['id'])
+                # conduct simmulation
+                NPV = self.simmulate(ret_hull, engine, propeller)
+                # update design #
+                add_design   = np.array([(NPV,
+                                        ret_hull.base_data['id'],
+                                        engine.base_data['id'],
+                                        propeller.base_data['id'])],
+                                        dtype=dtype)
+                design_array = append_for_np_array(design_array, add_design)
+                # update design #
+                # write simmulation result
+                output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
+                write_csv(ret_hull, engine, propeller, NPV, output_file_path)
+        return design_array    
     ## multi processing method ##
     
