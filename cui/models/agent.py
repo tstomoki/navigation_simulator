@@ -344,10 +344,14 @@ class Agent(object):
                     if element[2] is None:
                         remove_induces = np.append(remove_induces, index)
                 tmp_combinations = np.delete(tmp_combinations, remove_induces, 0)
-                min_combination = tmp_combinations[np.argmin(tmp_combinations[:, 2])]
-
-                combinations = append_for_np_array(combinations, [min_combination[0],min_combination[1]])
-            ret_combinations[load_condition_to_human(load_condition)] = combinations
+                # for no combinations case
+                if len(tmp_combinations) > 0:
+                    min_combination = tmp_combinations[np.argmin(tmp_combinations[:, 2])]
+                    combinations = append_for_np_array(combinations, [min_combination[0],min_combination[1]])
+                    ret_combinations[load_condition_to_human(load_condition)] = combinations
+                else:
+                    # beyond the potential of the components (e.g. max_load or so on)
+                    pass
 
         return ret_combinations
 

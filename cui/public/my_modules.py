@@ -336,3 +336,11 @@ def devide_array(combinations, devide_num):
     ret_combinations  = np.vstack((ret_combinations, combinations[start_index:]))
     return retu_combinations
 '''
+
+def error_printer(exception):
+    print '================================= Error detail ================================='
+    print "%10s: %s" % ('type'   , str(type(exception)))
+    print "%10s: %s" % ('args'   , str(exception.args))
+    print "%10s: %s" % ('message', exception.message)
+    print "%10s: %s" % ('error'  , str(exception))
+    print '================================= Error detail ================================='
