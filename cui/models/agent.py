@@ -99,10 +99,6 @@ class Agent(object):
                 output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
                 write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV], output_file_path)
                 simmulate_count += 1
-                # for dev # 
-                #if simmulate_count == 2:
-                    #break
-                # for dev #                 
                     
         # get design whose NPV is the maximum
         NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
@@ -275,11 +271,6 @@ class Agent(object):
                 self.voyage_date   = None
                 self.left_distance_to_port = NAVIGATION_DISTANCE
 
-                '''
-                # for dev
-                if self.current_date > datetime.date(2014, 1,30):
-                    break
-                '''
                 # dock-in flag
                 if self.update_dockin_flag():
                     self.initiate_dockin()
@@ -438,7 +429,7 @@ class Agent(object):
     def calc_optimal_velosity_m(self, hull, engine, propeller):
         # devide the range
         combinations         = self.velocity_combination[load_condition_to_human(self.load_condition)]
-        devided_combinations = np.vsplit(combinations, PROC_NUM)
+        devided_combinations = np.array_split(combinations, PROC_NUM)
 
         # initialize
         pool = mp.Pool(PROC_NUM)
