@@ -344,3 +344,10 @@ def error_printer(exception):
     print "%10s: %s" % ('message', exception.message)
     print "%10s: %s" % ('error'  , str(exception))
     print '================================= Error detail ================================='
+
+# seconds -> MM:HH:SS
+def convert_second(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes   = divmod(minutes, 60)
+    return "%02d:%02d:%02d" % (hours, minutes, seconds)
+    

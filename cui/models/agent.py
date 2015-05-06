@@ -6,6 +6,7 @@ import pdb
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 # import common modules #
 
 # append the load path
@@ -79,7 +80,10 @@ class Agent(object):
                            'ret_hull',
                            'engine',
                            'propeller',
-                           'NPV']
+                           'NPV',
+                           'processing_time'
+        ]
+        start_time = time.clock()
         for engine_info in engine_list:
             engine = Engine(engine_list, engine_info['id'])
             for propeller_info in propeller_list:
@@ -97,7 +101,8 @@ class Agent(object):
                 # update design #
                 # write simmulation result
                 output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-                write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV], output_file_path)
+                lap_time         = convert_second(time.clock() - start_time)
+                write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV, lap_time], output_file_path)
                 simmulate_count += 1
                     
         # get design whose NPV is the maximum
