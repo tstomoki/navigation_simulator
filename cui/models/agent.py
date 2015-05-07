@@ -144,6 +144,10 @@ class Agent(object):
         pool.join()
         # multi processing #
         pdb.set_trace()
+        # update design #
+        # write simmulation result
+        output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
+        write_csv(ret_hull, engine, propeller, NPV, output_file_path)                        
         
         # get design whose NPV is the maximum
         NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
@@ -815,10 +819,6 @@ class Agent(object):
                                         propeller.base_data['id'])],
                                         dtype=dtype)
                 design_array = append_for_np_array(design_array, add_design)
-                # update design #
-                # write simmulation result
-                output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-                write_csv(ret_hull, engine, propeller, NPV, output_file_path)
         return design_array    
     ## multi processing method ##
     
