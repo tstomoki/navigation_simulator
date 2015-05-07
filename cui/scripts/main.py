@@ -36,6 +36,12 @@ def run():
     sinario_mode  = DERIVE_SINARIO_MODE['maintain']
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
 
+
+    # get initial design #
+    output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
+    initializeDirHierarchy(output_dir_path)
+    NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
+    # get initial design #
     '''
     # for design 1
     retrofit_mode = RETROFIT_MODE['high']
@@ -47,7 +53,7 @@ def run():
     sinario_mode  = DERIVE_SINARIO_MODE['propeller_and_engine']
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
     '''
-    
+    return 
 
 
 

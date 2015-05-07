@@ -311,6 +311,10 @@ def write_csv(column_names, write_data, output_file_path):
 def flatten_3d_to_2d(array_3d):
     ret_combinations = np.array([])
     for array_2d in array_3d:
+        # ignore the vacant array
+        if len(array_2d) == 0:
+            continue
+
         if len(ret_combinations) == 0:
             ret_combinations = array_2d
         else:

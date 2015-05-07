@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from types import *
 # import common modules #
 
 # append the load path
@@ -37,24 +38,34 @@ from world_scale import WorldScale
 # import models #
 
 class Agent(object):
-    def __init__(self, sinario, world_scale, retrofit_mode, sinario_mode, hull=None, engine=None, propeller=None):
-        self.sinario       = sinario
-        self.world_scale   = world_scale
-        self.retrofit_mode = retrofit_mode
-        self.sinario_mode  = sinario_mode
-        self.icr           = DEFAULT_ICR_RATE
+    def __init__(self, sinario, world_scale, retrofit_mode, sinario_mode, icr=None, hull=None, engine=None, propeller=None):
+        self.sinario        = sinario
+        self.world_scale    = world_scale
+        self.retrofit_mode  = retrofit_mode
+        self.sinario_mode   = sinario_mode
+        self.icr            = DEFAULT_ICR_RATE if icr is None else icr
         # initialize the range of velosity and rps
         self.velocity_array = np.arange(VELOCITY_RANGE['from'], VELOCITY_RANGE['to'], VELOCITY_RANGE['stride'])
         self.rpm_array      = np.arange(RPM_RANGE['from'], RPM_RANGE['to'], RPM_RANGE['stride'])            
         
-        if (hull is None or engine is None or propeller is None):
-            output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
-            initializeDirHierarchy(output_dir_path)
-            NPV, self.hull, self.engine, self.propeller = self.get_initial_design(output_dir_path)
-            # NPV, self.hull, self.engine, self.propeller = self.get_initial_design_m(output_dir_path)
-        else:
+        if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
-       
+
+    # display base data
+    def dispay_variables(self):
+        for variable_key in self.__dict__.keys():
+            instance_variable_key = "self.%s" % (variable_key)
+            instance_variable     = eval(instance_variable_key)
+            if isinstance(instance_variable, NoneType):
+                print "%25s: %20s" % (instance_variable_key, 'NoneType')
+            elif isinstance(instance_variable, np.ndarray):
+                print "%25s: %20s" % (instance_variable_key, 'Numpy with length (%d)' % (len(instance_variable)))                
+            elif isinstance(instance_variable, DictType):
+                key_str = ', '.join([_k for _k in instance_variable.keys()])
+                print "%25s: %20s" % (instance_variable_key, 'DictType with keys % 10s' % (key_str))
+            else:
+                print "%25s: %20s" % (instance_variable_key, str(instance_variable))                
+        return
            
     ### full search with hull, engine and propeller
     def get_initial_design(self, output_dir_path):
@@ -73,7 +84,7 @@ class Agent(object):
         ### default flat_rate is 50 [%]
         self.world_scale.set_flat_rate(50)
 
-        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),'formats': (np.int , np.int, np.int, np.float)})
+        dtype  = np.dtype({'names': ('NPV', 'hull_id', 'engine_id', 'propeller_id'),'formats': (np.float, np.int , np.int, np.int)})
         design_array    = np.array([], dtype=dtype)
         simmulate_count = 0
         column_names    = ['simmulate_count',
@@ -81,8 +92,8 @@ class Agent(object):
                            'engine',
                            'propeller',
                            'NPV',
-                           'processing_time'
-        ]
+                           'processing_time']
+
         start_time = time.clock()
         for engine_info in engine_list:
             engine = Engine(engine_list, engine_info['id'])
@@ -131,38 +142,48 @@ class Agent(object):
         self.sinario.generate_sinario(self.sinario_mode)
         ### default flat_rate is 50 [%]
         self.world_scale.set_flat_rate(50)
-
-        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),'formats': (np.int , np.int, np.int, np.float)})
         # initialize
         pool = mp.Pool(PROC_NUM)
 
         # multi processing #
-        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
+        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path)) for index in xrange(PROC_NUM)]
         callback_combinations = [p.get() for p in callback]
         ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
         pool.join()
         # multi processing #
-        pdb.set_trace()
-        # update design #
-        # write simmulation result
-        output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-        write_csv(ret_hull, engine, propeller, NPV, output_file_path)                        
         
         # get design whose NPV is the maximum
-        NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
+        if len(ret_combinations) == 0:
+            print_with_notice("ERROR: Couldn't found initial design, abort")
+            sys.exit()
+
+        NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]
         hull                                  = Hull(hull_list, 1)
         engine                                = Engine(engine_list, engine_id) 
         propeller                             = Propeller(propeller_list, propeller_id)
+
         return NPV, hull, engine, propeller
 
-    def simmulate(self, hull, engine, propeller):
+    def simmulate(self, hull=None, engine=None, propeller=None):
+        # use instance variables if hull or engine or propeller are not given
+        if (hull is None) or (engine is None) or (propeller is None):
+            hull      = self.hull
+            engine    = self.engine
+            propeller = self.propeller
+
         # initialize retrofit_count
         if self.retrofit_mode == RETROFIT_MODE['none']:
             retrofit_count = 0
 
         # define velocity and rps for given [hull, engine, propeller]
         self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
+        # abort if proper velocity combination is calculated #
+        if self.check_abort_simmulation():
+            # return None PV if the simmulation is aborted
+            notice_str = "Simmulation aborted for [hull: %d, engine: %d, propeller: %d]" % (hull.base_data['id'], propeller.base_data['id'], engine.base_data['id'])
+            print_with_notice(notice_str)
+            return None
             
         # load condition [ballast, full]
         self.load_condition = INITIAL_LOAD_CONDITION
@@ -230,7 +251,7 @@ class Agent(object):
             #CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)
             if (CF_day is None) and (rpm is None) and (v_knot is None):
                 CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
-                
+
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -320,6 +341,9 @@ class Agent(object):
 
             # display current infomation
             print "--------------Finished Date: %s--------------" % (self.current_date)
+            print "%25s: %10d"            % ('Hull ID'              , hull.base_data['id'])
+            print "%25s: %10d"            % ('Engine ID'            , engine.base_data['id'])
+            print "%25s: %10d"            % ('Propeller ID'         , propeller.base_data['id'])
             print "%25s: %10d [days]"     % ('ballast trip days'    , self.ballast_trip_days)
             print "%25s: %10d [days]"     % ('return trip days'     , self.return_trip_days)
             print "%25s: %10d [days]"     % ('elapsed_days'         , self.elapsed_days)
@@ -340,7 +364,6 @@ class Agent(object):
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
         ret_combinations = {}
-        
         for load_condition in LOAD_CONDITION.keys():
             combinations = np.array([])
             for rpm in self.rpm_array:
@@ -368,8 +391,10 @@ class Agent(object):
                     ret_combinations[load_condition_to_human(load_condition)] = combinations
                 else:
                     # beyond the potential of the components (e.g. max_load or so on)
-                    pass
-
+                    print 'beyond the potential of components:'
+                    print "%s: %s, %s: %s, %s: %s" % ('Hull'     , self.hull.base_data['id'],
+                                                      'Engine'   , self.engine.base_data['id'],
+                                                      'Propeller', self.propeller.base_data['id'])
         return ret_combinations
 
     def rps_velocity_fitness(self, hull, engine, propeller, velocity, rps, load_condition):
@@ -783,6 +808,14 @@ class Agent(object):
     def is_dockin(self):
         return self.dockin_flag and (self.current_date <= self.latest_dockin_date)
 
+    # return True if velocity combination is not proper
+    def check_abort_simmulation(self):
+        ret_flag = False
+        # abort if 'ballast' and 'full' conditions had been calculated
+        if len(self.velocity_combination.keys()) != len(LOAD_CONDITION.keys()):
+            ret_flag = True
+        return ret_flag
+
     ## multi processing method ##
     def calc_combinations(self, index, devided_combinations, hull, engine, propeller):
         combinations = np.array([])
@@ -804,14 +837,27 @@ class Agent(object):
             combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
         return combinations
     
-    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list):
-        design_array = np.array([])
+    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path):
+        column_names    = ['simmulate_count',
+                           'ret_hull',
+                           'engine',
+                           'propeller',
+                           'NPV']
+        dtype  = np.dtype({'names': ('NPV', 'hull_id', 'engine_id', 'propeller_id'),'formats': (np.float, np.int , np.int, np.int)})
+        design_array = np.array([], dtype=dtype)
+        start_time = time.clock()
+        simmulate_count = 0
         for propeller_info in propeller_combinations[index]:
             propeller = Propeller(propeller_list, propeller_info['id'])
             for engine_info in engine_list:
                 engine = Engine(engine_list, engine_info['id'])
                 # conduct simmulation
-                NPV = self.simmulate(ret_hull, engine, propeller)
+                agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, None, ret_hull, engine, propeller)
+                NPV   = agent.simmulate()
+                # ignore aborted simmulation
+                if NPV is None:
+                    simmulate_count += 1
+                    continue
                 # update design #
                 add_design   = np.array([(NPV,
                                         ret_hull.base_data['id'],
@@ -819,6 +865,12 @@ class Agent(object):
                                         propeller.base_data['id'])],
                                         dtype=dtype)
                 design_array = append_for_np_array(design_array, add_design)
+                # update design #
+                # write simmulation result
+                output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
+                lap_time         = convert_second(time.clock() - start_time)
+                write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV, lap_time], output_file_path)
+                simmulate_count += 1
         return design_array    
     ## multi processing method ##
     
