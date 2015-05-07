@@ -269,6 +269,9 @@ def print_with_notice(display_str):
 def datetime_to_human(datetime_var):
     return datetime.datetime.strftime(datetime_var, "%Y/%m/%d")
 
+def detailed_datetime_to_human(datetime_var):
+    return datetime.datetime.strftime(datetime_var, "%Y/%m/%d %H:%M:%S")
+
 def str_to_datetime(datetime_str):
     return datetime.datetime.strptime(datetime_str, "%Y/%m/%d")
 

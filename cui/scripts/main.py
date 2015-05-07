@@ -20,6 +20,7 @@ from agent       import Agent
 # import models #
 
 def run():
+    print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
     # load history data
     from_date = '2004/01/01'
     to_date = '2014/01/01'
@@ -36,12 +37,12 @@ def run():
     sinario_mode  = DERIVE_SINARIO_MODE['maintain']
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
 
-
     # get initial design #
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
     NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
     # get initial design #
+    
     '''
     # for design 1
     retrofit_mode = RETROFIT_MODE['high']
@@ -53,8 +54,8 @@ def run():
     sinario_mode  = DERIVE_SINARIO_MODE['propeller_and_engine']
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
     '''
+    print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))    
     return 
-
 
 
 # authorize exeucation as main script
