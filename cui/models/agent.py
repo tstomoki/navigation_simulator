@@ -52,7 +52,7 @@ class Agent(object):
             self.hull, self.engine, self.propeller = hull, engine, propeller
 
     # display base data
-    def dispay_variables(self):
+    def display_variables(self):
         for variable_key in self.__dict__.keys():
             instance_variable_key = "self.%s" % (variable_key)
             instance_variable     = eval(instance_variable_key)
@@ -818,11 +818,16 @@ class Agent(object):
 
     # return True if velocity combination is not proper
     def check_abort_simmulation(self):
-        ret_flag = False
         # abort if 'ballast' and 'full' conditions had been calculated
         if len(self.velocity_combination.keys()) != len(LOAD_CONDITION.keys()):
-            ret_flag = True
-        return ret_flag
+            return True
+
+        # abort if array length is not sufficient
+        for load_condition_key in LOAD_CONDITION.values():
+            if len(self.velocity_combination[load_condition_key]) < len(self.rpm_array):
+                return True
+
+        return False
 
     ## multi processing method ##
     def calc_combinations(self, index, devided_combinations, hull, engine, propeller):
@@ -847,9 +852,9 @@ class Agent(object):
     
     def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path):
         column_names    = ['simmulate_count',
-                           'ret_hull',
-                           'engine',
-                           'propeller',
+                           'hull_id',
+                           'engine_id',
+                           'propeller_id',
                            'NPV']
         dtype  = np.dtype({'names': ('NPV', 'hull_id', 'engine_id', 'propeller_id'),'formats': (np.float, np.int , np.int, np.int)})
         design_array = np.array([], dtype=dtype)
