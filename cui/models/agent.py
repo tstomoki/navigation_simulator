@@ -44,7 +44,7 @@ class Agent(object):
         self.retrofit_mode  = retrofit_mode
         self.sinario_mode   = sinario_mode
         self.icr            = DEFAULT_ICR_RATE if icr is None else icr
-        # initialize the range of velosity and rps
+        # initialize the range of velocity and rps
         self.velocity_array = np.arange(VELOCITY_RANGE['from'], VELOCITY_RANGE['to'], VELOCITY_RANGE['stride'])
         self.rpm_array      = np.arange(RPM_RANGE['from'], RPM_RANGE['to'], RPM_RANGE['stride'])            
         
@@ -256,9 +256,9 @@ class Agent(object):
                 self.voyage_date = self.current_date            
                 
             # calculate optimized speed and rps during 
-            #CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)
+            #CF_day, rpm, v_knot  = self.calc_optimal_velocity_m(hull, engine, propeller)
             if (CF_day is None) and (rpm is None) and (v_knot is None):
-                CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
+                CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
 
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
@@ -461,7 +461,7 @@ class Agent(object):
 
         return bhp    
     
-    def calc_optimal_velosity(self, hull, engine, propeller):
+    def calc_optimal_velocity(self, hull, engine, propeller):
         combinations        = np.array([])
         for rpm_first, velocity_first in self.velocity_combination[load_condition_to_human(self.load_condition)]:
             # ignore second parameter when the navigation is return trip
@@ -485,7 +485,7 @@ class Agent(object):
         return CF_day, optimal_rpm, optimal_velocity
 
     # multi processing method #
-    def calc_optimal_velosity_m(self, hull, engine, propeller):
+    def calc_optimal_velocity_m(self, hull, engine, propeller):
         # devide the range
         combinations         = self.velocity_combination[load_condition_to_human(self.load_condition)]
         devided_combinations = np.array_split(combinations, PROC_NUM)
