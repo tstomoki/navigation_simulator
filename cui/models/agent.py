@@ -137,7 +137,7 @@ class Agent(object):
         pool = mp.Pool(PROC_NUM)
 
         # multi processing #
-        callback = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
+        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
         callback_combinations = [p.get() for p in callback]
         ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
@@ -147,9 +147,9 @@ class Agent(object):
         
         # get design whose NPV is the maximum
         NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
-        hull      = Hull(hull_list, 1)
-        engine    = Engine(engine_list, engine_id) 
-        propeller = Propeller(propeller_list, propeller_id)
+        hull                                  = Hull(hull_list, 1)
+        engine                                = Engine(engine_list, engine_id) 
+        propeller                             = Propeller(propeller_list, propeller_id)
         return NPV, hull, engine, propeller
 
     def simmulate(self, hull, engine, propeller):
@@ -195,6 +195,8 @@ class Agent(object):
         self.ballast_trip_days     = 0
         self.return_trip_days      = 0
         
+        # initialize the temporal variables
+        CF_day = rpm = v_knot = None                        
         for current_date in self.operation_date_array:
             # update current_date
             self.current_date = current_date
@@ -220,9 +222,11 @@ class Agent(object):
             if self.voyage_date is None:
                 self.voyage_date = self.current_date            
                 
-            # calculate optimized speed and rps
-            #CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
-            CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)            
+            # calculate optimized speed and rps during 
+            #CF_day, rpm, v_knot  = self.calc_optimal_velosity_m(hull, engine, propeller)
+            if (CF_day is None) and (rpm is None) and (v_knot is None):
+                CF_day, rpm, v_knot  = self.calc_optimal_velosity(hull, engine, propeller)
+                
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -247,6 +251,13 @@ class Agent(object):
                 # loading flags
                 self.initiate_loading()
                 self.change_load_condition()
+
+                # update cash flow
+                self.cash_flow       += CF_day
+                self.total_cash_flow += CF_day
+                
+                # initialize the temporal variables
+                CF_day = rpm = v_knot = None                
         
             elif updated_distance >= self.round_trip_distance:
                 # full -> ballast
@@ -279,11 +290,21 @@ class Agent(object):
                 # dock-in flag
                 if self.update_dockin_flag():
                     self.initiate_dockin()
+
+                # update cash flow
+                self.cash_flow       += CF_day
+                self.total_cash_flow += CF_day
+                
+                # initialize the temporal variables
+                CF_day = rpm = v_knot = None
                 continue
             else:
                 # full -> full or ballast -> ballast
                 self.current_distance      += navigated_distance
                 self.left_distance_to_port -= navigated_distance
+                # update cash flow
+                self.cash_flow       += CF_day
+                self.total_cash_flow += CF_day                
             
             # update total distance
             self.total_distance += navigated_distance
@@ -292,10 +313,6 @@ class Agent(object):
             self.elapsed_days       += 1
             self.total_elapsed_days += 1            
             self.update_trip_days()
-
-            # update cash flow
-            self.cash_flow += CF_day
-            self.total_cash_flow += CF_day
 
             # display current infomation
             print "--------------Finished Date: %s--------------" % (self.current_date)
@@ -308,9 +325,9 @@ class Agent(object):
             print "%25s: %10.3lf [mile]"  % ('current_distance'     , self.current_distance)
             print "%25s: %10.3lf [mile]"  % ('left_distance_to_port', self.left_distance_to_port)
             print "%25s: %10.3lf [mile]"  % ('total_distance'       , self.total_distance)
-            print "%25s: %10.3lf [rpm]"   % ('rpm'                  , rpm)
-            print "%25s: %10.3lf [knot]"  % ('velocity'             , v_knot)
-            print "%25s: %10s [$/day]"    % ('Cash flow'            , number_with_delimiter(CF_day))
+            print "%25s: %10s [rpm]"      % ('rpm'                  , ("%10.3lf" % rpm)    if not rpm is None else '----')
+            print "%25s: %10s [knot]"     % ('velocity'             , ("%10.3lf" % v_knot) if not v_knot is None else '----')
+            print "%25s: %10s [$/day]"    % ('Cash flow'            , number_with_delimiter(CF_day) if not CF_day is None else '----')
             print "%25s: %10s [$]"        % ('Total Cash flow'      , number_with_delimiter(self.total_cash_flow))
 
         # update whole NPV in vessel life time
