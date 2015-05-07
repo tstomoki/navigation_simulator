@@ -310,6 +310,26 @@ def write_csv(column_names, write_data, output_file_path):
     f.close()
     return
 
+def write_array_to_csv(column_names, write_array, output_file_path):
+    # write file
+    f = open(output_file_path, 'w')
+    csvWriter = csv.writer(f)
+    # write row
+    csvWriter.writerow(column_names)
+
+    # write array data based on given column names
+    for write_row in write_array:
+        write_row_data = []
+        for column_name in column_names:
+            write_data = write_row[column_name]
+            # for numpy array
+            if isinstance(write_data, np.ndarray):
+                write_data = write_data[0]
+            write_row_data.append(write_data)
+        csvWriter.writerow(write_row_data)
+    f.close()
+    return 
+
 # for the callback results
 def flatten_3d_to_2d(array_3d):
     ret_combinations = np.array([])

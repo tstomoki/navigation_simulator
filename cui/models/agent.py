@@ -158,6 +158,14 @@ class Agent(object):
             print_with_notice("ERROR: Couldn't found initial design, abort")
             sys.exit()
 
+        # write whole simmulation result
+        output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
+        column_names    = ['hull_id',
+                           'engine_id',
+                           'propeller_id',
+                           'NPV']
+        write_array_to_csv(column_names, ret_combinations, output_file_path)
+
         NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]
         hull                                  = Hull(hull_list, 1)
         engine                                = Engine(engine_list, engine_id) 
