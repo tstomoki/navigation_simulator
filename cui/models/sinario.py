@@ -35,6 +35,15 @@ class Sinario:
         for data in self.history_data:
             print "%10s : %10lf" % (data['date'], data['price'])
 
+    def show_predicted_data(self):
+        print '----------------------'
+        print '- - predicted data - - '
+        print '----------------------'
+
+        for data in self.predicted_data:
+            print "%10s : %10lf" % (data['date'], data['price'])
+
+
     def draw_history_data(self):
         title = "oil price history data".title()
         graphInitializer("history data",
