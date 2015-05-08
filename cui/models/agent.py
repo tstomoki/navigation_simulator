@@ -330,6 +330,8 @@ class Agent(object):
                 
                 # initialize the temporal variables
                 CF_day = rpm = v_knot = None
+                self.ballast_trip_days = 0
+                self.return_trip_days  = 0
                 continue
             else:
                 # full -> full or ballast -> ballast
@@ -599,7 +601,6 @@ class Agent(object):
             sfoc_full         = engine.calc_sfoc(bhp_full)
             # calc fuel_cost per day
             fuel_cost_full    = (1000 * self.oilprice_full) / 159.0 * bhp_full * sfoc_full * (24.0 / 1000000.0)
-
             # for the navigated distance
             if len(self.log[self.load_condition_to_human()]) == 0:
                 first_clause = 0
