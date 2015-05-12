@@ -36,3 +36,9 @@ class Engine:
     # return bhp / max_load  
     def calc_load(self, bhp):
         return float(bhp) / self.base_data['max_load']
+
+    def calc_bhp(self, rpm):
+        rps     = rpm2rps(rpm)
+        max_rps = round(rpm2rps(self.base_data['N_max']), 4)
+        bhp     = self.base_data['bhp0'] + self.base_data['bhp1'] * (rps / max_rps) + self.base_data['bhp2'] * math.pow(rps / max_rps, 2)
+        return bhp

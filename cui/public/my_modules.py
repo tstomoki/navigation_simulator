@@ -377,4 +377,65 @@ def convert_second(seconds):
     minutes, seconds = divmod(seconds, 60)
     hours, minutes   = divmod(minutes, 60)
     return "%02d:%02d:%02d" % (hours, minutes, seconds)
-    
+
+def draw_BHP_approxmate_graph():
+    from engine      import Engine
+    engine_list = load_engine_list()
+    engine_1    = Engine(engine_list, 2)
+    engine_2    = Engine(engine_list, 3)
+    title       = "engine details".title()
+    x_label     = "rpm"
+    y_label     = "Engine Output [kW]"
+    graphInitializer(title, x_label, y_label)
+
+    # E1
+    rpm_array = np.arange(50.0, 95, RPM_RANGE['stride'])            
+    draw_data = np.array([ [rpm, engine_1.calc_bhp(rpm)] for rpm in rpm_array])
+    plt.plot(draw_data.transpose()[0],
+             draw_data.transpose()[1],
+             color='b', lw=5, label='Engine 1')
+
+    # E2
+    rpm_array = np.arange(50.0, 105, RPM_RANGE['stride'])            
+    draw_data = np.array([ [rpm, engine_2.calc_bhp(rpm)] for rpm in rpm_array])
+    plt.plot(draw_data.transpose()[0],
+             draw_data.transpose()[1],
+             color='g', lw=5, label='Engine 2')    
+
+    plt.xlim([45, 111])
+    plt.ylim([8000, 25000])
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')    
+    plt.savefig('engine_detail.png')
+    plt.close()
+
+def draw_SFOC_approxmate_graph():
+    from engine      import Engine
+    engine_list = load_engine_list()
+    engine_1    = Engine(engine_list, 2)
+    engine_2    = Engine(engine_list, 3)
+    title       = "engine details".title()
+    x_label     = "Load [%]"
+    y_label     = "SFOC [g/kW]"
+    graphInitializer(title, x_label, y_label)
+
+    # E1
+    rpm_array = np.arange(50.0, 95, RPM_RANGE['stride'])
+    draw_data = np.array([ [engine_1.calc_load(engine_1.calc_bhp(rpm)) * 100, engine_1.calc_sfoc(engine_1.calc_bhp(rpm))] for rpm in rpm_array])
+    plt.plot(draw_data.transpose()[0],
+             draw_data.transpose()[1],
+             color='b', lw=5, label='Engine 1')
+
+    # E2
+    rpm_array = np.arange(50.0, 105, RPM_RANGE['stride'])
+    draw_data_2 = np.array([ [engine_2.calc_load(engine_2.calc_bhp(rpm)) * 100, engine_2.calc_sfoc(engine_2.calc_bhp(rpm))] for rpm in rpm_array])
+    plt.plot(draw_data_2.transpose()[0],
+             draw_data_2.transpose()[1],
+             color='g', lw=5, label='Engine 2')    
+
+    plt.xlim([40, 109])
+    plt.ylim([162, 172])
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')
+    plt.savefig('engine_sfoc_detail.png')
+    plt.close()
