@@ -576,7 +576,7 @@ class Agent(object):
                 averaged_bhp  = self.calc_bhp_with_rps(rpm2rps(averaged_rpm),  hull, engine, propeller)
                 averaged_sfoc = engine.calc_sfoc(averaged_bhp)
                 averaged_fuel_cost = (1000 * self.oilprice_ballast) / 159.0 * averaged_bhp * averaged_sfoc * (24.0 / 1000000.0)
-                first_clause = averaged_fuel_cost * self.elapsed_days
+                first_clause = averaged_fuel_cost * self.ballast_trip_days
 
             fuel_cost  = first_clause
             # go navigation
@@ -594,7 +594,7 @@ class Agent(object):
             averaged_bhp_ballast       = self.calc_bhp_with_rps(rpm2rps(averaged_rpm_ballast), hull, engine, propeller)
             averaged_sfoc_ballast      = engine.calc_sfoc(averaged_bhp_ballast)
             averaged_fuel_cost_ballast = (1000 * self.oilprice_ballast) / 159.0 * averaged_bhp_ballast * averaged_sfoc_ballast * (24.0 / 1000000.0)
-            fuel_cost_ballast = averaged_fuel_cost_ballast * self.ballast_trip_days            
+            fuel_cost_ballast = averaged_fuel_cost_ballast * self.return_trip_days
             
             # full
             bhp_full          = self.calc_bhp_with_rps(rpm2rps(rpm_first), hull, engine, propeller)
