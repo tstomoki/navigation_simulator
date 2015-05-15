@@ -52,11 +52,11 @@ INITIAL_LOAD_CONDITION = 0
 # default velocity range [knot] #
 VELOCITY_RANGE = {'from'  : 8.0,
                   'to'    : 18.0,
-                  'stride': 0.05}
+                  'stride': 0.50}
 # default rps range #
 RPM_RANGE = {'from'  : 68.0,
              'to'    : 80.0,
-             'stride': 0.1}
+             'stride': 0.50}
 
 # thrust coefficient(1-t)
 THRUST_COEFFICIENT = 0.8
