@@ -51,13 +51,15 @@ LOAD_CONDITION = {0: 'ballast',
 INITIAL_LOAD_CONDITION = 0
 
 # default velocity range [knot] #
-VELOCITY_RANGE = {'from'  : 8.0,
-                  'to'    : 18.0,
-                  'stride': 0.50}
+VELOCITY_RANGE_STRIDE  = 0.10
+DEFAULT_VELOCITY_RANGE = {'from'  : 5.0,
+                          'to'    : 25.0,
+                          'stride': VELOCITY_RANGE_STRIDE}
 # default rps range #
-RPM_RANGE = {'from'  : 68.0,
-             'to'    : 80.0,
-             'stride': 0.50}
+RPM_RANGE_STRIDE  = 0.5
+DEFAULT_RPM_RANGE = {'from'  : 25.0,
+                     'to'    : 80.0,
+                     'stride': RPM_RANGE_STRIDE}
 
 # thrust coefficient(1-t)
 THRUST_COEFFICIENT = 0.8

@@ -38,17 +38,25 @@ from world_scale import WorldScale
 # import models #
 
 class Agent(object):
-    def __init__(self, sinario, world_scale, retrofit_mode, sinario_mode, icr=None, hull=None, engine=None, propeller=None):
-        self.sinario        = sinario
-        self.world_scale    = world_scale
-        self.retrofit_mode  = retrofit_mode
-        self.sinario_mode   = sinario_mode
-        self.icr            = DEFAULT_ICR_RATE if icr is None else icr
-        # initialize the range of velocity and rps
-        self.velocity_array = np.arange(VELOCITY_RANGE['from'], VELOCITY_RANGE['to'], VELOCITY_RANGE['stride'])
-        self.rpm_array      = np.arange(RPM_RANGE['from'], RPM_RANGE['to'], RPM_RANGE['stride'])            
+    def __init__(self, sinario, world_scale, retrofit_mode, sinario_mode, hull=None, engine=None, propeller=None, rpm_array=None, velocity_array=None):
+        self.sinario       = sinario
+        self.world_scale   = world_scale
+        self.retrofit_mode = retrofit_mode
+        self.sinario_mode  = sinario_mode
+        self.icr           = DEFAULT_ICR_RATE
+        # initialize the range of velosity and rps
         
-        if not (hull is None or engine is None or propeller is None):
+        # for velocity and rps array #
+        self.velocity_array = np.arange(DEFAULT_VELOCITY_RANGE['from'], DEFAULT_VELOCITY_RANGE['to'], DEFAULT_VELOCITY_RANGE['stride']) if velocity_array is None else velocity_array
+        self.rpm_array      = np.arange(DEFAULT_RPM_RANGE['from'], DEFAULT_RPM_RANGE['to'], DEFAULT_RPM_RANGE['stride']) if rpm_array is None else rpm_array
+        # for velocity and rps array #
+        
+        if (hull is None or engine is None or propeller is None):
+            output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
+            initializeDirHierarchy(output_dir_path)
+            NPV, self.hull, self.engine, self.propeller = self.get_initial_design_m(output_dir_path)
+            # NPV, self.hull, self.engine, self.propeller = self.get_initial_design(output_dir_path)
+        else:
             self.hull, self.engine, self.propeller = hull, engine, propeller
 
     # display base data
@@ -401,10 +409,12 @@ class Agent(object):
                     ret_combinations[load_condition_to_human(load_condition)] = combinations
                 else:
                     # beyond the potential of the components (e.g. max_load or so on)
+                    '''
                     print 'beyond the potential of components:'
                     print "%s: %s, %s: %s, %s: %s" % ('Hull'     , self.hull.base_data['id'],
                                                       'Engine'   , self.engine.base_data['id'],
                                                       'Propeller', self.propeller.base_data['id'])
+                    '''
                     pass
 
         # draw RPS-velocity combinations
@@ -869,8 +879,10 @@ class Agent(object):
             propeller = Propeller(propeller_list, propeller_info['id'])
             for engine_info in engine_list:
                 engine = Engine(engine_list, engine_info['id'])
+                # create each arrays #
+                rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
                 # conduct simmulation
-                agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, None, ret_hull, engine, propeller)
+                agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
                 NPV   = agent.simmulate()
                 # ignore aborted simmulation
                 if NPV is None:
