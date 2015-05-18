@@ -1,6 +1,7 @@
 # dir path from models
-RESULT_DIR_PATH    = '../results'
-AGNET_LOG_DIR_PATH = "%s/agent_log" % (RESULT_DIR_PATH)
+RESULT_DIR_PATH          = '../results'
+AGNET_LOG_DIR_PATH       = "%s/agent_log" % (RESULT_DIR_PATH)
+COMBINATIONS_DIR_PATH    = '../combinations'
 
 # dir path from scripts
 NOHUP_LOG_DIR_PATH    = '../nohup'

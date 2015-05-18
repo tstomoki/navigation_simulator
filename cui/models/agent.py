@@ -405,6 +405,10 @@ class Agent(object):
                     print "%s: %s, %s: %s, %s: %s" % ('Hull'     , self.hull.base_data['id'],
                                                       'Engine'   , self.engine.base_data['id'],
                                                       'Propeller', self.propeller.base_data['id'])
+                    pass
+
+        # draw RPS-velocity combinations
+        self.draw_combinations(hull, engine, propeller, ret_combinations)
         return ret_combinations
 
     def rps_velocity_fitness(self, hull, engine, propeller, velocity, rps, load_condition):
@@ -887,4 +891,36 @@ class Agent(object):
                 simmulate_count += 1
         return design_array    
     ## multi processing method ##
+
+    # draw rps - velocity combinations
+    def draw_combinations(self, hull, engine, propeller, combinations):
+        combination_str = "H%dE%dP%d" % (hull.base_data['id'],
+                                         engine.base_data['id'],
+                                         propeller.base_data['id'])
+        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH,
+                                         combination_str)
+        filename        = "%s/%s.png" % (dir_name,
+                                         combination_str)
+        title           = "%s of %s"  % ("revolution and velocity combination".title(),
+                                         combination_str)
+
+        x_label = "rps".upper()
+        y_label = "%s %s" % ('velocity'.upper(), '[knot]')
+        # initialize directory
+        initializeDirHierarchy(dir_name)
+        graphInitializer(title,
+                         x_label,
+                         y_label)
+        colors = ['b', 'r']
+        for key, load_condition in LOAD_CONDITION.items():
+            draw_data = combinations[load_condition]
+            x_data    = draw_data.transpose()[0]
+            y_data    = draw_data.transpose()[1]
+            plt.scatter(x_data, y_data, label=load_condition, color=colors[key])
+        plt.legend(shadow=True)
+        plt.legend(loc='upper left')
+        plt.ylim([0, 30])
+        plt.savefig(filename)
+        plt.close()
+        return 
     
