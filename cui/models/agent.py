@@ -150,8 +150,6 @@ class Agent(object):
         self.sinario.generate_sinario(self.sinario_mode)
         ### default flat_rate is 50 [%]
         self.world_scale.set_flat_rate(50)
-        self.calc_initial_design_m(0, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path)
-        sys.exit()
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -874,15 +872,14 @@ class Agent(object):
         start_time = time.clock()
         simmulate_count = 0
         for propeller_info in propeller_combinations[index]:
-            propeller = Propeller(propeller_list, 365)
+            propeller = Propeller(propeller_list, propeller_info['id'])
             for engine_info in engine_list:
-                engine = Engine(engine_list, 2)
+                engine = Engine(engine_list, engine_info['id'])
                 # create each arrays #
                 rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
                 # conduct simmulation
                 agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
                 NPV   = agent.simmulate()
-                sys.exit()
                 # ignore aborted simmulation
                 if NPV is None:
                     simmulate_count += 1
