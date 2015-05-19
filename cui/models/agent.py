@@ -393,10 +393,10 @@ class Agent(object):
                 rps = round(rpm / 60.0, 4)
                 tmp_combinations = np.array([])
                 for velocity in self.velocity_array:
-                    velocity = round(velocity, 4)
+                    velocity_ms = knot2ms(velocity)
     
                     # calc error of fitness bhp values
-                    error = self.rps_velocity_fitness(hull, engine, propeller, velocity, rps, load_condition)
+                    error = self.rps_velocity_fitness(hull, engine, propeller, velocity_ms, rps, load_condition)
                     tmp_combinations = append_for_np_array(tmp_combinations, [rpm, velocity, error])
                 # remove None error value
                 remove_induces = np.array([])
@@ -418,23 +418,20 @@ class Agent(object):
                                                       'Propeller', self.propeller.base_data['id'])
                     '''
                     pass
-
         # draw RPS-velocity combinations
         self.draw_combinations(hull, engine, propeller, ret_combinations)
         return ret_combinations
 
-    def rps_velocity_fitness(self, hull, engine, propeller, velocity, rps, load_condition):
+    def rps_velocity_fitness(self, hull, engine, propeller, velocity_ms, rps, load_condition):
         # calc bhp [WW]
         fitness_bhp0 = self.calc_bhp_with_rps(          rps, hull, engine, propeller)
-        fitness_bhp1 = self.calc_bhp_with_ehp(velocity, rps, hull, engine, propeller, load_condition)
-
+        fitness_bhp1 = self.calc_bhp_with_ehp(velocity_ms, rps, hull, engine, propeller, load_condition)
         # reject bhp over the engine Max load
         if fitness_bhp0 is None or fitness_bhp1 is None or fitness_bhp0 > engine.base_data['max_load'] or fitness_bhp1 > engine.base_data['max_load']:
             return None
-                
+
         error = math.pow(fitness_bhp0 - fitness_bhp1, 2)
         error = math.sqrt(error)
-
         return error
 
     # return bhp [kW]
@@ -450,11 +447,13 @@ class Agent(object):
         return bhp
 
     # return bhp [kW]    
-    def calc_bhp_with_ehp(self, velocity, rps, hull, engine, propeller, load_condition):
+    def calc_bhp_with_ehp(self, velocity_ms, rps, hull, engine, propeller, load_condition):
         # reject if the condition (KT > 0 and eta > 0) fulfilled
-        J   = self.calc_advance_constant(velocity, rps, propeller.base_data['D'])
+        # advance constants
+        J   = self.calc_advance_constant(velocity_ms, rps, propeller.base_data['D'])
+
         KT  = propeller.base_data['KT0'] + propeller.base_data['KT1'] * J + propeller.base_data['KT2'] * math.pow(J,2)
-        eta = THRUST_COEFFICIENT * ( velocity / (2 * math.pi) ) * (1.0 / (rps * propeller.base_data['D']) ) * ( (KT) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) )
+        eta = THRUST_COEFFICIENT * ( velocity_ms / (2 * math.pi) ) * (1.0 / (rps * propeller.base_data['D']) ) * ( (KT) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) )
         if KT < 0 or eta < 0:
             return None
         
@@ -464,15 +463,12 @@ class Agent(object):
             data_key = "%s_%s" % (ehp_coefficients_key, load_condition_to_human(load_condition))
             ehp_coefficients[ehp_coefficients_key] = hull.base_data[data_key]
 
-        # advance constants
-        J = self.calc_advance_constant(velocity, rps, propeller.base_data['D'])
-
         # calc numerator
-        numerator =  ehp_coefficients['ehp0'] + ehp_coefficients['ehp1'] * velocity
-        numerator += ehp_coefficients['ehp2'] * math.pow(velocity, 2) + ehp_coefficients['ehp3'] * math.pow(velocity, 3) + ehp_coefficients['ehp4'] * math.pow(velocity, 4)
+        numerator =  ehp_coefficients['ehp0'] + ehp_coefficients['ehp1'] * velocity_ms
+        numerator += ehp_coefficients['ehp2'] * math.pow(velocity_ms, 2) + ehp_coefficients['ehp3'] * math.pow(velocity_ms, 3) + ehp_coefficients['ehp4'] * math.pow(velocity_ms, 4)
 
         # calc denominator
-        denominator = THRUST_COEFFICIENT * (velocity / (2 * math.pi) ) * (1 / (rps * propeller.base_data['D']) ) * ( (propeller.base_data['KT0'] + propeller.base_data['KT1'] * J + propeller.base_data['KT2'] * math.pow(J,2)) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) ) * ETA_S
+        denominator = THRUST_COEFFICIENT * (velocity_ms / (2 * math.pi) ) * (1 / (rps * propeller.base_data['D']) ) * ( (propeller.base_data['KT0'] + propeller.base_data['KT1'] * J + propeller.base_data['KT2'] * math.pow(J,2)) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) ) * ETA_S
 
         bhp = numerator / denominator
         # return bhp [kW]
