@@ -61,6 +61,9 @@ DEFAULT_RPM_RANGE = {'from'  : 25.0,
                      'to'    : 80.0,
                      'stride': RPM_RANGE_STRIDE}
 
+# minimum array require rate
+MINIMUM_ARRAY_REQUIRE_RATE = 3.0
+
 # thrust coefficient(1-t)
 THRUST_COEFFICIENT = 0.8
 

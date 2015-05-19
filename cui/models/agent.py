@@ -839,7 +839,7 @@ class Agent(object):
 
         # abort if array length is not sufficient
         for load_condition_key in LOAD_CONDITION.values():
-            if len(self.velocity_combination[load_condition_key]) < len(self.rpm_array):
+            if len(self.velocity_combination[load_condition_key]) < (len(self.rpm_array) / MINIMUM_ARRAY_REQUIRE_RATE):
                 return True
 
         return False
