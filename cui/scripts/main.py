@@ -1,6 +1,8 @@
 # import common modules #
 import sys
 import pdb
+import matplotlib
+matplotlib.use('Agg')
 # import common modules #
 
 # import own modules #
