@@ -479,13 +479,15 @@ class Agent(object):
     
     def calc_optimal_velocity(self, hull, engine, propeller):
         combinations        = np.array([])
-        for rpm_first, velocity_first in self.velocity_combination[load_condition_to_human(self.load_condition)]:
+        # cull the combination for the fast cunduct #
+        target_combination = self.cull_combination()
+        for rpm_first, velocity_first in target_combination[load_condition_to_human(self.load_condition)]:
             # ignore second parameter when the navigation is return trip
             if self.is_ballast():
                 ## when the ship is ballast
                 tmp_combinations = np.array([])
                 # decide velocity of full                
-                for rpm_second, velocity_second in self.velocity_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
+                for rpm_second, velocity_second in target_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
                     ND     = self.calc_ND(velocity_first, velocity_second, hull)
                     CF_day = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
                     tmp_combinations = append_for_np_array(tmp_combinations, [CF_day, rpm_second, velocity_second])
@@ -950,3 +952,19 @@ class Agent(object):
 
     def generate_combination_str(self, hull, engine, propeller):
         return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
+
+    def cull_combination(self):
+        velocity_log        = self.get_log_of_current_condition()
+        target_combinations = self.velocity_combination
+        if not len(velocity_log) == 0:
+            target_combinations = {}
+            latest_velocity_log = velocity_log[-1]['velocity']
+            for load_condition in LOAD_CONDITION.values():
+                base    = self.velocity_combination[load_condition]
+                start_v = max( latest_velocity_log - CULL_THRESHOLD, base[:,1].min())
+                end_v   = min( latest_velocity_log + CULL_THRESHOLD, base[:,1].max())
+                target_combinations[load_condition] = base[np.where( (base[:,1] > start_v) & ( base[:,1] < end_v) )]
+        return target_combinations
+    
+    def get_log_of_current_condition(self):
+        return self.log[self.load_condition_to_human()]

@@ -137,3 +137,6 @@ AGENT_VARIABLES = ['dockin_flag',
                    'oilprice_ballast',
                    'NPV',
                    'velocity_array']
+
+# cull threshold [knot]
+CULL_THRESHOLD = 6
