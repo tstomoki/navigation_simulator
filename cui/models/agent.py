@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 from types import *
+import json
 # import common modules #
 
 # append the load path
@@ -391,6 +392,7 @@ class Agent(object):
                 rps = round(rpm / 60.0, 4)
                 tmp_combinations = np.array([])
                 for velocity in self.velocity_array:
+                    velocity    = round(velocity, 4)
                     velocity_ms = knot2ms(velocity)
     
                     # calc error of fitness bhp values
@@ -418,6 +420,8 @@ class Agent(object):
                     pass
         # draw RPS-velocity combinations
         self.draw_combinations(hull, engine, propeller, ret_combinations)
+        # output json as file
+        self.write_combinations_as_json(hull, engine, propeller, ret_combinations)
         return ret_combinations
 
     def rps_velocity_fitness(self, hull, engine, propeller, velocity_ms, rps, load_condition):
@@ -902,13 +906,9 @@ class Agent(object):
 
     # draw rps - velocity combinations
     def draw_combinations(self, hull, engine, propeller, combinations):
-        combination_str = "H%dE%dP%d" % (hull.base_data['id'],
-                                         engine.base_data['id'],
-                                         propeller.base_data['id'])
-        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH,
-                                         combination_str)
-        filename        = "%s/%s.png" % (dir_name,
-                                         combination_str)
+        combination_str = self.generate_combination_str(hull, engine, propeller)        
+        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+        filename        = "%s/%s.png" % (dir_name, combination_str)
         title           = "%s of %s"  % ("revolution and velocity combination".title(),
                                          combination_str)
 
@@ -930,5 +930,23 @@ class Agent(object):
         plt.ylim([0, 30])
         plt.savefig(filename)
         plt.close()
-        return 
-    
+        return
+
+    def write_combinations_as_json(self, hull, engine, propeller, combinations):
+        combination_str = self.generate_combination_str(hull, engine, propeller)
+        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+        output_path     = "%s/%s_combinations.json" % (dir_name, combination_str)
+
+        # to serialize numpy ndarray #
+        json_serialized_combinations = {}
+        for condition in combinations.keys():
+            json_serialized_combinations[condition] = combinations[condition].tolist()
+
+        f = open(output_path, 'w')
+        json_data = json.dumps(json_serialized_combinations, indent=4)
+        f.write(json_data)
+        f.close()        
+        return
+
+    def generate_combination_str(self, hull, engine, propeller):
+        return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
