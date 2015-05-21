@@ -181,7 +181,7 @@ class Agent(object):
 
         return NPV, hull, engine, propeller
 
-    def simmulate(self, hull=None, engine=None, propeller=None):
+    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None):
         # use instance variables if hull or engine or propeller are not given
         if (hull is None) or (engine is None) or (propeller is None):
             hull      = self.hull
@@ -268,9 +268,12 @@ class Agent(object):
                 self.voyage_date = self.current_date            
                 
             # calculate optimized speed and rps during 
-            #CF_day, rpm, v_knot  = self.calc_optimal_velocity_m(hull, engine, propeller)
             if (CF_day is None) and (rpm is None) and (v_knot is None):
-                CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
+                if multi_flag:
+                    CF_day, rpm, v_knot  = self.calc_optimal_velocity_m(hull, engine, propeller)
+                else:
+                    CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
+
 
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
