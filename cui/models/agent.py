@@ -51,13 +51,13 @@ class Agent(object):
         self.velocity_array = np.arange(DEFAULT_VELOCITY_RANGE['from'], DEFAULT_VELOCITY_RANGE['to'], DEFAULT_VELOCITY_RANGE['stride']) if velocity_array is None else velocity_array
         self.rpm_array      = np.arange(DEFAULT_RPM_RANGE['from'], DEFAULT_RPM_RANGE['to'], DEFAULT_RPM_RANGE['stride']) if rpm_array is None else rpm_array
         # for velocity and rps array #
+
+        ### full search with sinario and world_scale
+        self.sinario.generate_sinario(self.sinario_mode)
+        ### default flat_rate is 50 [%]
+        self.world_scale.set_flat_rate(50)
         
-        if (hull is None or engine is None or propeller is None):
-            output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
-            initializeDirHierarchy(output_dir_path)
-            NPV, self.hull, self.engine, self.propeller = self.get_initial_design_m(output_dir_path)
-            # NPV, self.hull, self.engine, self.propeller = self.get_initial_design(output_dir_path)
-        else:
+        if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
 
     # display base data
@@ -147,10 +147,6 @@ class Agent(object):
         # devide the range of propeller list
         propeller_combinations = np.array_split(propeller_list, PROC_NUM)
         
-        ### full search with sinario and world_scale
-        self.sinario.generate_sinario(self.sinario_mode)
-        ### default flat_rate is 50 [%]
-        self.world_scale.set_flat_rate(50)
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -192,6 +188,8 @@ class Agent(object):
         # initialize retrofit_count
         if self.retrofit_mode == RETROFIT_MODE['none']:
             retrofit_count = 0
+        else:
+            retrofit_count = 1
 
         # define velocity and rps for given [hull, engine, propeller]
         self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
@@ -332,6 +330,7 @@ class Agent(object):
                 # dock-in flag
                 if self.update_dockin_flag():
                     self.initiate_dockin()
+                    self.check_retrofit()
 
                 # update cash flow
                 self.cash_flow       += CF_day
@@ -751,12 +750,6 @@ class Agent(object):
         # update fare
         self.current_fare         = self.world_scale.calc_fare(self.previous_oilprice)
 
-        # for once debug (remove when confirm)#
-        if not self.oilprice_ballast == self.oilprice_full:
-            print self.oilprice_ballast
-            print self.oilprice_full
-            pdb.set_trace()
-        
         return
 
     def get_previous_oilprice(self, date_index):
@@ -968,3 +961,8 @@ class Agent(object):
     
     def get_log_of_current_condition(self):
         return self.log[self.load_condition_to_human()]
+
+    # check whether the vessel needs retrofit or not
+    def check_retrofit(self):
+        pdb.set_trace()
+        return 

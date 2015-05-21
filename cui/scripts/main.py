@@ -3,6 +3,7 @@ import sys
 import pdb
 import matplotlib
 matplotlib.use('Agg')
+from optparse import OptionParser
 # import common modules #
 
 # import own modules #
@@ -21,7 +22,7 @@ from world_scale import WorldScale
 from agent       import Agent
 # import models #
 
-def run():
+def run(options):
     print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
     # load history data
     from_date = '2004/01/01'
@@ -34,23 +35,43 @@ def run():
     world_scale = WorldScale(load_world_scale_history_data())
 
     # initiate a simmulation
-    # for design 0
     retrofit_mode = RETROFIT_MODE['none']
     sinario_mode  = DERIVE_SINARIO_MODE['maintain']
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
 
-    # get initial design #
+
+    # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
-    NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
-    # get initial design #
+    
+    # get option variables
+    initial_hull_id      = options.hull_id
+    initial_engine_id    = options.engine_id
+    initial_propeller_id = options.propeller_id
+    
+    if (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None):
+        # for design 0 #
+        # get initial design #
+        NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
+        # get initial design #
+        # for design 0 #
+    else:
+        # load components list
+        hull_list      = load_hull_list()
+        engine_list    = load_engine_list()
+        propeller_list = load_propeller_list()
+        # get components
+        initial_hull      = Hull(hull_list, initial_hull_id)
+        initial_engine    = Engine(engine_list, initial_engine_id)
+        initial_propeller = Propeller(propeller_list, initial_propeller_id)        
+
+    # for design 1
+    retrofit_mode = RETROFIT_MODE['propeller']
+    sinario_mode  = DERIVE_SINARIO_MODE['binomial']
+    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+    agent.simmulate()
     
     '''
-    # for design 1
-    retrofit_mode = RETROFIT_MODE['high']
-    sinario_mode  = DERIVE_SINARIO_MODE['propeller']
-    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
-
     # for design 2
     retrofit_mode = RETROFIT_MODE['high']
     sinario_mode  = DERIVE_SINARIO_MODE['propeller_and_engine']
@@ -62,7 +83,13 @@ def run():
 
 # authorize exeucation as main script
 if __name__ == '__main__':
-    #nohup_dir_path = "%s/%s" % (NOHUP_LOG_DIR_PATH, generate_timestamp())
-    #initializeDirHierarchy(nohup_dir_path)
-    run()
+    parser = OptionParser()
+    parser.add_option("-H", "--hull", dest="hull_id",
+                      help="designate initial hull", default=None, type="int")
+    parser.add_option("-E", "--engine", dest="engine_id",
+                      help="designate initial engine", default=None, type="int")
+    parser.add_option("-P", "--propeller", dest="propeller_id",
+                      help="designate initial propeller", default=None, type="int")
+    (options, args) = parser.parse_args()
+    run(options)
 
