@@ -52,9 +52,45 @@ class WorldScale:
         plt.savefig(output_file_path)
 
     # generate predicted sinario
-    def generate_sinario(self):
-        pdb.set_trace()
+    def generate_sinario(self, sinario_mode, predict_years=DEFAULT_PREDICT_YEARS):
+        # default predict_years is 15 years [180 months]
+        self.predict_years  = predict_years
 
+        # predicted data type
+        dt   = np.dtype({'names': ('date', 'ws'),
+                         'formats': ('S10' , np.float)})
+        self.predicted_data = np.array([], dtype=dt)
+        
+        predict_months_num = self.predict_years * 12
+
+        # latest date from history_data
+        latest_history_date_str, latest_ws = self.history_data[-1]
+        latest_history_date                = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
+
+        current_date = latest_history_date
+        current_ws   = latest_ws
+        for predict_month_num in range(predict_months_num):
+            current_date     = add_month(current_date)
+            current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
+
+            # change ws by mode
+            if sinario_mode == DERIVE_SINARIO_MODE['high']:
+                current_ws = None
+            elif sinario_mode == DERIVE_SINARIO_MODE['low']:
+                current_ws = None
+            elif sinario_mode == DERIVE_SINARIO_MODE['maintain']:
+                current_ws = current_ws
+            else:
+                current_ws = self.calc_ws(current_ws)
+
+            # change ws by mode
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, round(current_ws, 4))], dtype=dt))
+            
+        return
+
+    def calc_ws(self, current_ws):
+        return self.u * current_ws if prob(self.p * 100) else self.d * current_ws
+    
     # calc new and sigma from history data
     def calc_params_from_history(self):
         index   = 0
@@ -92,13 +128,9 @@ class WorldScale:
 
     # set flat_rate [%]
     def set_flat_rate(self, flat_rate):
-        self.flat_rate = 50
+        self.flat_rate = flat_rate
         return
     
     # flat_rate [%]
-    def calc_fare(self, oil_price):
-        return (self.alpha * oil_price + self.beta) * (self.flat_rate / 100.0)
-
-    # calc ws
-    def calc_ws(self, oil_price):
-        return self.alpha * oil_price + self.beta    
+    def calc_fare(self, oil_price, flat_rate):
+        return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)

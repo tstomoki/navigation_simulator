@@ -34,12 +34,6 @@ def run(options):
     # generate world scale
     world_scale = WorldScale(load_world_scale_history_data())
 
-    # initiate a simmulation
-    retrofit_mode = RETROFIT_MODE['none']
-    sinario_mode  = DERIVE_SINARIO_MODE['maintain']
-    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
-
-
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
@@ -48,10 +42,12 @@ def run(options):
     initial_hull_id      = options.hull_id
     initial_engine_id    = options.engine_id
     initial_propeller_id = options.propeller_id
-    
     if (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None):
         # for design 0 #
         # get initial design #
+        retrofit_mode = RETROFIT_MODE['none']
+        sinario_mode  = DERIVE_SINARIO_MODE['maintain']
+        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)        
         NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
         # get initial design #
         # for design 0 #

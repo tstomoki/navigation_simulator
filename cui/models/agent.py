@@ -54,9 +54,8 @@ class Agent(object):
 
         ### full search with sinario and world_scale
         self.sinario.generate_sinario(self.sinario_mode)
-        ### default flat_rate is 50 [%]
-        self.world_scale.set_flat_rate(50)
-        
+        self.world_scale.generate_sinario(self.sinario_mode)
+
         if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
 
@@ -144,6 +143,9 @@ class Agent(object):
         ### list has only 1 hull
         ret_hull = Hull(hull_list, 1)
 
+        ### default flat_rate is 50 [%]
+        self.flat_rate = 50
+        
         # devide the range of propeller list
         propeller_combinations = np.array_split(propeller_list, PROC_NUM)
         
@@ -225,7 +227,8 @@ class Agent(object):
         self.previous_oilprice     = self.sinario.history_data[-2]['price']
         self.oilprice_ballast      = self.sinario.history_data[-1]['price']
         self.oilprice_full         = self.sinario.history_data[-1]['price']
-        self.current_fare          = self.world_scale.calc_fare(self.previous_oilprice)
+        self.flat_rate             = self.world_scale.history_data[-1]['ws']
+        self.current_fare          = self.world_scale.calc_fare(self.previous_oilprice, self.flat_rate)
         self.cash_flow             = 0
         self.loading_flag          = False
         self.loading_days          = 0
@@ -747,8 +750,12 @@ class Agent(object):
         else:
             self.oilprice_ballast = self.sinario.predicted_data[current_index[0]]['price']
 
+        # update world_scale (flate_rate)
+        current_index,            = np.where(self.world_scale.predicted_data['date']==current_date_index)
+        self.flat_rate = round(self.world_scale.predicted_data[current_index]['ws'][0], 4)
+            
         # update fare
-        self.current_fare         = self.world_scale.calc_fare(self.previous_oilprice)
+        self.current_fare         = self.world_scale.calc_fare(self.previous_oilprice, self.flat_rate)
 
         return
 
