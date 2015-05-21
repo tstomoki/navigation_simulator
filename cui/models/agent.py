@@ -757,7 +757,10 @@ class Agent(object):
 
         # update world_scale (flate_rate)
         current_index,            = np.where(self.world_scale.predicted_data['date']==current_date_index)
-        self.flat_rate = round(self.world_scale.predicted_data[current_index]['ws'][0], 4)
+        try:
+            self.flat_rate = round(self.world_scale.predicted_data[current_index]['ws'][0], 4)
+        except:
+            print "debug: %s is not in %s" % (current_index, "self.world_scale.predicted_data")
             
         # update fare
         self.current_fare         = self.world_scale.calc_fare(self.previous_oilprice, self.flat_rate)
@@ -998,6 +1001,7 @@ class Agent(object):
 
             # multi processing #
             devided_target_combinations = np.array_split(target_combinations_array, PROC_NUM)
+
             # initialize
             pool = mp.Pool(PROC_NUM)
 
