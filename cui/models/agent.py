@@ -1053,9 +1053,11 @@ class Agent(object):
             # create each arrays #
             rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
             # conduct simmulation
-            agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, hull, engine, propeller, rpm_array)
+            # prohibit retrofits here #
+            retrofit_mode = RETROFIT_MODE['none']
+            agent         = Agent(self.sinario, self.world_scale, retrofit_mode, self.sinario_mode, hull, engine, propeller, rpm_array)
             agent.operation_date_array = simmulation_days
-            NPV   = agent.simmulate()
+            NPV           = agent.simmulate()
             # ignore aborted simmulation
             if NPV is None:
                 continue
