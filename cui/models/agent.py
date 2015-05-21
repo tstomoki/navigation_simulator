@@ -45,6 +45,7 @@ class Agent(object):
         self.retrofit_mode = retrofit_mode
         self.sinario_mode  = sinario_mode
         self.icr           = DEFAULT_ICR_RATE
+        self.operation_date_array = None
         # initialize the range of velosity and rps
         
         # for velocity and rps array #
@@ -1049,7 +1050,7 @@ class Agent(object):
             # create each arrays #
             rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
             # conduct simmulation
-            agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
+            agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, hull, engine, propeller, rpm_array)
             agent.operation_date_array = simmulation_days
             NPV   = agent.simmulate()
             # ignore aborted simmulation
