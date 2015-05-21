@@ -189,9 +189,9 @@ class Agent(object):
 
         # initialize retrofit_count
         if self.retrofit_mode == RETROFIT_MODE['none']:
-            retrofit_count = 0
+            self.retrofit_count = 0
         else:
-            retrofit_count = 1
+            self.retrofit_count = 1
 
         # define velocity and rps for given [hull, engine, propeller]
         self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
@@ -205,8 +205,9 @@ class Agent(object):
         # load condition [ballast, full]
         self.load_condition = INITIAL_LOAD_CONDITION
 
-        # static variables 
-        self.operation_date_array  = self.generate_operation_date(self.sinario.predicted_data['date'][0])
+        # static variables
+        if self.operation_date_array is None:
+            self.operation_date_array  = self.generate_operation_date(self.sinario.predicted_data['date'][0])
         self.origin_date           = self.operation_date_array[0]
         self.retire_date           = self.operation_date_array[-1]
         self.round_trip_distance   = NAVIGATION_DISTANCE * 2.0
@@ -971,5 +972,101 @@ class Agent(object):
 
     # check whether the vessel needs retrofit or not
     def check_retrofit(self):
-        pdb.set_trace()
+        # load components list
+        hull_list           = load_hull_list()
+        engine_list         = load_engine_list()
+        propeller_list      = load_propeller_list()        
+        
+        # return if the retrofit is not allowed
+        if (self.retrofit_mode == RETROFIT_MODE['none']) or (self.retrofit_count == 0):
+            return 
+
+        # retrive days from current_day to X[WIP]
+        simmulation_days = self.operation_date_array[np.where(self.operation_date_array > self.current_date)]
+
+        # simmulation to check the vessel retrofits
+        for i in range(SIMMULATION_TIMES_FOR_RETROFITS):
+            scenario = Sinario(self.sinario.history_data)
+            scenario.generate_sinario(self.sinario_mode)
+
+            current_combinations       = (self.hull, self.engine, self.propeller)
+            target_combinations_array  = self.get_target_combinations()
+
+            # multi processing #
+            devided_target_combinations = np.array_split(target_combinations_array, PROC_NUM)
+            # initialize
+            pool = mp.Pool(PROC_NUM)
+
+            callback = [pool.apply_async(self.multi_simmulations, args=(index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days)) for index in xrange(PROC_NUM)]
+            callback_combinations = [p.get() for p in callback]
+            ret_combinations      = flatten_3d_to_2d(callback_combinations)
+            pool.close()
+            pool.join()
+            # multi processing #
+
+        pdb.set_trace()            
+        NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]  
+        
         return 
+
+    def get_target_combinations(self):
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id'),
+                           'formats': (np.int , np.int, np.int)})
+        
+        target_design_array = np.array([], dtype=dtype)
+        if self.retrofit_mode == RETROFIT_MODE['propeller']:
+            # load components list
+            hull_id        = self.hull.base_data['id']
+            engine_id      = self.engine.base_data['id']
+            propeller_list = load_propeller_list()
+            for propeller_info in propeller_list:
+                propeller_id = propeller_info['id']
+                if propeller_id == self.propeller.base_data['id']:
+                    continue
+                add_design          = np.array([(hull_id,
+                                                 engine_id,
+                                                 propeller_id)],
+                                               dtype=dtype)            
+                target_design_array = append_for_np_array(target_design_array, add_design)
+        elif self.retrofit_mode == RETROFIT_MODE['propeller_and_engine']:
+            # load components list            
+            engine_list         = load_engine_list()
+            propeller_list      = load_propeller_list()
+            pdb.set_trace()
+            pass
+            
+        return target_design_array
+
+    def multi_simmulations(self, index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days):
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),
+                           'formats': (np.int , np.int, np.int, np.float)})
+        combinations = np.array([], dtype=dtype)
+        for target_combination in devided_target_combinations[index]:
+            hull_id, engine_id, propeller_id = target_combination[0]
+            hull      = Hull(hull_list, hull_id)
+            engine    = Engine(engine_list, engine_id)
+            propeller = Propeller(propeller_list, propeller_id)
+            # create each arrays #
+            rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
+            # conduct simmulation
+            agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
+            agent.operation_date_array = simmulation_days
+            NPV   = agent.simmulate()
+            # ignore aborted simmulation
+            if NPV is None:
+                continue
+            
+            # subtract retrofits cost
+            if self.retrofit_mode == RETROFIT_MODE['propeller']:
+                NPV -= RETROFIT_COST['propeller']
+            elif self.retrofit_mode == RETROFIT_MODE['propeller_and_engine']:
+                NPV -= RETROFIT_COST['propeller_and_engine']
+
+            add_design = np.array([(hull_id,
+                                    engine_id,
+                                    propeller_id,
+                                    NPV)],
+                                  dtype=dtype)
+            combinations = append_for_np_array(combinations, add_design)
+            
+        return combinations

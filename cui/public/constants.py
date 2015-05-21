@@ -29,6 +29,13 @@ RETROFIT_MODE = {'none': 0,
                  'propeller': 1,
                  'propeller_and_engine': 2}
 
+RETROFIT_COST = {'propeller': 200000,
+                 'propeller_and_engine': 1000000}
+
+# simmulation duration for retrofits
+#SIMMULATION_DURATION_FOR_RETROFITS =
+SIMMULATION_TIMES_FOR_RETROFITS = 10
+
 # days taken to load 
 LOAD_DAYS = 2
 
