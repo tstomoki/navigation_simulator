@@ -1005,7 +1005,7 @@ class Agent(object):
             scenario = Sinario(self.sinario.history_data)
             scenario.generate_sinario(self.sinario_mode)
             current_combinations       = (self.hull, self.engine, self.propeller)
-
+            start_time = time.clock()
             # initialize
             pool = mp.Pool(PROC_NUM)
 
@@ -1020,6 +1020,8 @@ class Agent(object):
             NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]  
             combination_key = self.generate_combination_str_with_id(hull_id, engine_id, propeller_id)
             temp_npv[combination_key] = NPV
+            lap_time = convert_second(time.clock() - start_time)
+            print_with_notice("took %s for a scenario" % (lap_time))
 
         # average NPV for each design
         design_npv = {}
