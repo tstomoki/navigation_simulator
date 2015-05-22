@@ -65,6 +65,7 @@ def run(options):
     retrofit_mode = RETROFIT_MODE['propeller']
     sinario_mode  = DERIVE_SINARIO_MODE['binomial']
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+    agent.output_dir_path = output_dir_path
     # simmulate with multi flag
     agent.simmulate(None, None, None, True)
     

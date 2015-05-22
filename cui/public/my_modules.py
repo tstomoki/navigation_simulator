@@ -439,3 +439,10 @@ def draw_SFOC_approxmate_graph():
     plt.legend(loc='upper left')
     plt.savefig('engine_sfoc_detail.png')
     plt.close()
+
+def write_file_as_json(dict_file, output_path):
+    f = open(output_path, 'w')
+    json_data = json.dumps(dict_file, indent=4)
+    f.write(json_data)
+    f.close()     
+    return 
