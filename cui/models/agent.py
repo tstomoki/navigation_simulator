@@ -1060,8 +1060,14 @@ class Agent(object):
             # load components list            
             engine_list         = load_engine_list()
             propeller_list      = load_propeller_list()
-            pdb.set_trace()
-            pass
+            for engine_info in engine_list:
+                for propeller_info in propeller_list:
+                    propeller_id = propeller_info['id']
+                    add_design          = np.array([(hull_id,
+                                                     engine_id,
+                                                     propeller_id)],
+                                                   dtype=dtype)
+                    target_design_array = append_for_np_array(target_design_array, add_design)
             
         return target_design_array
 

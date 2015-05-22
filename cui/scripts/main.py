@@ -64,18 +64,24 @@ def run(options):
     # for design 1
     retrofit_mode = RETROFIT_MODE['propeller']
     sinario_mode  = DERIVE_SINARIO_MODE['binomial']
+    tmp_output_path = "%s/propeller" % (output_dir_path)
+    initializeDirHierarchy(tmp_output_path)
     agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-    agent.output_dir_path = output_dir_path
+    agent.output_dir_path = tmp_output_path
     # simmulate with multi flag
     agent.simmulate(None, None, None, True)
+    print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
     
-    '''
     # for design 2
-    retrofit_mode = RETROFIT_MODE['high']
-    sinario_mode  = DERIVE_SINARIO_MODE['propeller_and_engine']
-    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
-    '''
-    print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))    
+    retrofit_mode   = RETROFIT_MODE['propeller_and_engine']
+    sinario_mode    = DERIVE_SINARIO_MODE['binomial']
+    tmp_output_path = "%s/propeller_and_engine" % (output_dir_path)
+    initializeDirHierarchy(tmp_output_path)
+    agent           = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
+    agent.output_dir_path = tmp_output_path
+    # simmulate with multi flag
+    agent.simmulate(None, None, None, True)
+    print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
     return 
 
 
