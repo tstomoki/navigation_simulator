@@ -61,29 +61,30 @@ def run(options):
         initial_engine    = Engine(engine_list, initial_engine_id)
         initial_propeller = Propeller(propeller_list, initial_propeller_id)        
 
-    # for design 1
-    retrofit_mode = RETROFIT_MODE['propeller']
-    sinario_mode  = DERIVE_SINARIO_MODE['binomial']
-    tmp_output_path = "%s/propeller" % (output_dir_path)
-    initializeDirHierarchy(tmp_output_path)
-    agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-    agent.output_dir_path = tmp_output_path
-    # simmulate with multi flag
-    agent.simmulate(None, None, None, True)
-    print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
-    
-    # for design 2
-    retrofit_mode   = RETROFIT_MODE['propeller_and_engine']
-    sinario_mode    = DERIVE_SINARIO_MODE['binomial']
-    tmp_output_path = "%s/propeller_and_engine" % (output_dir_path)
-    initializeDirHierarchy(tmp_output_path)
-    agent           = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
-    agent.output_dir_path = tmp_output_path
-    # simmulate with multi flag
-    agent.simmulate(None, None, None, True)
-    print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
+    if (design_num is None) or (design_num == 1):
+        # for design 1
+        retrofit_mode = RETROFIT_MODE['propeller']
+        sinario_mode  = DERIVE_SINARIO_MODE['binomial']
+        tmp_output_path = "%s/propeller" % (output_dir_path)
+        initializeDirHierarchy(tmp_output_path)
+        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+        agent.output_dir_path = tmp_output_path
+        # simmulate with multi flag
+        agent.simmulate(None, None, None, True)
+        print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
+    elif (design_num is None) or (design_num == 2):
+        # for design 2
+        retrofit_mode   = RETROFIT_MODE['propeller_and_engine']
+        sinario_mode    = DERIVE_SINARIO_MODE['binomial']
+        tmp_output_path = "%s/propeller_and_engine" % (output_dir_path)
+        initializeDirHierarchy(tmp_output_path)
+        agent           = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
+        agent.output_dir_path = tmp_output_path
+        # simmulate with multi flag
+        agent.simmulate(None, None, None, True)
+        print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
+        
     return 
-
 
 # authorize exeucation as main script
 if __name__ == '__main__':
@@ -94,6 +95,8 @@ if __name__ == '__main__':
                       help="designate initial engine", default=None, type="int")
     parser.add_option("-P", "--propeller", dest="propeller_id",
                       help="designate initial propeller", default=None, type="int")
+    parser.add_option("-D", "--design", dest="design_num",
+                      help="designate execute simmulate num", default=None, type="int")
     (options, args) = parser.parse_args()
     run(options)
 
