@@ -961,6 +961,10 @@ class Agent(object):
     def generate_combination_str(self, hull, engine, propeller):
         return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
 
+    def generate_combination_str_with_id(self, hull_id, engine_id, propeller_id):
+        return "H%dE%dP%d" % (hull_id, engine_id, propeller_id)
+
+
     def cull_combination(self):
         velocity_log        = self.get_log_of_current_condition()
         target_combinations = self.velocity_combination
@@ -992,15 +996,15 @@ class Agent(object):
         simmulation_days = self.operation_date_array[np.where(self.operation_date_array > self.current_date)]
 
         # simmulation to check the vessel retrofits
+        retrofit_designs = np.array([])
+        # multi processing #
+        target_combinations_array   = self.get_target_combinations()
+        temp_npv = {}
+        devided_target_combinations = np.array_split(target_combinations_array, PROC_NUM)
         for i in range(SIMMULATION_TIMES_FOR_RETROFITS):
             scenario = Sinario(self.sinario.history_data)
             scenario.generate_sinario(self.sinario_mode)
-
             current_combinations       = (self.hull, self.engine, self.propeller)
-            target_combinations_array  = self.get_target_combinations()
-
-            # multi processing #
-            devided_target_combinations = np.array_split(target_combinations_array, PROC_NUM)
 
             # initialize
             pool = mp.Pool(PROC_NUM)
@@ -1012,8 +1016,20 @@ class Agent(object):
             pool.join()
             # multi processing #
 
-        pdb.set_trace()            
-        NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]  
+            potential_retrofit_designs = self.get_potential_retrofit_designs(ret_combinations)
+            NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]  
+            combination_key = self.generate_combination_str_with_id(hull_id, engine_id, propeller_id)
+            temp_npv[combination_key] = NPV
+
+        # average NPV for each design
+        design_npv = {}
+        for combination_key, npv_array in temp_npv.items():
+            design_npv[combination_key] = np.average(npv_array)
+
+        output_path = "%s/dock-in-log" % (self.output_dir_path)
+        initializeDirHierarchy(output_path)
+        output_filename = "%s/%s-%s.json" % (output_path, self.current_date, self.latest_dockin_date)
+        write_file_as_json(design_npv, output_path)
         
         return 
 
@@ -1029,8 +1045,10 @@ class Agent(object):
             propeller_list = load_propeller_list()
             for propeller_info in propeller_list:
                 propeller_id = propeller_info['id']
+                '''
                 if propeller_id == self.propeller.base_data['id']:
                     continue
+                '''
                 add_design          = np.array([(hull_id,
                                                  engine_id,
                                                  propeller_id)],
@@ -1080,3 +1098,19 @@ class Agent(object):
             combinations = append_for_np_array(combinations, add_design)
             
         return combinations
+
+    def get_potential_retrofit_designs(self, combinations):
+        potential_retrofit_designs = np.array([], dtype=combinations.dtype)
+        
+        # get NPV of current design
+        hull_id, engine_id, propeller_id = (self.hull.base_data['id'],
+                                            self.engine.base_data['id'],
+                                            self.propeller.base_data['id'])
+        current_design_index, _dummy = np.where( (combinations['hull_id']==hull_id) &
+                                                 (combinations['engine_id']==engine_id) &
+                                                 (combinations['propeller_id']==propeller_id))
+        current_design     = combinations[current_design_index]
+        current_design_NPV = current_design['NPV'][0]
+        potential_retrofit_design_induces = np.where(combinations['NPV'] > current_design_NPV)
+        potential_retrofit_designs = combinations[potential_retrofit_design_induces]
+        return potential_retrofit_designs
