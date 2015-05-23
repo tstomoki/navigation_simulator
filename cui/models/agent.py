@@ -912,7 +912,45 @@ class Agent(object):
                 write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV, lap_time], output_file_path)
                 simmulate_count += 1
         return design_array    
+
     ## multi processing method ##
+    def only_create_velocity_combinations(self):
+        # load components list
+        hull_list              = load_hull_list()
+        engine_list            = load_engine_list()
+        propeller_list         = load_propeller_list()
+
+        ### list has only 1 hull
+        hull = Hull(hull_list, 1)
+
+        # devide the propeller list
+        devided_propeller_list = np.array_split(propeller_list, PROC_NUM)
+
+        # initialize
+        pool = mp.Pool(PROC_NUM)
+
+        # multi processing #
+        callback              = [pool.apply_async(self.calc_velocity_combinations_m, args=(index, devided_propeller_list, hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
+        callback_combinations = [p.get() for p in callback]
+
+        ret_combinations      = flatten_3d_to_2d(callback_combinations)
+        pool.close()
+        pool.join()
+
+        return ret_combinations
+
+    def calc_velocity_combinations_m(self, index, devided_propeller_list, hull, engine_list, propeller_list):
+        for propeller_info in devided_propeller_list[index]:
+            propeller = Propeller(propeller_list, propeller_info['id'])
+            for engine_info in engine_list:
+                engine = Engine(engine_list, engine_info['id'])
+                # create each arrays #
+                rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
+                combinations = self.create_velocity_combination(hull, engine, propeller)
+                self.write_combinations_as_json(hull, engine, propeller, combinations)
+                print "velocity combination of %10s has just generated." % (self.generate_combination_str(hull, engine, propeller))
+
+        return combinations
 
     # draw rps - velocity combinations
     def draw_combinations(self, hull, engine, propeller, combinations):

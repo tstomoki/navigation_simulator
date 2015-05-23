@@ -341,7 +341,11 @@ def flatten_3d_to_2d(array_3d):
         if len(ret_combinations) == 0:
             ret_combinations = array_2d
         else:
-            ret_combinations = np.r_[ret_combinations, array_2d]
+            try:
+                ret_combinations = np.r_[ret_combinations, array_2d]
+            except:
+                print "error occured at "
+                print array_2d
     return ret_combinations
 
 '''
