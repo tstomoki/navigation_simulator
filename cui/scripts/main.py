@@ -42,6 +42,7 @@ def run(options):
     initial_hull_id      = options.hull_id
     initial_engine_id    = options.engine_id
     initial_propeller_id = options.propeller_id
+    design_num           = options.design_num
     if (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None):
         # for design 0 #
         # get initial design #
