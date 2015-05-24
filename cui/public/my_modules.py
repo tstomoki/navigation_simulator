@@ -10,10 +10,13 @@ import calendar as cal
 import random
 import csv
 import json
+import operator
+import re
 # import common modules #
 
 # import own modules #
 sys.path.append('../public')
+sys.path.append('../models')
 from constants  import *
 # import own modules #
 
@@ -344,7 +347,6 @@ def flatten_3d_to_2d(array_3d):
         else:
             try:
                 ret_combinations = np.r_[ret_combinations, array_2d]
-                pdb.set_trace()
             except:
                 print "error occured at "
     return ret_combinations
@@ -478,3 +480,72 @@ def generate_combination_str(hull, engine, propeller):
 
 def generate_combination_str_with_id(hull_id, engine_id, propeller_id):
     return "H%dE%dP%d" % (hull_id, engine_id, propeller_id)
+
+def select_retrofits_design(temp_npv):
+    retrofit_design = {}
+
+    # consider appearance time
+    appr_time = {}
+    for combination_key, npv_array in temp_npv.items():
+        appr_time[combination_key]  = len(npv_array)
+    appr_ranked_keys = sorted(appr_time, key=appr_time.get)
+    appr_ranked_dict = {}
+    for index, ranked_key in enumerate(appr_ranked_keys):
+        appr_ranked_dict[ranked_key] = index
+
+    # get maximum average NPV for each design
+    design_npv = {}
+    for combination_key, npv_array in temp_npv.items():
+        design_npv[combination_key] = np.average(npv_array)
+    NPV_ranked_keys = sorted(appr_time, key=appr_time.get)
+    NPV_ranked_dict = {}
+    for index, ranked_key in enumerate(NPV_ranked_keys):
+        NPV_ranked_dict[ranked_key] = index
+
+    # calc total score
+    total_rank = {}
+    for combination_key, npv_array in temp_npv.items():
+        total_rank[combination_key] = calc_retrofit_score(appr_ranked_dict[combination_key],
+                                                          NPV_ranked_dict[combination_key],
+                                                          len(npv_array))
+    retrofit_design_key = max(total_rank.iteritems(), key=operator.itemgetter(1))[0]
+
+    retrofit_design[retrofit_design_key] = design_npv[retrofit_design_key]
+    return retrofit_design
+
+def calc_retrofit_score(appr_rank, NPV_rank, rank_length):
+    # appearance time
+    appearance_score = calc_base_score(appr_rank, rank_length) * APPR_RANK_WEIGHT
+
+    # averaged NPV
+    NPV_score        = calc_base_score(NPV_rank, rank_length)  * NPV_RANK_WEIGHT
+    
+    total_score = appearance_score + NPV_score
+    return total_score
+
+def calc_base_score(rank, rank_length):
+    return math.exp( (2 * rank) / float(1 - rank_length) * math.log(10) )
+
+def change_design(design_key):
+    # import models #
+    from hull        import Hull
+    from engine      import Engine
+    from propeller   import Propeller
+    # import models #
+    # get component_ids
+    p = re.compile(r'H(\d+)E(\d+)P(\d+)')
+    try:
+        a = p.search(design_key)
+    except:
+        pdb.set_trace()
+    hull_id, engine_id, propeller_id = a.groups()
+
+    # load components list
+    hull_list           = load_hull_list()
+    engine_list         = load_engine_list()
+    propeller_list      = load_propeller_list()
+
+    hull      = Hull(hull_list,           int(hull_id))
+    engine    = Engine(engine_list,       int(engine_id))
+    propeller = Propeller(propeller_list, int(propeller_id))
+    return hull, engine, propeller

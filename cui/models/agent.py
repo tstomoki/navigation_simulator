@@ -339,7 +339,9 @@ class Agent(object):
                 # dock-in flag
                 if self.update_dockin_flag():
                     self.initiate_dockin()
-                    self.check_retrofit()
+                    retrofit_design = self.check_retrofit()
+                    if not retrofit_design is None:
+                        hull, engine, propeller = change_design(retrofit_design.keys()[0])
 
                 # update cash flow
                 self.cash_flow       += CF_day
@@ -1018,10 +1020,12 @@ class Agent(object):
         
         # return if the retrofit is not allowed
         if (self.retrofit_mode == RETROFIT_MODE['none']) or (self.retrofit_count == 0):
-            return 
+            return None
 
-        # retrive days from current_day to X[WIP]
-        simmulation_days = self.operation_date_array[np.where(self.operation_date_array > self.current_date)]
+        # retrive days from current_day to SIMMULATION_DURATION_YEARS_FOR_RETROFITS [years]
+        simmulation_end_date = add_year(self.current_date, SIMMULATION_DURATION_YEARS_FOR_RETROFITS)
+        simmulation_days     = self.operation_date_array[np.where( (self.operation_date_array > self.current_date) &
+                                                                   (self.operation_date_array < simmulation_end_date) )]
 
         # simmulation to check the vessel retrofits
         retrofit_designs = np.array([])
@@ -1045,23 +1049,27 @@ class Agent(object):
             # multi processing #
 
             potential_retrofit_designs = self.get_potential_retrofit_designs(ret_combinations)
-            NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]  
-            combination_key = generate_combination_str_with_id(hull_id, engine_id, propeller_id)
-            temp_npv[combination_key] = NPV
+            
+            for potential_retrofit_design in potential_retrofit_designs:
+                hull_id, engine_id, propeller_id, NPV = potential_retrofit_design
+                combination_key = generate_combination_str_with_id(hull_id, engine_id, propeller_id)
+                if not temp_npv.has_key(combination_key):
+                    temp_npv[combination_key] = np.array([])
+                temp_npv[combination_key] = np.append(temp_npv[combination_key], NPV)
+            
             lap_time = convert_second(time.clock() - start_time)
             print_with_notice("took %s for a scenario" % (lap_time))
 
-        # average NPV for each design
-        design_npv = {}
-        for combination_key, npv_array in temp_npv.items():
-            design_npv[combination_key] = np.average(npv_array)
-
+        retrofit_design = select_retrofits_design(temp_npv)
+       
+        if len(retrofit_design) == 0:
+            return None
         output_path = "%s/dock-in-log" % (self.output_dir_path)
         initializeDirHierarchy(output_path)
         output_filename = "%s/%s-%s.json" % (output_path, self.current_date, self.latest_dockin_date)
-        write_file_as_json(design_npv, output_path)
+        write_file_as_json(retrofit_design, output_filename)
         
-        return 
+        return retrofit_design
 
     def get_target_combinations(self):
         dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id'),
@@ -1147,6 +1155,9 @@ class Agent(object):
                                                  (combinations['propeller_id']==propeller_id))
         current_design     = combinations[current_design_index]
         current_design_NPV = current_design['NPV'][0]
+
         potential_retrofit_design_induces = np.where(combinations['NPV'] > current_design_NPV)
         potential_retrofit_designs = combinations[potential_retrofit_design_induces]
         return potential_retrofit_designs
+
+

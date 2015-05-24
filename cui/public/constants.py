@@ -33,7 +33,7 @@ RETROFIT_COST = {'propeller': 200000,
                  'propeller_and_engine': 1000000}
 
 # simmulation duration for retrofits
-#SIMMULATION_DURATION_FOR_RETROFITS =
+SIMMULATION_DURATION_YEARS_FOR_RETROFITS = 5
 SIMMULATION_TIMES_FOR_RETROFITS = 10
 SIMMULATION_RANK_THRESHOLD_FOR_RETROFITS = 10
 
@@ -148,3 +148,7 @@ AGENT_VARIABLES = ['dockin_flag',
 
 # cull threshold [knot]
 CULL_THRESHOLD = 6
+
+# Rank weight
+APPR_RANK_WEIGHT = 2
+NPV_RANK_WEIGHT  = 1
