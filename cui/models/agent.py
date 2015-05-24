@@ -189,16 +189,14 @@ class Agent(object):
             propeller = self.propeller
 
         # initialize retrofit_count
-        if self.retrofit_mode == RETROFIT_MODE['none']:
-            self.retrofit_count = 0
-        else:
-            self.retrofit_count = 1
+        self.retrofit_count = 0 if self.retrofit_mode == RETROFIT_MODE['none'] else 1
 
         # define velocity and rps for given [hull, engine, propeller]
-        if check_combinations_exists(hull, engine, propeller):
+        ## load combinations if combination file exists 
+        self.velocity_combination = check_combinations_exists(hull, engine, propeller)
+        if self.velocity_combination is None:
             self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
-        else:
-            self.velocity_combination = load_velocity_combination(hull, engine, propeller)
+
         # abort if proper velocity combination is calculated #
         if self.check_abort_simmulation():
             # return None PV if the simmulation is aborted

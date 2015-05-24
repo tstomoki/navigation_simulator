@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import calendar as cal
 import random
 import csv
+import json
 # import common modules #
 
 # import own modules #
@@ -451,15 +452,26 @@ def write_file_as_json(dict_file, output_path):
     f.close()     
     return 
 
-def check_combinations_exists(hull, engine, propeller):
-    combination_key = generate_combination_str(hull, engine, propeller)
-    dir_path        = "%s/%s/%s_combinations.json" % (COMBINATIONS_DIR_PATH, combination_str, combination_str)
-    pdb.set_trace()
-    return os.path.exists(dir_path)
+def load_json_file(json_file_path):
+    f = open(json_file_path, 'r')
+    json_data = json.load(f)
+    f.close()
+    return json_data
 
-def load_velocity_combination(hull, engine, propeller):
-    pdb.set_trace()
-    return
+def check_combinations_exists(hull, engine, propeller):
+    ret_combinations = None
+    combination_str  = generate_combination_str(hull, engine, propeller)
+    file_path        = "%s/%s/%s_combinations.json" % (COMBINATIONS_DIR_PATH, combination_str, combination_str)
+
+    if os.path.exists(file_path):
+        ret_combinations = {}
+        raw_data         = load_json_file(file_path)
+        ret_combinations = init_dict_from_keys_with_array(LOAD_CONDITION.values())
+        for key, load_condition in LOAD_CONDITION.items():
+            for combination in raw_data[load_condition]:
+                add_combination = np.array(combination)
+                ret_combinations[load_condition] = append_for_np_array(ret_combinations[load_condition], add_combination)
+    return ret_combinations
 
 def generate_combination_str(hull, engine, propeller):
     return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
