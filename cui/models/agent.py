@@ -932,10 +932,10 @@ class Agent(object):
         # multi processing #
         callback              = [pool.apply_async(self.calc_velocity_combinations_m, args=(index, devided_propeller_list, hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
         callback_combinations = [p.get() for p in callback]
-
         ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
         pool.join()
+        ret_combinations      = flatten_3d_to_2d(callback_combinations)
 
         return ret_combinations
 

@@ -345,7 +345,7 @@ def flatten_3d_to_2d(array_3d):
                 ret_combinations = np.r_[ret_combinations, array_2d]
             except:
                 print "error occured at "
-                print array_2d
+                pdb.set_trace()
     return ret_combinations
 
 '''
