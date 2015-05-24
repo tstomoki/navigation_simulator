@@ -343,9 +343,9 @@ def flatten_3d_to_2d(array_3d):
         else:
             try:
                 ret_combinations = np.r_[ret_combinations, array_2d]
+                pdb.set_trace()
             except:
                 print "error occured at "
-                pdb.set_trace()
     return ret_combinations
 
 '''
@@ -450,3 +450,19 @@ def write_file_as_json(dict_file, output_path):
     f.write(json_data)
     f.close()     
     return 
+
+def check_combinations_exists(hull, engine, propeller):
+    combination_key = generate_combination_str(hull, engine, propeller)
+    dir_path        = "%s/%s/%s_combinations.json" % (COMBINATIONS_DIR_PATH, combination_str, combination_str)
+    pdb.set_trace()
+    return os.path.exists(dir_path)
+
+def load_velocity_combination(hull, engine, propeller):
+    pdb.set_trace()
+    return
+
+def generate_combination_str(hull, engine, propeller):
+    return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
+
+def generate_combination_str_with_id(hull_id, engine_id, propeller_id):
+    return "H%dE%dP%d" % (hull_id, engine_id, propeller_id)

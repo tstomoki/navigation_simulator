@@ -195,7 +195,10 @@ class Agent(object):
             self.retrofit_count = 1
 
         # define velocity and rps for given [hull, engine, propeller]
-        self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
+        if check_combinations_exists(hull, engine, propeller):
+            self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
+        else:
+            self.velocity_combination = load_velocity_combination(hull, engine, propeller)
         # abort if proper velocity combination is calculated #
         if self.check_abort_simmulation():
             # return None PV if the simmulation is aborted
@@ -931,13 +934,10 @@ class Agent(object):
 
         # multi processing #
         callback              = [pool.apply_async(self.calc_velocity_combinations_m, args=(index, devided_propeller_list, hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
-        callback_combinations = [p.get() for p in callback]
-        ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
         pool.join()
-        ret_combinations      = flatten_3d_to_2d(callback_combinations)
 
-        return ret_combinations
+        return 
 
     def calc_velocity_combinations_m(self, index, devided_propeller_list, hull, engine_list, propeller_list):
         for propeller_info in devided_propeller_list[index]:
@@ -947,13 +947,13 @@ class Agent(object):
                 # create each arrays #
                 rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
                 combinations = self.create_velocity_combination(hull, engine, propeller)
-                print "velocity combination of %10s has just generated." % (self.generate_combination_str(hull, engine, propeller))
+                print "velocity combination of %10s has just generated." % (generate_combination_str(hull, engine, propeller))
 
-        return combinations
+        return 
 
     # draw rps - velocity combinations
     def draw_combinations(self, hull, engine, propeller, combinations):
-        combination_str = self.generate_combination_str(hull, engine, propeller)        
+        combination_str = generate_combination_str(hull, engine, propeller)        
         dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
         filename        = "%s/%s.png" % (dir_name, combination_str)
         title           = "%s of %s"  % ("revolution and velocity combination".title(),
@@ -980,7 +980,7 @@ class Agent(object):
         return
 
     def write_combinations_as_json(self, hull, engine, propeller, combinations):
-        combination_str = self.generate_combination_str(hull, engine, propeller)
+        combination_str = generate_combination_str(hull, engine, propeller)
         dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
         output_path     = "%s/%s_combinations.json" % (dir_name, combination_str)
 
@@ -994,13 +994,6 @@ class Agent(object):
         f.write(json_data)
         f.close()        
         return
-
-    def generate_combination_str(self, hull, engine, propeller):
-        return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
-
-    def generate_combination_str_with_id(self, hull_id, engine_id, propeller_id):
-        return "H%dE%dP%d" % (hull_id, engine_id, propeller_id)
-
 
     def cull_combination(self):
         velocity_log        = self.get_log_of_current_condition()
@@ -1055,7 +1048,7 @@ class Agent(object):
 
             potential_retrofit_designs = self.get_potential_retrofit_designs(ret_combinations)
             NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]  
-            combination_key = self.generate_combination_str_with_id(hull_id, engine_id, propeller_id)
+            combination_key = generate_combination_str_with_id(hull_id, engine_id, propeller_id)
             temp_npv[combination_key] = NPV
             lap_time = convert_second(time.clock() - start_time)
             print_with_notice("took %s for a scenario" % (lap_time))
