@@ -947,7 +947,6 @@ class Agent(object):
                 # create each arrays #
                 rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
                 combinations = self.create_velocity_combination(hull, engine, propeller)
-                self.write_combinations_as_json(hull, engine, propeller, combinations)
                 print "velocity combination of %10s has just generated." % (self.generate_combination_str(hull, engine, propeller))
 
         return combinations
