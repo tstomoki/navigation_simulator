@@ -507,7 +507,7 @@ def select_retrofits_design(temp_npv):
     for combination_key, npv_array in temp_npv.items():
         total_rank[combination_key] = calc_retrofit_score(appr_ranked_dict[combination_key],
                                                           NPV_ranked_dict[combination_key],
-                                                          len(npv_array))
+                                                          len(temp_npv))
     retrofit_design_key = max(total_rank.iteritems(), key=operator.itemgetter(1))[0]
 
     retrofit_design[retrofit_design_key] = design_npv[retrofit_design_key]
@@ -524,6 +524,9 @@ def calc_retrofit_score(appr_rank, NPV_rank, rank_length):
     return total_score
 
 def calc_base_score(rank, rank_length):
+    if rank_length == 1:
+        return 1.0
+    
     return math.exp( (2 * rank) / float(1 - rank_length) * math.log(10) )
 
 def change_design(design_key):
