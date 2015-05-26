@@ -45,7 +45,6 @@ def graphInitializer(title, x_label, y_label):
     plt.grid(True)
     # label
     title = title + '\n'
-    plt.title (title.title(), fontweight="bold")
     plt.xlabel(x_label,       fontweight="bold")
     plt.ylabel(y_label,       fontweight="bold")
     # draw origin line
@@ -552,3 +551,56 @@ def change_design(design_key):
     engine    = Engine(engine_list,       int(engine_id))
     propeller = Propeller(propeller_list, int(propeller_id))
     return hull, engine, propeller
+
+def update_retrofit_design_log(retrofit_design_log, combinations):
+    for combination in combinations:
+        combination_key = generate_combination_str_with_id(combination['hull_id'],
+                                                           combination['engine_id'],
+                                                           combination['propeller_id'])
+        if not retrofit_design_log.has_key(combination_key):
+            retrofit_design_log[combination_key] = np.array([])
+        retrofit_design_log[combination_key] = np.append(retrofit_design_log[combination_key], combination['NPV'])
+    return retrofit_design_log
+
+def draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str, current_combinations):
+    hull, engine, propeller = current_combinations
+    current_combination_key = generate_combination_str(hull, engine, propeller)
+    png_filename = "%s/%s.png" % (output_dir_path, dockin_date_str)
+    title    = "NPV comparison with current design during %s\n" % (dockin_date_str)
+    x_label = "combination id".upper()
+    y_label = "%s %s" % ('npv'.upper(), '[$]')
+    # initialize graph
+    graphInitializer(title, x_label, y_label)
+    # overwrite
+    plt.title (title, fontweight="bold")
+    # draw current_design
+    current_combination_key = 'H1E2P1'
+    current_design_NPV = np.average(retrofit_design_log[current_combination_key])
+    plt.axhline(current_design_NPV, 
+                xmin=0, xmax=len(retrofit_design_log),                    
+                linewidth=1.5, color='r',
+                linestyle="--")
+    # draw other NPV
+    draw_data     = np.array([])
+    for_json_data = {'current_design': current_design_NPV, 'other_design': {}}
+    for index, combination_key in enumerate(retrofit_design_log.keys()):
+        # exclude current design
+        if combination_key == current_combination_key:
+            continue
+        ave_npv       = np.average(retrofit_design_log[combination_key])
+        add_elem      = np.array([index, ave_npv])
+        draw_data     = append_for_np_array(draw_data, add_elem)
+        for_json_data['other_design'][combination_key] = ave_npv
+        
+    x_data    = draw_data.transpose()[0]
+    y_data    = draw_data.transpose()[1]
+    plt.bar(x_data, y_data)
+    plt.ylim([0, np.max(y_data) * 1.1])
+    plt.text(0, current_design_NPV*1.01, "%0.2lf" % (round(current_design_NPV, 2)), fontsize=10)
+    plt.savefig(png_filename)
+    plt.close()
+    
+    # output as json
+    json_filename = "%s/%s.json" % (output_dir_path, dockin_date_str)
+    write_file_as_json(for_json_data, json_filename)
+    return 

@@ -1035,10 +1035,11 @@ class Agent(object):
         temp_npv = {}
         devided_target_combinations = np.array_split(target_combinations_array[:2], PROC_NUM)
         #for i in range(SIMMULATION_TIMES_FOR_RETROFITS):
+        current_combinations        = (self.hull, self.engine, self.propeller)
+        retrofit_design_log         = {}
         for i in range(2):
             scenario = Sinario(self.sinario.history_data)
             scenario.generate_sinario(self.sinario_mode)
-            current_combinations       = (self.hull, self.engine, self.propeller)
             start_time = time.clock()
             # initialize
             pool = mp.Pool(PROC_NUM)
@@ -1050,6 +1051,7 @@ class Agent(object):
             pool.join()
             # multi processing #
 
+            retrofit_design_log = update_retrofit_design_log(retrofit_design_log, ret_combinations)
             potential_retrofit_designs = self.get_potential_retrofit_designs(ret_combinations)
             
             for potential_retrofit_design in potential_retrofit_designs:
@@ -1063,13 +1065,13 @@ class Agent(object):
             print_with_notice("took %s for a scenario" % (lap_time))
 
         retrofit_design = select_retrofits_design(temp_npv)
-       
+        # draw NPV graph for retrofit
+        output_dir_path = "%s/dock-in-log" % (self.output_dir_path)
+        initializeDirHierarchy(output_dir_path)
+        dockin_date_str   = "%s-%s" % (self.current_date, self.latest_dockin_date)
+        draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str, current_combinations)
         if len(retrofit_design) == 0:
             return None
-        output_path = "%s/dock-in-log" % (self.output_dir_path)
-        initializeDirHierarchy(output_path)
-        output_filename = "%s/%s-%s.json" % (output_path, self.current_date, self.latest_dockin_date)
-        write_file_as_json(retrofit_design, output_filename)
         
         return retrofit_design
 
@@ -1161,5 +1163,3 @@ class Agent(object):
         potential_retrofit_design_induces = np.where(combinations['NPV'] > current_design_NPV)
         potential_retrofit_designs = combinations[potential_retrofit_design_induces]
         return potential_retrofit_designs
-
-
