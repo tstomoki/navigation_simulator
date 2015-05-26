@@ -1023,7 +1023,8 @@ class Agent(object):
             return None
 
         # retrive days from current_day to SIMMULATION_DURATION_YEARS_FOR_RETROFITS [years]
-        simmulation_end_date = add_year(self.current_date, SIMMULATION_DURATION_YEARS_FOR_RETROFITS)
+        #simmulation_end_date = add_year(self.current_date, SIMMULATION_DURATION_YEARS_FOR_RETROFITS)
+        simmulation_end_date = add_year(self.current_date, 1)
         simmulation_days     = self.operation_date_array[np.where( (self.operation_date_array > self.current_date) &
                                                                    (self.operation_date_array < simmulation_end_date) )]
 
@@ -1032,8 +1033,9 @@ class Agent(object):
         # multi processing #
         target_combinations_array   = self.get_target_combinations()
         temp_npv = {}
-        devided_target_combinations = np.array_split(target_combinations_array, PROC_NUM)
-        for i in range(SIMMULATION_TIMES_FOR_RETROFITS):
+        devided_target_combinations = np.array_split(target_combinations_array[:2], PROC_NUM)
+        #for i in range(SIMMULATION_TIMES_FOR_RETROFITS):
+        for i in range(2):
             scenario = Sinario(self.sinario.history_data)
             scenario.generate_sinario(self.sinario_mode)
             current_combinations       = (self.hull, self.engine, self.propeller)
