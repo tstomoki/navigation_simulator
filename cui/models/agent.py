@@ -430,6 +430,10 @@ class Agent(object):
                     pass
         # draw RPS-velocity combinations
         self.draw_combinations(hull, engine, propeller, ret_combinations)
+        # draw BHP-rpm
+        self.draw_BHP_rpm_graph(hull, engine, propeller, ret_combinations)        
+        # draw EHP-knot
+        self.draw_EHP_Knot_graph(hull, engine, propeller, ret_combinations)
         # output json as file
         self.write_combinations_as_json(hull, engine, propeller, ret_combinations)
         return ret_combinations
@@ -454,7 +458,7 @@ class Agent(object):
             bhp_coefficients[bhp_coefficients_key] = engine.base_data[bhp_coefficients_key]
 
         max_rps = round(rpm2rps(engine.base_data['N_max']), 4)
-        bhp  = bhp_coefficients['bhp0'] + bhp_coefficients['bhp1'] * (rps / max_rps) + bhp_coefficients['bhp2'] * math.pow(rps / max_rps, 2)
+        bhp     = bhp_coefficients['bhp0'] + bhp_coefficients['bhp1'] * (rps / max_rps) + bhp_coefficients['bhp2'] * math.pow(rps / max_rps, 2)
 
         return bhp
 
@@ -945,8 +949,8 @@ class Agent(object):
             for engine_info in engine_list:
                 engine = Engine(engine_list, engine_info['id'])
                 # create each arrays #
-                rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
-                combinations = self.create_velocity_combination(hull, engine, propeller)
+                self.rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)                
+                combinations   = self.create_velocity_combination(hull, engine, propeller)
                 print "velocity combination of %10s has just generated." % (generate_combination_str(hull, engine, propeller))
 
         return 
@@ -955,7 +959,7 @@ class Agent(object):
     def draw_combinations(self, hull, engine, propeller, combinations):
         combination_str = generate_combination_str(hull, engine, propeller)        
         dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
-        filename        = "%s/%s.png" % (dir_name, combination_str)
+        filename        = "%s/%s_rps_v.png" % (dir_name, combination_str)
         title           = "%s of %s"  % ("revolution and velocity combination".title(),
                                          combination_str)
 
@@ -979,6 +983,72 @@ class Agent(object):
         plt.close()
         return
 
+    def draw_BHP_rpm_graph(self, hull, engine, propeller, combinations):
+        combination_str = generate_combination_str(hull, engine, propeller)        
+        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+        filename        = "%s/%s_BHP_rpm.png" % (dir_name, combination_str)
+        title           = "BHP %s of %s"  % ("and rpm combination".title(),
+                                             combination_str)
+
+        x_label = "rpm".upper()
+        y_label = "%s %s" % ('bhp'.upper(), '[kW]')
+        # initialize directory
+        initializeDirHierarchy(dir_name)
+        graphInitializer(title,
+                         x_label,
+                         y_label)
+        colors = ['b', 'r']
+        for key, load_condition in LOAD_CONDITION.items():
+            draw_data = combinations[load_condition]
+            # rpm
+            x_data    = draw_data.transpose()[0]
+            # calc BHP
+            y_data = np.array([])
+            for rpm in x_data:
+                rps = rpm2rps(rpm)
+                bhp = self.calc_bhp_with_rps(rps, hull, engine, propeller)
+                y_data = np.append(y_data, bhp)
+            plt.scatter(x_data, y_data, label=load_condition, color=colors[key])
+        plt.legend(shadow=True)
+        plt.legend(loc='upper left')
+        plt.savefig(filename)
+        plt.close()
+        return                
+    
+    # draw EHP-velocity graphs
+    def draw_EHP_Knot_graph(self, hull, engine, propeller, combinations):
+        combination_str = generate_combination_str(hull, engine, propeller)        
+        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+        filename        = "%s/%s_EHP_v.png" % (dir_name, combination_str)
+        title           = "EHP %s of %s"  % ("and velocity combination".title(),
+                                             combination_str)
+
+        x_label = "velocity".upper() + "[knot]"
+        y_label = "%s %s" % ('ehp'.upper(), '[kW]')
+        # initialize directory
+        initializeDirHierarchy(dir_name)
+        graphInitializer(title,
+                         x_label,
+                         y_label)
+        colors = ['b', 'r']
+        for key, load_condition in LOAD_CONDITION.items():
+            draw_data = combinations[load_condition]
+            # knot 
+            x_data    = draw_data.transpose()[1]
+            # calc EHP
+            y_data = np.array([])
+            for v_knot in x_data:
+                y_data = np.append(y_data, hull.calc_EHP(v_knot, load_condition))
+            y_data    = draw_data.transpose()[1]
+            plt.scatter(x_data, y_data, label=load_condition, color=colors[key])
+        plt.legend(shadow=True)
+        plt.legend(loc='upper left')
+        plt.ylim([0, 30])
+        plt.savefig(filename)
+        plt.close()
+        return        
+        
+    
     def write_combinations_as_json(self, hull, engine, propeller, combinations):
         combination_str = generate_combination_str(hull, engine, propeller)
         dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
