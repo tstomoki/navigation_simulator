@@ -18,10 +18,9 @@ plt.figure()
 # See the NWW3 directory on NOMADS
 # for the list of available model run dates.
 
-start_date = datetime.datetime(2015, 5, 21)
-end_date   = datetime.datetime(2015, 5, 27)
+end_date   = datetime.datetime.now()
+start_date = end_date - datetime.timedelta(days=8)
 date_range = generate_date_array(start_date, end_date)
-
 print_with_notice("generating wave map from %s to %s" % (start_date.strftime('%Y/%m/%d'), end_date.strftime('%Y/%m/%d')))
 
 for target_date in date_range:
@@ -30,7 +29,12 @@ for target_date in date_range:
         target_date_key+'/nww3'+target_date_key+'_00z'
 
     # Extract the significant wave height of combined wind waves and swell
-    file = netCDF4.Dataset(url)
+    try:
+        file = netCDF4.Dataset(url)
+    except RuntimeError:
+        print "ERROR: Looks like data on %s does not exist!" % (target_date_key)
+        continue
+
     lat  = file.variables['lat'][:]
     lon  = file.variables['lon'][:]
     data = file.variables['htsgwsfc'][1,:,:]
