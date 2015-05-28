@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # import common modules #
 import math
 import os
@@ -574,7 +575,6 @@ def draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str
     # overwrite
     plt.title (title, fontweight="bold")
     # draw current_design
-    current_combination_key = 'H1E2P1'
     current_design_NPV = np.average(retrofit_design_log[current_combination_key])
     plt.axhline(current_design_NPV, 
                 xmin=0, xmax=len(retrofit_design_log),                    
@@ -603,4 +603,37 @@ def draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str
     # output as json
     json_filename = "%s/%s.json" % (output_dir_path, dockin_date_str)
     write_file_as_json(for_json_data, json_filename)
+    return
+
+def read_csv(filepath):
+    load_data = np.array([])
+    with open(filepath, 'r') as f:
+        reader    = csv.reader(f)
+        header    = next(reader)
+        for row in reader:
+            load_data = append_for_np_array(load_data, row)
+    return header, load_data
+
+def draw_initial_design_graph(filepath):
+    header, load_data = read_csv(filepath)
+    draw_data = np.array([])
+    for index, combination in enumerate(load_data):
+        add_elem  = np.array([index, combination[3]])
+        draw_data = append_for_np_array(draw_data, add_elem)
+        
+    png_filename = "./%s.png" % ('initial_design')
+    title   = "NPV comparison with initial design\n"
+    x_label = "combination id".upper()
+    y_label = "%s %s" % ('npv'.upper(), '[$]')
+    # initialize graph
+    graphInitializer(title, x_label, y_label)
+    # overwrite
+    plt.title (title, fontweight="bold")
+    
+    x_data    = draw_data.transpose()[0].astype(np.int32)
+    y_data    = draw_data.transpose()[1].astype(np.float)
+    plt.bar(x_data, y_data)
+    plt.ylim([np.max(y_data) / 1.2, np.max(y_data) * 1.1])
+    plt.savefig(png_filename)
+    plt.close()    
     return 

@@ -25,6 +25,11 @@ from agent       import Agent
 def run(options):
     print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
 
+    # draw_part #
+    filepath = '../data/draw_data/201505200806/initial_design.csv'
+    draw_initial_design_graph(filepath)
+    sys.exit()
+
     # get option variables #
     initial_hull_id      = options.hull_id
     initial_engine_id    = options.engine_id
