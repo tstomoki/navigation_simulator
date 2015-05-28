@@ -41,6 +41,8 @@ def run(options):
     base_sinario = Sinario(history_data)
     # generate world scale
     world_scale = WorldScale(load_world_scale_history_data())
+    base_sinario.draw_multiple_scenarios(world_scale)
+    sys.exit()
 
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())

@@ -127,6 +127,9 @@ class WorldScale:
 
     def calc_ws(self, current_ws):
         return self.u * current_ws if prob(self.p) else self.d * current_ws
+
+    def calc_ws_with_oilprice(self, oilprice):
+        return (self.alpha * oilprice + self.beta)
     
     # calc new and sigma from history data
     def calc_params_from_history(self):
@@ -171,8 +174,8 @@ class WorldScale:
     def calc_fare(self, oil_price, flat_rate):
         return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)
 
-    # multiple world_scale drawing part    
-    def draw_multiple_scenarios(self):
+    # multiple world_scale drawing part with binomial lattice
+    def draw_multiple_scenarios(self, oilprice_predicted_data):
         draw_data = np.array([])
         title     = "world scale multiple scenarios".title()
         graphInitializer("history data",
