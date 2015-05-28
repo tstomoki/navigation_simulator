@@ -46,6 +46,7 @@ def graphInitializer(title, x_label, y_label):
     plt.grid(True)
     # label
     title = title + '\n'
+    plt.title(title,       fontweight="bold")
     plt.xlabel(x_label,       fontweight="bold")
     plt.ylabel(y_label,       fontweight="bold")
     # draw origin line
