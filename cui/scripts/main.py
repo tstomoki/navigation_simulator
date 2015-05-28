@@ -60,7 +60,10 @@ def run(options):
         # get initial design #
         retrofit_mode = RETROFIT_MODE['none']
         sinario_mode  = DERIVE_SINARIO_MODE['maintain']
-        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)        
+        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
+        agent.sinario.draw_generated_data()
+        agent.world_scale.draw_generated_data()
+        sys.exit()
         NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
         # get initial design #
         # for design 0 #

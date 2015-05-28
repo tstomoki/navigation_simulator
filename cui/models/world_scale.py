@@ -4,6 +4,7 @@ import math
 import pdb
 import matplotlib.pyplot as plt
 import numpy as np
+from types import *
 # import common modules #
 
 # import own modules #
@@ -25,6 +26,22 @@ class WorldScale:
             self.calc_params_from_history()
         else:
             self.neu, self.sigma, self.u, self.d, self.p, self.alpha, self.beta = neu, sigma, u, d, p, alpha, beta
+
+    # display base data
+    def display_variables(self):
+        for variable_key in self.__dict__.keys():
+            instance_variable_key = "self.%s" % (variable_key)
+            instance_variable     = eval(instance_variable_key)
+            if isinstance(instance_variable, NoneType):
+                print "%25s: %20s" % (instance_variable_key, 'NoneType')
+            elif isinstance(instance_variable, np.ndarray):
+                print "%25s: %20s" % (instance_variable_key, 'Numpy with length (%d)' % (len(instance_variable)))                
+            elif isinstance(instance_variable, DictType):
+                key_str = ', '.join([_k for _k in instance_variable.keys()])
+                print "%25s: %20s" % (instance_variable_key, 'DictType with keys % 10s' % (key_str))
+            else:
+                print "%25s: %20s" % (instance_variable_key, str(instance_variable))                
+        return            
 
     def show_history_data(self):
         print '----------------------'
@@ -51,6 +68,26 @@ class WorldScale:
         output_file_path = RESULTSDIR + title + '.png'
         plt.savefig(output_file_path)
 
+    def draw_generated_data(self):
+        title = "world scale generated data".title()
+        graphInitializer("world scale generated data",
+                         self.default_xlabel,
+                         self.default_ylabel)
+        
+        plt.axvline(x=datetime.datetime.strptime(self.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')        
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in np.r_[self.history_data, self.predicted_data]]
+        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+
+        plt.plot(draw_data.transpose()[0],
+                 draw_data.transpose()[1],
+                 color='#9370DB', lw=5, markersize=0, marker='o')
+        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
+
+        output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.savefig(output_file_path)
+
+        return
+    
     # generate predicted sinario
     def generate_sinario(self, sinario_mode, predict_years=DEFAULT_PREDICT_YEARS):
         # default predict_years is 15 years [180 months]

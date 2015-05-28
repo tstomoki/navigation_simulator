@@ -998,19 +998,17 @@ class Agent(object):
                          x_label,
                          y_label)
         colors = ['b', 'r']
-        for key, load_condition in LOAD_CONDITION.items():
-            draw_data = combinations[load_condition]
-            # rpm
-            x_data    = draw_data.transpose()[0]
-            # calc BHP
-            y_data = np.array([])
-            for rpm in x_data:
-                rps = rpm2rps(rpm)
-                bhp = self.calc_bhp_with_rps(rps, hull, engine, propeller)
-                y_data = np.append(y_data, bhp)
-            plt.scatter(x_data, y_data, label=load_condition, color=colors[key])
-        plt.legend(shadow=True)
-        plt.legend(loc='upper left')
+        load_condition = LOAD_CONDITION[0]
+        draw_data = combinations[load_condition]
+        # rpm
+        x_data    = draw_data.transpose()[0]
+        # calc BHP
+        y_data = np.array([])
+        for rpm in x_data:
+            rps = rpm2rps(rpm)
+            bhp = self.calc_bhp_with_rps(rps, hull, engine, propeller)
+            y_data = np.append(y_data, bhp)
+        plt.scatter(x_data, y_data, color=colors[0])
         plt.savefig(filename)
         plt.close()
         return                
