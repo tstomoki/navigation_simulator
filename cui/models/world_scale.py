@@ -175,10 +175,10 @@ class WorldScale:
         return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)
 
     # multiple world_scale drawing part with binomial lattice
-    def draw_multiple_scenarios(self, oilprice_predicted_data):
+    def draw_multiple_scenarios(self):
         draw_data = np.array([])
         title     = "world scale multiple scenarios".title()
-        graphInitializer("history data",
+        graphInitializer(title,
                          self.default_xlabel,
                          self.default_ylabel)
         draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in self.history_data]
