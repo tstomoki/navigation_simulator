@@ -637,3 +637,8 @@ def draw_initial_design_graph(filepath):
     plt.savefig(png_filename)
     plt.close()    
     return 
+
+def generate_date_array(start_date, end_date):
+    number_of_days = (end_date - start_date).days + 1
+    ret_array      = [start_date + datetime.timedelta(days=x) for x in range(0, number_of_days)]
+    return ret_array
