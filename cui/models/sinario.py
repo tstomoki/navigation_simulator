@@ -176,8 +176,36 @@ class Sinario:
         self.u      = np.exp(self.sigma * np.sqrt(delta_t))
         self.d      = np.exp(self.sigma * (-1) * np.sqrt(delta_t))
         self.p      = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
-
         return
 
     def calc_oilprice(self, current_oilprice):
-        return self.u * current_oilprice if prob(self.p * 100) else self.d * current_oilprice
+        return self.u * current_oilprice if prob(self.p) else self.d * current_oilprice
+
+    # multiple oil price drawing part    
+    def draw_multiple_scenarios(self):
+        draw_data = np.array([])
+        title     = "oil price multiple scenarios".title()
+        graphInitializer("history data",
+                         self.default_xlabel,
+                         self.default_ylabel)
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.history_data]
+        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+        xlim_date = draw_data.transpose()[0].min()
+        plt.plot(draw_data.transpose()[0],
+                 draw_data.transpose()[1],
+                 color='#9370DB', lw=5, markersize=0, marker='o')
+        colors = ['b', 'r', 'k', 'c', 'g', 'm', 'y', 'orange', 'aqua', 'brown']
+        plt.axvline(x=datetime.datetime.strptime(self.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')        
+        for index in range(10):
+            sinario_mode = DERIVE_SINARIO_MODE['binomial']
+            self.generate_sinario(sinario_mode)
+            draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.predicted_data]
+            draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+            plt.plot(draw_data.transpose()[0],
+                     draw_data.transpose()[1],
+                     color=colors[-index], lw=5, markersize=0, marker='o')
+            plt.xlim([xlim_date, draw_data.transpose()[0].max()])
+        
+        output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.savefig(output_file_path)
+        return    

@@ -203,10 +203,10 @@ def add_year(start_date, year_num=1):
 
 # return true with a prob_value [%] possibility
 def prob(prob_value):
-    N = 100
-    array  = [False] * (N - prob_value) + [True] * (N)
-    random.shuffle(array)
-    return random.choice(array)
+    N = 10000
+    nonzero_num = np.count_nonzero(np.random.binomial(1, prob_value, N))
+    threshold   = N * prob_value
+    return (nonzero_num > threshold)
 
 # preconditions: there is only 2 conditions
 def get_another_condition(load_condition):

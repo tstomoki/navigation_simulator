@@ -126,7 +126,7 @@ class WorldScale:
         return
 
     def calc_ws(self, current_ws):
-        return self.u * current_ws if prob(self.p * 100) else self.d * current_ws
+        return self.u * current_ws if prob(self.p) else self.d * current_ws
     
     # calc new and sigma from history data
     def calc_params_from_history(self):
@@ -149,7 +149,6 @@ class WorldScale:
         # substitute inf to nan in values
         values = inf_to_nan_in_array(values)
 
-
         #[WIP] calc alpha and beta
         alpha = 0.1932
         beta  = 6.713
@@ -171,3 +170,32 @@ class WorldScale:
     # flat_rate [%]
     def calc_fare(self, oil_price, flat_rate):
         return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)
+
+    # multiple world_scale drawing part    
+    def draw_multiple_scenarios(self):
+        draw_data = np.array([])
+        title     = "world scale multiple scenarios".title()
+        graphInitializer("history data",
+                         self.default_xlabel,
+                         self.default_ylabel)
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in self.history_data]
+        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+        xlim_date = draw_data.transpose()[0].min()
+        plt.plot(draw_data.transpose()[0],
+                 draw_data.transpose()[1],
+                 color='#9370DB', lw=5, markersize=0, marker='o')
+        colors = ['b', 'r', 'k', 'c', 'g', 'm', 'y', 'orange', 'aqua', 'brown']
+        plt.axvline(x=datetime.datetime.strptime(self.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')        
+        for index in range(10):
+            sinario_mode = DERIVE_SINARIO_MODE['binomial']
+            self.generate_sinario(sinario_mode)
+            draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in self.predicted_data]
+            draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+            plt.plot(draw_data.transpose()[0],
+                     draw_data.transpose()[1],
+                     color=colors[-index], lw=5, markersize=0, marker='o')
+            plt.xlim([xlim_date, draw_data.transpose()[0].max()])
+        
+        output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.savefig(output_file_path)
+        return
