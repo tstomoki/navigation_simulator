@@ -46,6 +46,7 @@ class Agent(object):
         self.sinario_mode  = sinario_mode
         self.icr           = DEFAULT_ICR_RATE
         self.operation_date_array = None
+
         # initialize the range of velosity and rps
         
         # for velocity and rps array #
@@ -54,8 +55,10 @@ class Agent(object):
         # for velocity and rps array #
 
         ### full search with sinario and world_scale
-        self.sinario.generate_sinario(self.sinario_mode)
-        self.world_scale.generate_sinario(self.sinario_mode)
+        if not hasattr(self.sinario, 'predicted_data'):
+            self.sinario.generate_sinario(self.sinario_mode)
+        if not hasattr(self.world_scale, 'predicted_data'):
+            self.world_scale.generate_sinario(self.sinario_mode)
 
         if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
@@ -148,8 +151,8 @@ class Agent(object):
         self.flat_rate = 50
         
         # devide the range of propeller list
-        propeller_combinations = np.array_split(propeller_list[:5], PROC_NUM)
-
+        propeller_combinations = np.array_split(propeller_list[:2], PROC_NUM)
+        
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -160,27 +163,29 @@ class Agent(object):
         pool.close()
         pool.join()
         # multi processing #
-        
+
         # get design whose NPV is the maximum
         if len(ret_combinations) == 0:
             print_with_notice("ERROR: Couldn't found initial design, abort")
             sys.exit()
 
         # write whole simmulation result
-        pdb.set_trace()
         output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-        column_names    = ['hull_id',
-                           'engine_id',
-                           'propeller_id',
-                           'NPV']
-        write_array_to_csv(column_names, ret_combinations, output_file_path)
+        aggregated_combi = aggregate_combinations(ret_combinations)
+        column_names     = ['hull_id',
+                            'engine_id',
+                            'propeller_id',
+                            'averaged_NPV',
+                            'std']
+        write_array_to_csv(column_names, aggregated_combi, output_file_path)
+        max_index, _dummy = np.where(aggregated_combi['averaged_NPV']==np.max(aggregated_combi['averaged_NPV']))
+        pdb.set_trace()
+        hull_id, engine_id, propeller_id, averaged_NPV, std = ret_combinations[max_index][0]
+        hull                                                = Hull(hull_list, 1)
+        engine                                              = Engine(engine_list, engine_id) 
+        propeller                                           = Propeller(propeller_list, propeller_id)
 
-        NPV, hull_id, engine_id, propeller_id = ret_combinations[np.argmax(ret_combinations['NPV'], axis=0)[0]][0]
-        hull                                  = Hull(hull_list, 1)
-        engine                                = Engine(engine_list, engine_id) 
-        propeller                             = Propeller(propeller_list, propeller_id)
-
-        return NPV, hull, engine, propeller
+        return averaged_NPV, hull, engine, propeller
 
     def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None):
         # use instance variables if hull or engine or propeller are not given
@@ -542,10 +547,11 @@ class Agent(object):
     def calc_advance_constant(self, velocity, rps, diameter):
         return (WAKE_COEFFICIENT * velocity) / (rps * diameter)
         
-    def generate_operation_date(self, start_month):
+    def generate_operation_date(self, start_month, operation_end_date=None):
         operation_date_array = np.array([])
         operation_start_date = first_day_of_month(str_to_datetime(start_month))
-        operation_end_date   = add_year(operation_start_date, OPERATION_DURATION_YEARS)
+        if operation_end_date is None:
+            operation_end_date   = add_year(operation_start_date, OPERATION_DURATION_YEARS)
 
         current_date = operation_start_date
         while True:
@@ -889,8 +895,8 @@ class Agent(object):
                            'engine_id',
                            'propeller_id',
                            'NPV']
-        dtype  = np.dtype({'names': ('scenario_num', 'NPV', 'hull_id', 'engine_id', 'propeller_id'),
-                           'formats': (np.int, np.float, np.int , np.int, np.int)})
+        dtype  = np.dtype({'names': ('scenario_num', 'hull_id', 'engine_id', 'propeller_id', 'NPV'),
+                           'formats': (np.int, np.int, np.int , np.int, np.float)})
         design_array = np.array([], dtype=dtype)
         start_time = time.clock()
         # conduct multiple simmulation for each design
@@ -909,12 +915,12 @@ class Agent(object):
                     rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
                     # conduct simulation #
                     agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
-                    self.operation_date_array = self.sinario.predicted_data['date']
+                    agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
                     NPV   = agent.simmulate()
                     # conduct simulation #
                     # ignore aborted simmulation
                     if NPV is None:
-                        NPV = 0
+                        continue
                     # write simmulation result
                     output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
                     lap_time         = convert_second(time.clock() - start_time)

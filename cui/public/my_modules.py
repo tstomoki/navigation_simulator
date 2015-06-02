@@ -280,6 +280,10 @@ def detailed_datetime_to_human(datetime_var):
 def str_to_datetime(datetime_str):
     return datetime.datetime.strptime(datetime_str, "%Y/%m/%d")
 
+def str_to_date(datetime_str):
+    tdatetime = str_to_datetime(datetime_str)
+    return datetime.date(tdatetime.year, tdatetime.month, tdatetime.day)
+
 def search_near_index(current_date, date_list):
     tmp_array = np.array([])
     for index, date_elem in enumerate(date_list):
@@ -643,3 +647,31 @@ def generate_date_array(start_date, end_date):
     number_of_days = (end_date - start_date).days + 1
     ret_array      = [start_date + datetime.timedelta(days=x) for x in range(0, number_of_days)]
     return ret_array
+
+def aggregate_combinations(raw_combinations):
+    dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'averaged_NPV', 'std'),
+                       'formats': (np.int, np.int, np.int , np.float, np.float)})
+    ret_combinations = np.array([], dtype=dtype)
+
+    hull_id       = raw_combinations['hull_id'][0]
+    engine_ids    = np.unique(raw_combinations['engine_id'])
+    propeller_ids = np.unique(raw_combinations['propeller_id'])
+    
+    for engine_id in engine_ids:
+        for propeller_id in propeller_ids:
+            target_induces = np.where( (raw_combinations['hull_id']==hull_id) &
+                                       (raw_combinations['engine_id']==engine_id) &
+                                       (raw_combinations['propeller_id']==propeller_id) )
+            target_results  = raw_combinations[target_induces]
+            if len(target_results) == 0:
+                continue
+            averaged_NPV    = np.average(target_results['NPV'])
+            std             = np.std(target_results['NPV'])
+            add_combination = np.array([(hull_id,
+                                         engine_id,
+                                         propeller_id,
+                                         averaged_NPV,
+                                         std)],
+                                       dtype=dtype)
+            ret_combinations = append_for_np_array(ret_combinations, add_combination)
+    return ret_combinations
