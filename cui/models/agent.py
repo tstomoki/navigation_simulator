@@ -148,8 +148,8 @@ class Agent(object):
         self.flat_rate = 50
         
         # devide the range of propeller list
-        propeller_combinations = np.array_split(propeller_list, PROC_NUM)
-        
+        propeller_combinations = np.array_split(propeller_list[:5], PROC_NUM)
+
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -167,6 +167,7 @@ class Agent(object):
             sys.exit()
 
         # write whole simmulation result
+        pdb.set_trace()
         output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
         column_names    = ['hull_id',
                            'engine_id',
@@ -883,41 +884,52 @@ class Agent(object):
         return combinations
     
     def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path):
-        column_names    = ['simmulate_count',
+        column_names    = ['scenario_num',
                            'hull_id',
                            'engine_id',
                            'propeller_id',
                            'NPV']
-        dtype  = np.dtype({'names': ('NPV', 'hull_id', 'engine_id', 'propeller_id'),'formats': (np.float, np.int , np.int, np.int)})
+        dtype  = np.dtype({'names': ('scenario_num', 'NPV', 'hull_id', 'engine_id', 'propeller_id'),
+                           'formats': (np.int, np.float, np.int , np.int, np.int)})
         design_array = np.array([], dtype=dtype)
         start_time = time.clock()
-        simmulate_count = 0
-        for propeller_info in propeller_combinations[index]:
-            propeller = Propeller(propeller_list, propeller_info['id'])
-            for engine_info in engine_list:
-                engine = Engine(engine_list, engine_info['id'])
-                # create each arrays #
-                rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
-                # conduct simmulation
-                agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
-                NPV   = agent.simmulate()
-                # ignore aborted simmulation
-                if NPV is None:
-                    simmulate_count += 1
-                    continue
-                # update design #
-                add_design   = np.array([(NPV,
-                                        ret_hull.base_data['id'],
-                                        engine.base_data['id'],
-                                        propeller.base_data['id'])],
-                                        dtype=dtype)
-                design_array = append_for_np_array(design_array, add_design)
-                # update design #
-                # write simmulation result
-                output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
-                lap_time         = convert_second(time.clock() - start_time)
-                write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV, lap_time], output_file_path)
-                simmulate_count += 1
+        # conduct multiple simmulation for each design
+        for scenario_num in range(DEFAULT_SIMULATE_COUNT):
+            # fix the random seed #
+            np.random.seed(scenario_num)
+            ## generate scenairo and world scale
+            self.sinario.generate_sinario(self.sinario_mode, SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN)
+            # fix the random seed #
+            result_array = {}
+            for propeller_info in propeller_combinations[index]:
+                for engine_info in engine_list:
+                    propeller = Propeller(propeller_list, propeller_info['id'])
+                    engine    = Engine(engine_list, engine_info['id'])
+                    # create each arrays #
+                    rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)
+                    # conduct simulation #
+                    agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller, rpm_array)
+                    self.operation_date_array = self.sinario.predicted_data['date']
+                    NPV   = agent.simmulate()
+                    # conduct simulation #
+                    # ignore aborted simmulation
+                    if NPV is None:
+                        NPV = 0
+                    # write simmulation result
+                    output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
+                    lap_time         = convert_second(time.clock() - start_time)
+                    write_csv(column_names, [scenario_num,
+                                             ret_hull.base_data['id'],
+                                             engine.base_data['id'],
+                                             propeller.base_data['id'],
+                                             NPV, lap_time], output_file_path)
+                    add_design   = np.array([(scenario_num,
+                                              ret_hull.base_data['id'],
+                                              engine.base_data['id'],
+                                              propeller.base_data['id'],
+                                              NPV)],
+                                            dtype=dtype)
+                    design_array = append_for_np_array(design_array, add_design)                    
         return design_array    
 
     ## multi processing method ##

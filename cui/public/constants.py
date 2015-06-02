@@ -156,3 +156,4 @@ NPV_RANK_WEIGHT  = 1
 
 # default simulate count for searching initial design
 DEFAULT_SIMULATE_COUNT = 100
+SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 1
