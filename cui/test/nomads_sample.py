@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import netCDF4
 import sys
+import os
 # import own modules #
 sys.path.append('../public')
 sys.path.append('../models')
@@ -25,6 +26,10 @@ print_with_notice("generating wave map from %s to %s" % (start_date.strftime('%Y
 
 for target_date in date_range:
     target_date_key = target_date.strftime('%Y%m%d')
+    output_file_path = "%s/%s.png" % (WAVE_DIR_PATH, target_date_key)
+    if os.path.exists(output_file_path):
+        print_with_notice("wave map on %s already exists!" % (target_date.strftime('%Y/%m/%d')))
+        continue
     url='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'+ \
         target_date_key+'/nww3'+target_date_key+'_00z'
 
@@ -76,6 +81,5 @@ for target_date in date_range:
     
     # Add a colorbar and title, and then show the plot.
     plt.title('NWW3 Significant Wave Height from NOMADS on %s' % target_date_key)
-    output_file_path = "%s/%s.png" % (WAVE_DIR_PATH, target_date_key)
     plt.savefig(output_file_path)
     print_with_notice("wave map on %s has been generated" % (target_date.strftime('%Y/%m/%d')))
