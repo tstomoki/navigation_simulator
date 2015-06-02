@@ -151,7 +151,7 @@ class Agent(object):
         self.flat_rate = 50
         
         # devide the range of propeller list
-        propeller_combinations = np.array_split(propeller_list[:2], PROC_NUM)
+        propeller_combinations = np.array_split(propeller_list, PROC_NUM)
         
         # initialize
         pool = mp.Pool(PROC_NUM)
@@ -179,7 +179,6 @@ class Agent(object):
                             'std']
         write_array_to_csv(column_names, aggregated_combi, output_file_path)
         max_index, _dummy = np.where(aggregated_combi['averaged_NPV']==np.max(aggregated_combi['averaged_NPV']))
-        pdb.set_trace()
         hull_id, engine_id, propeller_id, averaged_NPV, std = ret_combinations[max_index][0]
         hull                                                = Hull(hull_list, 1)
         engine                                              = Engine(engine_list, engine_id) 
