@@ -59,11 +59,13 @@ def run(options):
         # for design 0 #
         # get initial design #
         retrofit_mode = RETROFIT_MODE['none']
-        sinario_mode  = DERIVE_SINARIO_MODE['maintain']
+        sinario_mode  = DERIVE_SINARIO_MODE['binomial']
         agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
         NPV, initial_hull, initial_engine, initial_propeller = agent.get_initial_design_m(output_dir_path)
         # get initial design #
         # for design 0 #
+        if initial_design:
+            print_with_notice("Program (search initial design) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
     else:
         # load components list
         hull_list      = load_hull_list()
@@ -108,9 +110,10 @@ if __name__ == '__main__':
                       help="designate initial engine", default=None, type="int")
     parser.add_option("-P", "--propeller", dest="propeller_id",
                       help="designate initial propeller", default=None, type="int")
+    parser.add_option("-I", "--initial", dest="initial_design",
+                      help="only search initial design", default=False)
     parser.add_option("-D", "--design", dest="design_num",
                       help="designate execute simmulate num", default=None, type="int")
-
     parser.add_option("-C", "--combinations", dest="create_combination",
                       help="only create velocity combinations", default=False)
 

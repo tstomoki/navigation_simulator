@@ -153,3 +153,6 @@ CULL_THRESHOLD = 6
 # Rank weight
 APPR_RANK_WEIGHT = 2
 NPV_RANK_WEIGHT  = 1
+
+# default simulate count for searching initial design
+DEFAULT_SIMULATE_COUNT = 100
