@@ -36,7 +36,19 @@ class Propeller:
     
     # calc advance constant
     def calc_advance_constant(self, velocity_ms, rps):
-        return (WAKE_COEFFICIENT * velocity_ms) / (rps * propeller.base_data['D'])    
+        return (WAKE_COEFFICIENT * velocity_ms) / (rps * self.base_data['D'])    
 
-    def calc_eta(rps, velocity_ms, KT, KQ):
+    def calc_eta(self, rps, velocity_ms, KT, KQ):
         return THRUST_COEFFICIENT * ( velocity_ms / (2 * math.pi) ) * (1.0 / (rps * self.base_data['D']) ) * ( (KT) / (KQ) )
+
+    def EHP2BHP(self, ehp, propeller, rps, J, velocity_ms):
+        KT  = self.calc_KT(J)
+        KQ  = self.calc_KQ(J)
+        eta = self.calc_eta(rps, velocity_ms, KT, KQ)
+        return ehp / ( ETA_S * eta)
+    
+    def BHP2EHP(self, bhp, propeller, rps, J, velocity_ms):
+        KT  = self.calc_KT(J)
+        KQ  = self.calc_KQ(J)
+        eta = self.calc_eta(rps, velocity_ms, KT, KQ)
+        return bhp * ( ETA_S * eta)    

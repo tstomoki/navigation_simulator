@@ -981,7 +981,7 @@ class Agent(object):
         title           = "%s of %s"  % ("revolution and velocity combination".title(),
                                          combination_str)
 
-        x_label = "rps".upper()
+        x_label = "rpm".upper()
         y_label = "%s %s" % ('velocity'.upper(), '[knot]')
         # initialize directory
         initializeDirHierarchy(dir_name)
@@ -993,7 +993,7 @@ class Agent(object):
             draw_data = combinations[load_condition]
             x_data    = draw_data.transpose()[0]
             y_data    = draw_data.transpose()[1]
-            plt.scatter(x_data, y_data, label=load_condition, color=colors[key])
+            plt.plot(x_data, y_data, label=load_condition, color=colors[key])
         plt.legend(shadow=True)
         plt.legend(loc='upper left')
         plt.ylim([0, 30])
@@ -1025,7 +1025,7 @@ class Agent(object):
         for rpm in x_data:
             bhp = self.get_modified_bhp(rpm, engine)
             y_data = np.append(y_data, bhp)
-        plt.scatter(x_data, y_data, color=colors[0])
+        plt.plot(x_data, y_data, color=colors[0])
         plt.savefig(filename)
         plt.close()
         return                
@@ -1053,12 +1053,10 @@ class Agent(object):
             # calc EHP
             y_data = np.array([])
             for v_knot in x_data:
-                y_data = np.append(y_data, hull.calc_EHP(v_knot, load_condition))
-            y_data    = draw_data.transpose()[1]
-            plt.scatter(x_data, y_data, label=load_condition, color=colors[key])
+                y_data = np.append(y_data, self.calc_EHP(hull, engine, propeller, v_knot, load_condition, combinations))
+            plt.plot(x_data, y_data, label=load_condition, color=colors[key])
         plt.legend(shadow=True)
         plt.legend(loc='upper left')
-        plt.ylim([0, 30])
         plt.savefig(filename)
         plt.close()
         return        
@@ -1246,3 +1244,17 @@ class Agent(object):
         potential_retrofit_design_induces = np.where(combinations['NPV'] > current_design_NPV)
         potential_retrofit_designs = combinations[potential_retrofit_design_induces]
         return potential_retrofit_designs
+
+    def calc_EHP(self, hull, engine, propeller, v_knot, load_condition, combination):
+        raw_ehp = hull.calc_raw_EHP(v_knot, load_condition)
+        index   = np.where(combination[load_condition].transpose()[1]==v_knot)
+        rpm     = combination[load_condition][index][0][0]
+        rps     = rpm2rps(rpm)
+        velocity_ms = knot2ms(v_knot)
+        J           = propeller.calc_advance_constant(velocity_ms, rps)
+
+        # consider efficiency
+        bhp          = propeller.EHP2BHP(raw_ehp, propeller, rps, J, velocity_ms)
+        modified_bhp = engine.consider_efficiency(rpm, bhp)
+        ret_ehp      = propeller.BHP2EHP(modified_bhp, propeller, rps, J, velocity_ms)
+        return ret_ehp    

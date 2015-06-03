@@ -51,7 +51,7 @@ class Engine:
         return bhp
 
     def generate_modified_bhp(self):
-        output_dir_path         = "%s/engine%s" % (COMBINATIONS_DIR_PATH, self.base_data['name'])
+        output_dir_path         = "%s/engine/engine%s" % (COMBINATIONS_DIR_PATH, self.base_data['name'])
         initializeDirHierarchy(output_dir_path)
         csv_file_path = "%s/engine%s_efficiency.csv" % (output_dir_path, self.base_data['name'])
         dtype  = np.dtype({'names': ('rpm'    , 'relative_engine_speed', 'linear_bhp', 'efficiency', 'modified_bhp'),

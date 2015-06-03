@@ -161,7 +161,7 @@ SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 1
 # engine rpm curve approx degree
 ENGINE_CURVE_APPROX_DEGREE = 3
 RELATIVE_ENGINE_EFFICIENCY = {1.0: 1.0,
-                              0.85: 0.6,
-                              0.65: 0.25,
-                              0.45: 0.1,
+                              0.85: 0.7,
+                              0.65: 0.35,
+                              0.45: 0.2,
                               0:0}

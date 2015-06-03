@@ -50,11 +50,11 @@ class Hull:
         self.base_data = hull_list[np.where(hull_list['id']==self.hull_id)][0]
         return
 
-    def calc_EHP(self, v_knot, load_condition):
-        ret_ehp = 0
-        v_ms    = knot2ms(v_knot)
+    def calc_raw_EHP(self, v_knot, load_condition):
         # EHP is quartic equation #
+        v_ms    = knot2ms(v_knot)
+        ret_ehp = self.base_data['ehp0_%s' % (load_condition)]
         for index in range(4):
-            variable_name = "self.base_data['ehp%d_%s']" % (index, load_condition)
-            ret_ehp      += eval(variable_name) * math.pow(v_ms, index)
+            variable_name = "self.base_data['ehp%d_%s']" % (index+1, load_condition)
+            ret_ehp      += eval(variable_name) * math.pow(v_ms, index+1)
         return ret_ehp
