@@ -480,9 +480,10 @@ class Agent(object):
         rps = rpm2rps(rpm)
         # reject if the condition (KT > 0 and eta > 0) fulfilled
         # advance constants
-        J   = self.calc_advance_constant(velocity_ms, rps, propeller.base_data['D'])
-        KT  = propeller.base_data['KT0'] + propeller.base_data['KT1'] * J + propeller.base_data['KT2'] * math.pow(J,2)
-        eta = THRUST_COEFFICIENT * ( velocity_ms / (2 * math.pi) ) * (1.0 / (rps * propeller.base_data['D']) ) * ( (KT) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) )
+        J   = propeller.calc_advance_constant(velocity_ms, rps)
+        KT  = propeller.calc_KT(J)
+        KQ  = propeller.calc_KQ(J)
+        eta = propeller.calc_eta(rps, velocity_ms, KT, KQ)
         if KT < 0 or eta < 0:
             return None
         
@@ -497,8 +498,7 @@ class Agent(object):
         numerator += ehp_coefficients['ehp2'] * math.pow(velocity_ms, 2) + ehp_coefficients['ehp3'] * math.pow(velocity_ms, 3) + ehp_coefficients['ehp4'] * math.pow(velocity_ms, 4)
 
         # calc denominator
-        denominator = THRUST_COEFFICIENT * (velocity_ms / (2 * math.pi) ) * (1 / (rps * propeller.base_data['D']) ) * ( (propeller.base_data['KT0'] + propeller.base_data['KT1'] * J + propeller.base_data['KT2'] * math.pow(J,2)) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) ) * ETA_S
-
+        denominator = THRUST_COEFFICIENT * (velocity_ms / (2 * math.pi) ) * (1 / (rps * propeller.base_data['D']) ) * ( KT / KQ ) * ETA_S
         bhp = numerator / denominator
         # return bhp [kW]
         
@@ -550,10 +550,6 @@ class Agent(object):
         CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(ret_combinations, axis=0)[0]]
         return CF_day, optimal_rpm, optimal_velocity    
 
-    # calc advance constant
-    def calc_advance_constant(self, velocity, rps, diameter):
-        return (WAKE_COEFFICIENT * velocity) / (rps * diameter)
-        
     def generate_operation_date(self, start_month, operation_end_date=None):
         operation_date_array = np.array([])
         operation_start_date = first_day_of_month(str_to_datetime(start_month))
