@@ -954,8 +954,6 @@ class Agent(object):
 
         # devide the propeller list
         devided_propeller_list = np.array_split(propeller_list, PROC_NUM)
-        self.calc_velocity_combinations_m(0, devided_propeller_list, hull, engine_list, propeller_list)
-        sys.exit()
 
         # initialize
         pool = mp.Pool(PROC_NUM)
