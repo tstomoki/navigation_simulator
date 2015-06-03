@@ -501,8 +501,8 @@ class Agent(object):
 
         bhp = numerator / denominator
         # return bhp [kW]
-
-        return bhp    
+        
+        return engine.consider_efficiency(rpm, bhp)
     
     def calc_optimal_velocity(self, hull, engine, propeller):
         combinations        = np.array([])

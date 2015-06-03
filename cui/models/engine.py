@@ -119,3 +119,8 @@ class Engine:
         plt.savefig(output_file_path)
         plt.close()
         return
+    
+    def consider_efficiency(self, rpm, bhp):
+        index            = np.where(self.modified_bhp_array['rpm']==rpm)
+        designated_array = self.modified_bhp_array[index]
+        return bhp * designated_array['efficiency'][0]
