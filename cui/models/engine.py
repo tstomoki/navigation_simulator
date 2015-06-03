@@ -15,7 +15,7 @@ class Engine:
         if not engine_list is None:
             self.engine_id   = engine_id
             self.engine_data = self.get_engine_with_id(engine_list)
-        self.rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], self.base_data['N_max'], RPM_RANGE_STRIDE)            
+        self.rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], self.base_data['N_max']+RPM_RANGE_STRIDE, RPM_RANGE_STRIDE)
         # generate load_combination considering efficiency
         self.modified_bhp_array = self.generate_modified_bhp()
 
@@ -53,6 +53,17 @@ class Engine:
     def generate_modified_bhp(self):
         output_dir_path         = "%s/engine%s" % (COMBINATIONS_DIR_PATH, self.base_data['name'])
         initializeDirHierarchy(output_dir_path)
+        csv_file_path = "%s/engine%s_efficiency.csv" % (output_dir_path, self.base_data['name'])
+        dtype  = np.dtype({'names': ('rpm'    , 'relative_engine_speed', 'linear_bhp', 'efficiency', 'modified_bhp'),
+                           'formats':(np.float, np.float               , np.float    , np.float    , np.float)})
+        # use if the csv file exists        
+        if os.path.exists(csv_file_path):
+            ret_data = np.genfromtxt(csv_file_path,
+                                     delimiter=',',
+                                     dtype=dtype,
+                                     skiprows=1)
+            return ret_data
+        
         efficiency_coefficients = estimate(np.array(RELATIVE_ENGINE_EFFICIENCY.keys()),
                                            np.array(RELATIVE_ENGINE_EFFICIENCY.values()),
                                            ENGINE_CURVE_APPROX_DEGREE)
@@ -71,8 +82,6 @@ class Engine:
         draw_approx_curve(linear_approx_params,
                           'linear approximation', output_dir_path,
                           np.array([self.calc_relative_engine_speed(x) for x in np.linspace(0,95,100)]), 1)
-        dtype  = np.dtype({'names': ('rpm'    , 'relative_engine_speed', 'linear_bhp', 'efficiency', 'modified_bhp'),
-                           'formats':(np.float, np.float               , np.float    , np.float    , np.float)})
         
         ret_data = np.array([], dtype=dtype)
         for rpm in self.rpm_array:
@@ -88,6 +97,8 @@ class Engine:
             ret_data              = append_for_np_array(ret_data, add_elem)
         # draw engine rpm combinations #
         self.draw_engine_rpm_combination(ret_data)
+        # write array to csv
+        write_array_to_csv(dtype.names, ret_data, csv_file_path)
         return ret_data
         
     def draw_engine_rpm_combination(self, ret_data):
