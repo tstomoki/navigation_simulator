@@ -13,6 +13,7 @@ import csv
 import json
 import operator
 import re
+from pylab import *
 # import common modules #
 
 # import own modules #
@@ -75,8 +76,8 @@ def load_engine_list(path=None):
         path = '../data/components_lists/engine_list.csv'
         
     # read data
-    dt = np.dtype({'names'  : ('id'    , 'name', 'sfoc0' , 'sfoc1' , 'sfoc2' , 'bhp0'  , 'bhp1'  , 'bhp2'  , 'N_max' , 'max_load'),
-                   'formats': (np.int16, 'S10' , np.float, np.float, np.float, np.float, np.float, np.float, np.float, np.float)})
+    dt = np.dtype({'names'  : ('id'    , 'name', 'specific_name', 'sfoc0' , 'sfoc1' , 'sfoc2' , 'bhp0'  , 'bhp1'  , 'bhp2'  , 'N_max' , 'max_load', 'sample_rpm0', 'sample_bhp0', 'sample_rpm1', 'sample_bhp1'),
+                   'formats': (np.int16, 'S10' , 'S20'          , np.float, np.float, np.float, np.float, np.float, np.float, np.float, np.float  ,  np.float    ,  np.float    ,  np.float    , np.float)})
 
     engine_list = np.genfromtxt(path,
                                 delimiter=',',
@@ -643,3 +644,49 @@ def generate_date_array(start_date, end_date):
     number_of_days = (end_date - start_date).days + 1
     ret_array      = [start_date + datetime.timedelta(days=x) for x in range(0, number_of_days)]
     return ret_array
+
+# curve fitting #
+def calc_y(x, wlist, M):
+    ret = wlist[0]
+    for i in range(1, M+1):
+        ret += wlist[i] * (x ** i)
+    return ret
+
+# estimate params with training data #
+def estimate(xlist, tlist, M):
+    # (M+1) params exists for the Mth polynomial expression
+    A = []
+    for i in range(M+1):
+        for j in range(M+1):
+            temp = (xlist**(i+j)).sum()
+            A.append(temp)
+    A = array(A).reshape(M+1, M+1)
+        
+    T = []
+    for i in range(M+1):
+        T.append(((xlist**i) * tlist).sum())
+    T = array(T)
+    # w is the solution
+    wlist = np.linalg.solve(A, T)
+    return wlist
+
+def draw_approx_curve(coefficients, title, dir_path, xlist, degree):
+    output_file_path = "%s/engine_%s.png" % (dir_path, title_to_snake(title))
+
+    x_label = "x".upper()
+    y_label = "y".upper()
+    graphInitializer(title,
+                     x_label,
+                     y_label)
+    plt.savefig(output_file_path)
+    draw_data = np.array([ (_x, calc_y(_x, coefficients, degree)) for _x in xlist])
+    plt.plot(draw_data.transpose()[0],
+             draw_data.transpose()[1],
+             color='b')
+    plt.savefig(output_file_path)
+    plt.close()    
+    return
+# curve fitting #
+
+def title_to_snake(title):
+    return re.sub(' ', r'_', title).lower()
