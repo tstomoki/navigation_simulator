@@ -428,14 +428,17 @@ class Agent(object):
                                                       'Propeller', self.propeller.base_data['id'])
                     '''
                     pass
+                
+        dir_name        = "%s/designs" % (COMBINATIONS_DIR_PATH)
+        initializeDirHierarchy(dir_name)
         # draw RPS-velocity combinations
-        self.draw_combinations(hull, engine, propeller, ret_combinations)
+        self.draw_combinations(hull, engine, propeller, ret_combinations, dir_name)
         # draw BHP-rpm
-        self.draw_BHP_rpm_graph(hull, engine, propeller, ret_combinations)        
+        self.draw_BHP_rpm_graph(hull, engine, propeller, ret_combinations, dir_name)
         # draw EHP-knot
-        self.draw_EHP_Knot_graph(hull, engine, propeller, ret_combinations)
+        self.draw_EHP_Knot_graph(hull, engine, propeller, ret_combinations, dir_name)
         # output json as file
-        self.write_combinations_as_json(hull, engine, propeller, ret_combinations)
+        self.write_combinations_as_json(hull, engine, propeller, ret_combinations, dir_name)
         return ret_combinations
 
     def rpm_velocity_fitness(self, hull, engine, propeller, velocity_ms, rpm, load_condition):
@@ -975,9 +978,9 @@ class Agent(object):
         return 
 
     # draw rps - velocity combinations
-    def draw_combinations(self, hull, engine, propeller, combinations):
-        combination_str = generate_combination_str(hull, engine, propeller)        
-        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+    def draw_combinations(self, hull, engine, propeller, combinations, dir_name):
+        combination_str = generate_combination_str(hull, engine, propeller)
+        dir_name        = "%s/%s"     % (dir_name, combination_str)
         filename        = "%s/%s_rps_v.png" % (dir_name, combination_str)
         title           = "%s of %s"  % ("revolution and velocity combination".title(),
                                          combination_str)
@@ -1002,9 +1005,9 @@ class Agent(object):
         plt.close()
         return
 
-    def draw_BHP_rpm_graph(self, hull, engine, propeller, combinations):
-        combination_str = generate_combination_str(hull, engine, propeller)        
-        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+    def draw_BHP_rpm_graph(self, hull, engine, propeller, combinations, dir_name):
+        combination_str = generate_combination_str(hull, engine, propeller)
+        dir_name        = "%s/%s"     % (dir_name, combination_str)
         filename        = "%s/%s_BHP_rpm.png" % (dir_name, combination_str)
         title           = "BHP %s of %s"  % ("and rpm combination".title(),
                                              combination_str)
@@ -1032,9 +1035,9 @@ class Agent(object):
         return                
     
     # draw EHP-velocity graphs
-    def draw_EHP_Knot_graph(self, hull, engine, propeller, combinations):
-        combination_str = generate_combination_str(hull, engine, propeller)        
-        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+    def draw_EHP_Knot_graph(self, hull, engine, propeller, combinations, dir_name):
+        combination_str = generate_combination_str(hull, engine, propeller)
+        dir_name        = "%s/%s"     % (dir_name, combination_str)
         filename        = "%s/%s_EHP_v.png" % (dir_name, combination_str)
         title           = "EHP %s of %s"  % ("and velocity combination".title(),
                                              combination_str)
@@ -1064,10 +1067,9 @@ class Agent(object):
         plt.close()
         return        
         
-    
-    def write_combinations_as_json(self, hull, engine, propeller, combinations):
+    def write_combinations_as_json(self, hull, engine, propeller, combinations, dir_name):
         combination_str = generate_combination_str(hull, engine, propeller)
-        dir_name        = "%s/%s"     % (COMBINATIONS_DIR_PATH, combination_str)
+        dir_name        = "%s/%s"     % (dir_name, combination_str)
         output_path     = "%s/%s_combinations.json" % (dir_name, combination_str)
 
         # to serialize numpy ndarray #

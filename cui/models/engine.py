@@ -101,10 +101,8 @@ class Engine:
         write_array_to_csv(dtype.names, ret_data, csv_file_path)
         return ret_data
         
-    def draw_engine_rpm_combination(self, ret_data):
+    def draw_engine_rpm_combination(self, ret_data, output_dir_path):
         # initialize path
-        output_dir_path = "%s/%s" % (COMBINATIONS_DIR_PATH, 'engine')
-        initializeDirHierarchy(output_dir_path)
         output_file_path = "%s/engine_%s.png" % (output_dir_path, self.base_data['name'])
 
         x_label = "rpm".upper()

@@ -469,7 +469,7 @@ def load_json_file(json_file_path):
 def check_combinations_exists(hull, engine, propeller):
     ret_combinations = None
     combination_str  = generate_combination_str(hull, engine, propeller)
-    file_path        = "%s/%s/%s_combinations.json" % (COMBINATIONS_DIR_PATH, combination_str, combination_str)
+    file_path        = "%s/designs/%s/%s_combinations.json" % (COMBINATIONS_DIR_PATH, combination_str, combination_str)
 
     if os.path.exists(file_path):
         ret_combinations = {}
