@@ -96,7 +96,7 @@ class Engine:
                                              dtype=dtype)
             ret_data              = append_for_np_array(ret_data, add_elem)
         # draw engine rpm combinations #
-        self.draw_engine_rpm_combination(ret_data)
+        self.draw_engine_rpm_combination(ret_data, output_dir_path)
         # write array to csv
         write_array_to_csv(dtype.names, ret_data, csv_file_path)
         return ret_data
