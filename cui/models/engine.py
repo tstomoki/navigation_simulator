@@ -14,7 +14,10 @@ class Engine:
         # read designated engine infomation
         if not engine_list is None:
             self.engine_id   = engine_id
-            self.engine_data = self.get_engine_with_id(engine_list)        
+            self.engine_data = self.get_engine_with_id(engine_list)
+        self.rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], self.base_data['N_max'], RPM_RANGE_STRIDE)            
+        # generate load_combination considering efficiency
+        self.modified_bhp_array = self.generate_modified_bhp()
 
     def showinfo(self):
         print '----------------------'
@@ -37,8 +40,73 @@ class Engine:
     def calc_load(self, bhp):
         return float(bhp) / self.base_data['max_load']
 
+    # return rpm / N_max
+    def calc_relative_engine_speed(self, rpm):
+        return float(rpm) / self.base_data['N_max']
+
     def calc_bhp(self, rpm):
         rps     = rpm2rps(rpm)
         max_rps = round(rpm2rps(self.base_data['N_max']), 4)
         bhp     = self.base_data['bhp0'] + self.base_data['bhp1'] * (rps / max_rps) + self.base_data['bhp2'] * math.pow(rps / max_rps, 2)
         return bhp
+
+    def generate_modified_bhp(self):
+        output_dir_path         = "%s/engine%s" % (COMBINATIONS_DIR_PATH, self.base_data['name'])
+        initializeDirHierarchy(output_dir_path)
+        efficiency_coefficients = estimate(np.array(RELATIVE_ENGINE_EFFICIENCY.keys()),
+                                           np.array(RELATIVE_ENGINE_EFFICIENCY.values()),
+                                           ENGINE_CURVE_APPROX_DEGREE)
+        draw_approx_curve(efficiency_coefficients,
+                          'efficiency curve', output_dir_path,
+                          np.linspace(0,1,100), ENGINE_CURVE_APPROX_DEGREE)
+
+        # linear approx #
+        xlist = np.array([0,
+                          self.calc_relative_engine_speed(self.base_data['sample_rpm0']),
+                          self.calc_relative_engine_speed(self.base_data['sample_rpm1'])])
+        ylist = np.array([0,
+                          self.base_data['sample_bhp0'],
+                          self.base_data['sample_bhp1']])
+        linear_approx_params = estimate(xlist, ylist, 1)
+        draw_approx_curve(linear_approx_params,
+                          'linear approximation', output_dir_path,
+                          np.array([self.calc_relative_engine_speed(x) for x in np.linspace(0,95,100)]), 1)
+        dtype  = np.dtype({'names': ('rpm'    , 'relative_engine_speed', 'linear_bhp', 'efficiency', 'modified_bhp'),
+                           'formats':(np.float, np.float               , np.float    , np.float    , np.float)})
+        
+        ret_data = np.array([], dtype=dtype)
+        for rpm in self.rpm_array:
+            relative_engine_speed = self.calc_relative_engine_speed(rpm)
+            linear_bhp            = calc_y(relative_engine_speed, linear_approx_params, 1)
+            efficiency            = calc_y(relative_engine_speed, efficiency_coefficients, ENGINE_CURVE_APPROX_DEGREE)
+            add_elem              = np.array([(rpm,
+                                               relative_engine_speed,
+                                               linear_bhp,
+                                               efficiency,
+                                               linear_bhp * efficiency)],
+                                             dtype=dtype)
+            ret_data              = append_for_np_array(ret_data, add_elem)
+        # draw engine rpm combinations #
+        self.draw_engine_rpm_combination(ret_data)
+        return ret_data
+        
+    def draw_engine_rpm_combination(self, ret_data):
+        # initialize path
+        output_dir_path = "%s/%s" % (COMBINATIONS_DIR_PATH, 'engine')
+        initializeDirHierarchy(output_dir_path)
+        output_file_path = "%s/engine_%s.png" % (output_dir_path, self.base_data['name'])
+
+        x_label = "rpm".upper()
+        y_label = "%s %s" % ('bhp'.upper(), '[kW]')
+        title   = "BHP and RPM %s of engine %s"  % ("combination".title(),
+                                                    self.base_data['name'])
+        graphInitializer(title,
+                         x_label,
+                         y_label)
+        plt.title(title)
+        x_data    = ret_data['rpm']
+        y_data    = ret_data['modified_bhp']
+        plt.plot(x_data, y_data)
+        plt.savefig(output_file_path)
+        plt.close()
+        return

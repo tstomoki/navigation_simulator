@@ -400,18 +400,13 @@ class Agent(object):
         ret_combinations = {}
         for load_condition in LOAD_CONDITION.keys():
             combinations = np.array([])
-            for rpm in self.rpm_array:
-                # reject rps over the engine Max rps
-                if rpm >= engine.base_data['N_max']:
-                    next
-                rps = round(rpm / 60.0, 4)
+            for rpm in engine.rpm_array:
                 tmp_combinations = np.array([])
                 for velocity in self.velocity_array:
                     velocity    = round(velocity, 4)
                     velocity_ms = knot2ms(velocity)
-    
                     # calc error of fitness bhp values
-                    error = self.rps_velocity_fitness(hull, engine, propeller, velocity_ms, rps, load_condition)
+                    error = self.rpm_velocity_fitness(hull, engine, propeller, velocity_ms, rpm, load_condition)
                     tmp_combinations = append_for_np_array(tmp_combinations, [rpm, velocity, error])
                 # remove None error value
                 remove_induces = np.array([])
@@ -443,10 +438,10 @@ class Agent(object):
         self.write_combinations_as_json(hull, engine, propeller, ret_combinations)
         return ret_combinations
 
-    def rps_velocity_fitness(self, hull, engine, propeller, velocity_ms, rps, load_condition):
+    def rpm_velocity_fitness(self, hull, engine, propeller, velocity_ms, rpm, load_condition):
         # calc bhp [WW]
-        fitness_bhp0 = self.calc_bhp_with_rps(          rps, hull, engine, propeller)
-        fitness_bhp1 = self.calc_bhp_with_ehp(velocity_ms, rps, hull, engine, propeller, load_condition)
+        fitness_bhp0 = self.get_modified_bhp(rpm, engine)
+        fitness_bhp1 = self.calc_bhp_with_ehp(velocity_ms, rpm, hull, engine, propeller, load_condition)
         # reject bhp over the engine Max load
         if fitness_bhp0 is None or fitness_bhp1 is None or fitness_bhp0 > engine.base_data['max_load'] or fitness_bhp1 > engine.base_data['max_load']:
             return None
@@ -456,8 +451,11 @@ class Agent(object):
         return error
 
     # return bhp [kW]
-    def calc_bhp_with_rps(self, rps, hull, engine, propeller):
+    def calc_bhp_with_rpm(self, rpm, hull, engine, propeller):
+        raise
+    '''
         # read coefficients
+        pdb.set_trace()
         bhp_coefficients = dict.fromkeys(['bhp0', 'bhp1', 'bhp2'], 0)
         for bhp_coefficients_key in bhp_coefficients.keys():
             bhp_coefficients[bhp_coefficients_key] = engine.base_data[bhp_coefficients_key]
@@ -466,13 +464,20 @@ class Agent(object):
         bhp     = bhp_coefficients['bhp0'] + bhp_coefficients['bhp1'] * (rps / max_rps) + bhp_coefficients['bhp2'] * math.pow(rps / max_rps, 2)
 
         return bhp
+    '''
+
+    # return modified bhp[kW] by efficiency
+    def get_modified_bhp(self, rpm, engine):
+        index = np.where(engine.modified_bhp_array['rpm']==rpm)
+        designated_array = engine.modified_bhp_array[index]
+        return designated_array['modified_bhp']
 
     # return bhp [kW]    
-    def calc_bhp_with_ehp(self, velocity_ms, rps, hull, engine, propeller, load_condition):
+    def calc_bhp_with_ehp(self, velocity_ms, rpm, hull, engine, propeller, load_condition):
+        rps = rpm2rps(rpm)
         # reject if the condition (KT > 0 and eta > 0) fulfilled
         # advance constants
         J   = self.calc_advance_constant(velocity_ms, rps, propeller.base_data['D'])
-
         KT  = propeller.base_data['KT0'] + propeller.base_data['KT1'] * J + propeller.base_data['KT2'] * math.pow(J,2)
         eta = THRUST_COEFFICIENT * ( velocity_ms / (2 * math.pi) ) * (1.0 / (rps * propeller.base_data['D']) ) * ( (KT) / (propeller.base_data['KQ0'] + propeller.base_data['KQ1'] * J + propeller.base_data['KQ2'] * math.pow(J,2)) )
         if KT < 0 or eta < 0:
@@ -949,6 +954,8 @@ class Agent(object):
 
         # devide the propeller list
         devided_propeller_list = np.array_split(propeller_list, PROC_NUM)
+        self.calc_velocity_combinations_m(0, devided_propeller_list, hull, engine_list, propeller_list)
+        sys.exit()
 
         # initialize
         pool = mp.Pool(PROC_NUM)
@@ -964,12 +971,9 @@ class Agent(object):
         for propeller_info in devided_propeller_list[index]:
             propeller = Propeller(propeller_list, propeller_info['id'])
             for engine_info in engine_list:
-                engine = Engine(engine_list, engine_info['id'])
-                # create each arrays #
-                self.rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], engine.base_data['N_max'], RPM_RANGE_STRIDE)                
-                combinations   = self.create_velocity_combination(hull, engine, propeller)
+                engine       = Engine(engine_list, engine_info['id'])
+                combinations = self.create_velocity_combination(hull, engine, propeller)
                 print "velocity combination of %10s has just generated." % (generate_combination_str(hull, engine, propeller))
-
         return 
 
     # draw rps - velocity combinations
@@ -1022,8 +1026,7 @@ class Agent(object):
         # calc BHP
         y_data = np.array([])
         for rpm in x_data:
-            rps = rpm2rps(rpm)
-            bhp = self.calc_bhp_with_rps(rps, hull, engine, propeller)
+            bhp = self.get_modified_bhp(rpm, engine)
             y_data = np.append(y_data, bhp)
         plt.scatter(x_data, y_data, color=colors[0])
         plt.savefig(filename)
