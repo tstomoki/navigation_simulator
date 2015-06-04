@@ -1335,7 +1335,7 @@ class Agent(object):
 
         # calc the number of narrawed down designs
         narrawed_down_designs_num = max(len(aggregated_designs) * NARROWED_DOWN_DESIGN_RATIO, MINIMUM_NARROWED_DOWN_DESIGN_NUM)
-        averaged_NPV_array        = np.sort(unleash_np_array_array(aggregated_designs['averaged_NPV']))[:int(narrawed_down_designs_num)]
+        averaged_NPV_array        = np.sort(unleash_np_array_array(aggregated_designs['averaged_NPV']))[::-1][:int(narrawed_down_designs_num)]
 
         narrawed_down_induces = np.array([])
         for averaged_NPV in averaged_NPV_array:
