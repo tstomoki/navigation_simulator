@@ -125,6 +125,26 @@ class WorldScale:
             
         return
 
+    # generate world scale scenario with oil price correlation
+    def generate_sinario_with_oil_corr(self, oilprice_sinario):
+        latest_history_data = oilprice_sinario.history_data[-1]
+
+        # predicted data type
+        dt   = np.dtype({'names':   ('date', 'ws'),
+                         'formats': ('S10' , np.float)})
+        self.predicted_data = np.array([], dtype=dt)
+
+        previous_month, previous_oilprice    = oilprice_sinario.history_data[-1]
+        previous_month, previous_world_scale = self.history_data[-1]
+        for predict_month, predicted_oilprice in oilprice_sinario.predicted_data:
+            change_rate           = calc_change_rate(previous_oilprice, predicted_oilprice)
+            predicted_world_scale = previous_world_scale * (1.0 - change_rate)
+            previous_month, previous_oilprice    = predict_month, predicted_oilprice
+            previous_month, previous_world_scale = predict_month, predicted_world_scale
+            self.predicted_data = np.append(self.predicted_data, np.array([(predict_month, round(predicted_world_scale, 4))], dtype=dt))            
+        
+        return 
+    
     def calc_ws(self, current_ws):
         return self.u * current_ws if prob(self.p) else self.d * current_ws
 

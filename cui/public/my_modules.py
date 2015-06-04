@@ -279,6 +279,9 @@ def datetime_to_human(datetime_var):
 def detailed_datetime_to_human(datetime_var):
     return datetime.datetime.strftime(datetime_var, "%Y/%m/%d %H:%M:%S")
 
+def daterange_to_str(start_date, end_date):
+    return "%s-%s" % (start_date.strftime('%Y%m%d'), end_date.strftime('%Y%m%d'))
+
 def str_to_datetime(datetime_str):
     return datetime.datetime.strptime(datetime_str, "%Y/%m/%d")
 
@@ -455,6 +458,8 @@ def draw_SFOC_approxmate_graph():
     plt.close()
 
 def write_file_as_text(string, output_path, open_mode):
+    if open_mode == 'a':
+        string += "\n"
     f = open(output_path, open_mode)
     f.write(string)
     f.close()     
@@ -730,10 +735,17 @@ def draw_approx_curve(coefficients, title, dir_path, xlist, degree):
 def title_to_snake(title):
     return re.sub(' ', r'_', title).lower()
 
-def analyze_correlation(oil_price_history_data, world_scale_history_data):
+def analyze_correlation(oil_price_history_data, world_scale_history_data, date_range=None):
+    # define date_range #
+    if not date_range is None:
+        raw_date        = np.array([str_to_datetime(_date) for _date in oil_price_history_data['date'][:-1]])
+        target_induces  = np.where( (raw_date > date_range['start']) & ( raw_date < date_range['end']) )
+        target_oil_data = oil_price_history_data[target_induces]
+    else:
+        target_oil_data = oil_price_history_data
     # cull data for the oilprice date
     culled_world_scale_data = []
-    for oil_price_date in oil_price_history_data['date']:
+    for oil_price_date in target_oil_data['date']:
         target_index            = np.where(world_scale_history_data['date']==oil_price_date)[0]
         if len(target_index) == 0:
             continue
@@ -744,12 +756,12 @@ def analyze_correlation(oil_price_history_data, world_scale_history_data):
         culled_world_scale_data.append(add_elem)
     culled_world_scale_data = np.array(culled_world_scale_data,
                                        dtype=world_scale_history_data.dtype)
-    panda_frame = pd.DataFrame({'date': oil_price_history_data['date'][:-1],
-                                'oilprice': oil_price_history_data['price'][:-1],
+    panda_frame = pd.DataFrame({'date': [str_to_datetime(_date) for _date in target_oil_data['date']],
+                                'oilprice': target_oil_data['price'],
                                 'world_scale': culled_world_scale_data['ws']})
 
     title           = "correlation between oilprice and world_scale"
-    output_dir_path = "%s/oilprice_ws" % (CORRELATION_DIR_PATH)
+    output_dir_path = "%s/oilprice_ws/%s" % (CORRELATION_DIR_PATH, daterange_to_str(str_to_datetime(target_oil_data['date'][0]), str_to_datetime(target_oil_data['date'][-1])))
     initializeDirHierarchy(output_dir_path)
     text_file_path  = "%s/describe.txt" % output_dir_path
     write_file_as_text(str(panda_frame.corr())    , text_file_path, 'w')
@@ -795,3 +807,6 @@ def draw_statistical_graphs(panda_frame, title, filename, output_dir_path):
     plt.savefig(filepath)
     plt.clf()    
     return
+
+def calc_change_rate(previous_value, predicted_value):
+    return ( float(predicted_value) / float(previous_value) ) - 1.0

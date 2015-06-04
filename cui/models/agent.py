@@ -147,12 +147,9 @@ class Agent(object):
         ### list has only 1 hull
         ret_hull = Hull(hull_list, 1)
 
-        ### default flat_rate is 50 [%]
-        self.flat_rate = 50
-        
         # devide the range of propeller list
         propeller_combinations = np.array_split(propeller_list, PROC_NUM)
-        
+
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -908,6 +905,7 @@ class Agent(object):
             np.random.seed(scenario_num)
             ## generate scenairo and world scale
             self.sinario.generate_sinario(self.sinario_mode, SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN)
+            self.world_scale.generate_sinario_with_oil_corr(self.sinario)
             # fix the random seed #
             result_array = {}
             for propeller_info in propeller_combinations[index]:

@@ -44,8 +44,8 @@ def run(options):
     world_scale = WorldScale(world_scale_history_data)
 
     # correlation analysis #
-    analyze_correlation(oil_price_history_data, world_scale_history_data)
-    
+    analyze_correlation(oil_price_history_data, world_scale_history_data,
+                        {'start': datetime.datetime(2009, 1, 1), 'end': datetime.datetime.now()})
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
