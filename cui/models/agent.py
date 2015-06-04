@@ -905,7 +905,7 @@ class Agent(object):
             np.random.seed(scenario_num)
             ## generate scenairo and world scale
             self.sinario.generate_sinario(self.sinario_mode, SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN)
-            self.world_scale.generate_sinario_with_oil_corr(self.sinario)
+            self.world_scale.generate_sinario_with_oil_corr(self.sinario.history_data[-1], self.sinario.predicted_data)
             # fix the random seed #
             result_array = {}
             for propeller_info in propeller_combinations[index]:

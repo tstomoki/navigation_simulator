@@ -199,6 +199,8 @@ class Sinario:
         sinario_log = {}
         for index in range(10):
             sinario_mode = DERIVE_SINARIO_MODE['binomial']
+            # fix the random seed #
+            np.random.seed(index)
             self.generate_sinario(sinario_mode)
             draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.predicted_data]
             draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
@@ -226,14 +228,12 @@ class Sinario:
             plt.axvline(x=datetime.datetime.strptime(world_scale.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')
             for index in range(10):
                 oilprice_array = sinario_log[index]
-                draw_data   = np.array([])
-                for oilprice_data in oilprice_array:
-                    date, oilprice = oilprice_data
-                    add_element    = np.array([date, world_scale.calc_ws_with_oilprice(oilprice)])
-                    draw_data      = append_for_np_array(draw_data, add_element)
-                draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
+                draw_data      = np.array([])
+                world_scale.generate_sinario_with_oil_corr(self.history_data[-1], oilprice_array)
+                draw_data = [ [datetime.datetime.strptime(data['date'], '%Y-%m-%d'), data['ws']] for data in world_scale.predicted_data]
+                draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))                
                 plt.plot(draw_data.transpose()[0],
-                         draw_data.transpose()[1],
+                         draw_data.transpose()[1],                
                          color=colors[-index], lw=5, markersize=0, marker='o')
                 plt.xlim([xlim_date, draw_data.transpose()[0].max()])
                 output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)

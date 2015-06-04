@@ -43,6 +43,9 @@ def run(options):
     # generate world scale
     world_scale = WorldScale(world_scale_history_data)
 
+    # draw multiple scenario part #
+    #base_sinario.draw_multiple_scenarios(world_scale)
+    
     # correlation analysis #
     analyze_correlation(oil_price_history_data, world_scale_history_data,
                         {'start': datetime.datetime(2009, 1, 1), 'end': datetime.datetime.now()})
