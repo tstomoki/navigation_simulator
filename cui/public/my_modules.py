@@ -661,7 +661,7 @@ def generate_date_array(start_date, end_date):
     ret_array      = [start_date + datetime.timedelta(days=x) for x in range(0, number_of_days)]
     return ret_array
 
-def aggregate_combinations(raw_combinations):
+def aggregate_combinations(raw_combinations, output_dir_path):
     dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'averaged_NPV', 'std'),
                        'formats': (np.int, np.int, np.int , np.float, np.float)})
     ret_combinations = np.array([], dtype=dtype)
@@ -669,10 +669,10 @@ def aggregate_combinations(raw_combinations):
     hull_id       = raw_combinations['hull_id'][0]
     engine_ids    = np.unique(raw_combinations['engine_id'])
     propeller_ids = np.unique(raw_combinations['propeller_id'])
-    
+
     for engine_id in engine_ids:
         for propeller_id in propeller_ids:
-            target_induces = np.where( (raw_combinations['hull_id']==hull_id) &
+            target_induces  = np.where( (raw_combinations['hull_id']==hull_id) &
                                        (raw_combinations['engine_id']==engine_id) &
                                        (raw_combinations['propeller_id']==propeller_id) )
             target_results  = raw_combinations[target_induces]
@@ -687,6 +687,11 @@ def aggregate_combinations(raw_combinations):
                                          std)],
                                        dtype=dtype)
             ret_combinations = append_for_np_array(ret_combinations, add_combination)
+            output_NPV_log_to_json(generate_combination_str_with_id(hull_id, engine_id, propeller_id),
+                                   averaged_NPV,
+                                   std,
+                                   target_results,
+                                   output_dir_path)
     return ret_combinations
 
 # curve fitting #
@@ -814,3 +819,27 @@ def calc_change_rate(previous_value, predicted_value):
 def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
     return array[idx]
+
+def output_NPV_log_to_json(design_str, averaged_NPV, std, raw_results, output_dir_path):
+    output_file_path = "%s/%s.json" % (output_dir_path, design_str)
+    raw_results_dict = dict((raw_result['scenario_num'], raw_result['NPV']) for raw_result in raw_results)
+    write_dict       = {'averaged_NPV': averaged_NPV,
+                        'std'         : std,
+                        'raw_results' : raw_results_dict}
+    write_file_as_json(write_dict, output_file_path)    
+    return
+
+def unleash_np_array_array(np_array_array):
+    return np.array([_d[0] for _d in np_array_array])
+
+def get_component_from_narrowed_down_combination(component_ids, hull_list, engine_list, propeller_list):
+    # import models #
+    from hull        import Hull
+    from engine      import Engine
+    from propeller   import Propeller
+    # import models #    
+    hull_id, engine_id, propeller_id = component_ids
+    hull      = Hull(hull_list, hull_id)
+    engine    = Engine(engine_list, engine_id) 
+    propeller = Propeller(propeller_list, propeller_id)    
+    return hull, engine, propeller

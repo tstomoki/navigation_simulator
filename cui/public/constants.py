@@ -157,7 +157,10 @@ NPV_RANK_WEIGHT  = 1
 
 # default simulate count for searching initial design
 DEFAULT_SIMULATE_COUNT = 100
-SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 1
+SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 10
+# narrowed down design ratio for initial design
+NARROWED_DOWN_DESIGN_RATIO       = 0.1
+MINIMUM_NARROWED_DOWN_DESIGN_NUM = 100
 
 # engine rpm curve approx degree
 ENGINE_CURVE_APPROX_DEGREE = 3
