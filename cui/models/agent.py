@@ -152,8 +152,8 @@ class Agent(object):
         initializeDirHierarchy(narrow_down_output_dir_path)
         narrowed_down_combinations    = self.narrow_down_combinations(ret_hull, engine_list, propeller_list, narrow_down_output_dir_path)
 
-        component_id_keys        = np.array(['hull_id', 'engine_id', 'propeller_id'])
-        narrowed_component_ids   = unleash_np_array_array( narrowed_down_combinations[component_id_keys] )           
+        component_id_keys        = ['hull_id', 'engine_id', 'propeller_id']
+        narrowed_component_ids   = unleash_np_array_array(narrowed_down_combinations)[component_id_keys]
         # devide the range of narrowed_down_combinations
         devided_component_ids    = np.array_split(narrowed_component_ids, PROC_NUM)
         narrowed_output_dir_path = "%s/narrowed" % (output_dir_path)
@@ -163,8 +163,6 @@ class Agent(object):
         #simulate_count            = DEFAULT_SIMULATE_COUNT
         simulation_duration_years = 1
         simulate_count            = 1
-        self.calc_initial_design_for_narrawed_down_combinations_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path, devided_component_ids)
-        sys.exit()
         
         # initialize
         pool = mp.Pool(PROC_NUM)
@@ -183,8 +181,8 @@ class Agent(object):
             sys.exit()
 
         # write whole simmulation result
-        output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-        aggregated_combi = aggregate_combinations(ret_combinations)
+        output_file_path = "%s/%s" % (narrowed_output_dir_path, 'initial_design.csv')
+        aggregated_combi = aggregate_combinations(ret_combinations, narrowed_output_dir_path)
         column_names     = ['hull_id',
                             'engine_id',
                             'propeller_id',
@@ -192,12 +190,11 @@ class Agent(object):
                             'std']
         write_array_to_csv(column_names, aggregated_combi, output_file_path)
         max_index, _dummy = np.where(aggregated_combi['averaged_NPV']==np.max(aggregated_combi['averaged_NPV']))
-        hull_id, engine_id, propeller_id, averaged_NPV, std = ret_combinations[max_index][0]
+        hull_id, engine_id, propeller_id, averaged_NPV, std = aggregated_combi[max_index][0][0]
         hull                                                = Hull(hull_list, 1)
         engine                                              = Engine(engine_list, engine_id) 
         propeller                                           = Propeller(propeller_list, propeller_id)
-
-        return averaged_NPV, hull, engine, propeller
+        return averaged_NPV, hull, engine, propeller, std
 
     def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None):
         # use instance variables if hull or engine or propeller are not given
@@ -1336,9 +1333,7 @@ class Agent(object):
         pool.close()
         pool.join()
         # multi processing #
-        output_initial_dir_path = "%s/initial_design/narrow_down" % (output_dir_path)
-        initializeDirHierarchy(output_initial_dir_path)
-        aggregated_designs      = aggregate_combinations(ret_combinations, output_initial_dir_path)
+        aggregated_designs      = aggregate_combinations(ret_combinations, output_dir_path)
 
         # calc the number of narrawed down designs
         narrawed_down_designs_num = max(len(aggregated_designs) * NARROWED_DOWN_DESIGN_RATIO, MINIMUM_NARROWED_DOWN_DESIGN_NUM)
