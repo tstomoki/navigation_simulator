@@ -147,6 +147,9 @@ class Agent(object):
         ### list has only 1 hull
         ret_hull = Hull(hull_list, 1)
 
+        # narrow down the potential combination
+        self.narrow_down_combinations(ret_hull, engine_list, propeller_list, output_dir_path)
+
         # devide the range of propeller list
         propeller_combinations = np.array_split(propeller_list, PROC_NUM)
 
@@ -154,7 +157,7 @@ class Agent(object):
         pool = mp.Pool(PROC_NUM)
 
         # multi processing #
-        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path)) for index in xrange(PROC_NUM)]
+        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, ret_hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path)) for index in xrange(PROC_NUM)]
         callback_combinations = [p.get() for p in callback]
         ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
@@ -468,9 +471,11 @@ class Agent(object):
 
     # return modified bhp[kW] by efficiency
     def get_modified_bhp(self, rpm, engine):
-        index = np.where(engine.modified_bhp_array['rpm']==rpm)
+        nearest_rpm = find_nearest(engine.modified_bhp_array['rpm'],rpm)
+        index       = np.where(engine.modified_bhp_array['rpm']==nearest_rpm)
         designated_array = engine.modified_bhp_array[index]
-        return designated_array['modified_bhp']
+        modified_bhp = designated_array['modified_bhp'][0]
+        return modified_bhp
 
     # return bhp [kW]    
     def calc_bhp_with_ehp(self, velocity_ms, rpm, hull, engine, propeller, load_condition):
@@ -595,9 +600,9 @@ class Agent(object):
         ret_fuel_cost = 0
         if self.is_ballast():
             # ballast
-            bhp_ballast       = self.calc_bhp_with_rps(rpm2rps(rpm_first),  hull, engine, propeller)
+            bhp_ballast       = self.get_modified_bhp(rpm_first, engine)
             sfoc_ballast      = engine.calc_sfoc(bhp_ballast)
-            bhp_full          = self.calc_bhp_with_rps(rpm2rps(rpm_second), hull, engine, propeller)
+            bhp_full          = self.get_modified_bhp(rpm_second, engine)
             sfoc_full         = engine.calc_sfoc(bhp_full)
             # calc fuel_cost per day
             fuel_cost_ballast = (1000 * self.oilprice_ballast) / 159.0 * bhp_ballast * sfoc_ballast * (24.0 / 1000000.0)
@@ -610,7 +615,7 @@ class Agent(object):
                 # use averaged rps for navigated distance
                 averaged_v    = np.average(self.log[self.load_condition_to_human()]['velocity'])
                 averaged_rpm  = np.average(self.log[self.load_condition_to_human()]['rpm'])
-                averaged_bhp  = self.calc_bhp_with_rps(rpm2rps(averaged_rpm),  hull, engine, propeller)
+                averaged_bhp  = self.get_modified_bhp(averaged_rpm, engine)
                 averaged_sfoc = engine.calc_sfoc(averaged_bhp)
                 averaged_fuel_cost = (1000 * self.oilprice_ballast) / 159.0 * averaged_bhp * averaged_sfoc * (24.0 / 1000000.0)
                 first_clause = averaged_fuel_cost * self.ballast_trip_days
@@ -628,13 +633,13 @@ class Agent(object):
             another_condition          = self.get_another_load_condition_to_human()
             averaged_v_ballast         = np.average(self.log[another_condition]['velocity'])
             averaged_rpm_ballast       = np.average(self.log[another_condition]['rpm'])
-            averaged_bhp_ballast       = self.calc_bhp_with_rps(rpm2rps(averaged_rpm_ballast), hull, engine, propeller)
+            averaged_bhp_ballast       = self.get_modified_bhp(averaged_rpm_ballast, engine)
             averaged_sfoc_ballast      = engine.calc_sfoc(averaged_bhp_ballast)
             averaged_fuel_cost_ballast = (1000 * self.oilprice_ballast) / 159.0 * averaged_bhp_ballast * averaged_sfoc_ballast * (24.0 / 1000000.0)
             fuel_cost_ballast = averaged_fuel_cost_ballast * self.return_trip_days
             
             # full
-            bhp_full          = self.calc_bhp_with_rps(rpm2rps(rpm_first), hull, engine, propeller)
+            bhp_full          = self.get_modified_bhp(rpm_first, engine)
             sfoc_full         = engine.calc_sfoc(bhp_full)
             # calc fuel_cost per day
             fuel_cost_full    = (1000 * self.oilprice_full) / 159.0 * bhp_full * sfoc_full * (24.0 / 1000000.0)
@@ -645,7 +650,7 @@ class Agent(object):
                 # use averaged rps for navigated distance
                 averaged_v    = np.average(self.log[self.load_condition_to_human()]['velocity'])
                 averaged_rpm  = np.average(self.log[self.load_condition_to_human()]['rpm'])
-                averaged_bhp  = self.calc_bhp_with_rps(rpm2rps(averaged_rpm), hull, engine, propeller)
+                averaged_bhp  = self.get_modified_bhp(averaged_rpm, engine)
                 averaged_sfoc = engine.calc_sfoc(averaged_bhp)
                 averaged_fuel_cost = (1000 * self.oilprice_full) / 159.0 * averaged_bhp * averaged_sfoc * (24.0 / 1000000.0)
                 first_clause = averaged_fuel_cost * self.elapsed_days
@@ -739,7 +744,7 @@ class Agent(object):
         # load oil price based on the load_condition
         oilprice = self.oilprice_ballast if self.is_ballast() else self.oilprice_full
         # calc fuel_cost per day
-        bhp           = self.calc_bhp_with_rps(rpm2rps(rpm), hull, engine, propeller)
+        bhp           = self.get_modified_bhp(rpm, engine)
         sfoc          = engine.calc_sfoc(bhp)
         fuel_cost     = (1000 * oilprice) / 159.0 * bhp * sfoc * (24.0 / 1000000.0)
         ret_fuel_cost = fuel_cost * ( (discounted_distance) / knot2mileday(v_knot) )
@@ -842,8 +847,7 @@ class Agent(object):
         return self.total_NPV
 
     def update_dockin_flag(self):
-        latest_dockin_date = copy.deepcopy(self.latest_dockin_date)
-        next_dockin_date   = add_year(latest_dockin_date, DOCK_IN_PERIOD)
+        next_dockin_date   = add_year(self.latest_dockin_date, DOCK_IN_PERIOD)
         return self.current_date >= next_dockin_date
 
     def initiate_dockin(self):
@@ -889,7 +893,7 @@ class Agent(object):
             combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
         return combinations
     
-    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, output_dir_path):
+    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path):
         column_names    = ['scenario_num',
                            'hull_id',
                            'engine_id',
@@ -900,11 +904,11 @@ class Agent(object):
         design_array = np.array([], dtype=dtype)
         start_time = time.clock()
         # conduct multiple simmulation for each design
-        for scenario_num in range(DEFAULT_SIMULATE_COUNT):
+        for scenario_num in range(simulate_count):
             # fix the random seed #
             np.random.seed(scenario_num)
             ## generate scenairo and world scale
-            self.sinario.generate_sinario(self.sinario_mode, SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN)
+            self.sinario.generate_sinario(self.sinario_mode, simulation_duration_years)
             self.world_scale.generate_sinario_with_oil_corr(self.sinario.history_data[-1], self.sinario.predicted_data)
             # fix the random seed #
             result_array = {}
@@ -1256,3 +1260,24 @@ class Agent(object):
         modified_bhp = engine.consider_efficiency(rpm, bhp)
         ret_ehp      = propeller.BHP2EHP(modified_bhp, propeller, rps, J, velocity_ms)
         return ret_ehp    
+
+    def narrow_down_combinations(self, hull, engine_list, propeller_list, output_dir_path):
+        # devide the range of propeller list
+        propeller_combinations    = np.array_split(propeller_list, PROC_NUM)
+        # 1 year
+        simulation_duration_years = 1
+        simulate_count            = 10
+
+        # initialize
+        pool = mp.Pool(PROC_NUM)
+
+        # multi processing #
+        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path)) for index in xrange(PROC_NUM)]
+        callback_combinations = [p.get() for p in callback]
+        ret_combinations      = flatten_3d_to_2d(callback_combinations)
+        pool.close()
+        pool.join()
+        # multi processing #
+        pdb.set_trace()
+        
+        return

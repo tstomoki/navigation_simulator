@@ -810,3 +810,7 @@ def draw_statistical_graphs(panda_frame, title, filename, output_dir_path):
 
 def calc_change_rate(previous_value, predicted_value):
     return ( float(predicted_value) / float(previous_value) ) - 1.0
+
+def find_nearest(array,value):
+    idx = (np.abs(array-value)).argmin()
+    return array[idx]
