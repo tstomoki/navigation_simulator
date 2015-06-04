@@ -14,6 +14,7 @@ import json
 import operator
 import re
 from pylab import *
+import pandas as pd
 # import common modules #
 
 # import own modules #
@@ -453,6 +454,12 @@ def draw_SFOC_approxmate_graph():
     plt.savefig('engine_sfoc_detail.png')
     plt.close()
 
+def write_file_as_text(string, output_path, open_mode):
+    f = open(output_path, open_mode)
+    f.write(string)
+    f.close()     
+    return 
+    
 def write_file_as_json(dict_file, output_path):
     f = open(output_path, 'w')
     json_data = json.dumps(dict_file, indent=4)
@@ -722,3 +729,69 @@ def draw_approx_curve(coefficients, title, dir_path, xlist, degree):
 
 def title_to_snake(title):
     return re.sub(' ', r'_', title).lower()
+
+def analyze_correlation(oil_price_history_data, world_scale_history_data):
+    # cull data for the oilprice date
+    culled_world_scale_data = []
+    for oil_price_date in oil_price_history_data['date']:
+        target_index            = np.where(world_scale_history_data['date']==oil_price_date)[0]
+        if len(target_index) == 0:
+            continue
+        target_data = world_scale_history_data[target_index]
+        target_date = target_data['date'][0]
+        target_ws   = target_data['ws'][0]
+        add_elem    = (target_date, target_ws)
+        culled_world_scale_data.append(add_elem)
+    culled_world_scale_data = np.array(culled_world_scale_data,
+                                       dtype=world_scale_history_data.dtype)
+    panda_frame = pd.DataFrame({'date': oil_price_history_data['date'][:-1],
+                                'oilprice': oil_price_history_data['price'][:-1],
+                                'world_scale': culled_world_scale_data['ws']})
+
+    title           = "correlation between oilprice and world_scale"
+    output_dir_path = "%s/oilprice_ws" % (CORRELATION_DIR_PATH)
+    initializeDirHierarchy(output_dir_path)
+    text_file_path  = "%s/describe.txt" % output_dir_path
+    write_file_as_text(str(panda_frame.corr())    , text_file_path, 'w')
+    write_file_as_text(str(panda_frame.describe()), text_file_path, 'a')
+    draw_statistical_graphs(panda_frame, title, "oilprice_ws_crr", output_dir_path)
+    return
+
+def draw_statistical_graphs(panda_frame, title, filename, output_dir_path):
+    # scatter_matrix
+    filepath = "%s/%s_scatter_matrix.png" % (output_dir_path, filename)
+    plt.figure()
+    plt.title(title, fontweight="bold")
+    pd.scatter_matrix(panda_frame)
+    plt.savefig(filepath)
+    plt.clf()
+
+    # plot
+    filepath = "%s/%s_plot.png" % (output_dir_path, filename)
+    plt.figure()
+    plt.title(title, fontweight="bold")
+    panda_frame.plot()
+    plt.savefig(filepath)
+    plt.clf()    
+
+    '''
+    # area
+    filepath = "%s/%s_area.png" % (output_dir_path, filename)
+    plt.figure()
+    plt.title(title, fontweight="bold")
+    panda_frame.plot(kind='area', legend=True)
+    plt.savefig(filepath)
+    plt.clf()    
+    '''
+
+    # hist
+    filepath = "%s/%s_hist.png" % (output_dir_path, filename)
+    plt.figure()
+    plt.title(title, fontweight="bold")
+    panda_frame['oilprice'].hist(color="#5F9BFF", alpha=.5, label='oilprice')
+    panda_frame['world_scale'].hist(color="#F8766D", alpha=.5, label='world_scale')
+    plt.legend(shadow=True)
+    plt.legend(loc='upper right')        
+    plt.savefig(filepath)
+    plt.clf()    
+    return

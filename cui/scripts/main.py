@@ -35,13 +35,17 @@ def run(options):
     # load history data
     from_date = '2004/01/01'
     to_date = '2014/01/01'
-    history_data = load_monthly_history_data(from_date, to_date)
+    oil_price_history_data   = load_monthly_history_data(from_date, to_date)
+    world_scale_history_data = load_world_scale_history_data()
 
     # generate sinario
-    base_sinario = Sinario(history_data)
+    base_sinario = Sinario(oil_price_history_data)
     # generate world scale
-    world_scale = WorldScale(load_world_scale_history_data())
+    world_scale = WorldScale(world_scale_history_data)
 
+    # correlation analysis #
+    analyze_correlation(oil_price_history_data, world_scale_history_data)
+    
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
