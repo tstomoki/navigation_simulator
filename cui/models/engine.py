@@ -67,10 +67,12 @@ class Engine:
         efficiency_coefficients = estimate(np.array(RELATIVE_ENGINE_EFFICIENCY.keys()),
                                            np.array(RELATIVE_ENGINE_EFFICIENCY.values()),
                                            ENGINE_CURVE_APPROX_DEGREE)
+        x_label = "rpm".upper()
+        y_label = "efficiency".upper()
         draw_approx_curve(efficiency_coefficients,
                           'efficiency curve', output_dir_path,
-                          np.linspace(0,1,100), ENGINE_CURVE_APPROX_DEGREE)
-
+                          np.linspace(0,1,100), ENGINE_CURVE_APPROX_DEGREE,
+                          x_label, y_label)
         # linear approx #
         xlist = np.array([0,
                           self.calc_relative_engine_speed(self.base_data['sample_rpm0']),
@@ -79,9 +81,12 @@ class Engine:
                           self.base_data['sample_bhp0'],
                           self.base_data['sample_bhp1']])
         linear_approx_params = estimate(xlist, ylist, 1)
+        x_label = "rpm".upper()
+        y_label = "BHP [kW]"
         draw_approx_curve(linear_approx_params,
                           'linear approximation', output_dir_path,
-                          np.array([self.calc_relative_engine_speed(x) for x in np.linspace(0,95,100)]), 1)
+                          np.array([self.calc_relative_engine_speed(x) for x in np.linspace(0,95,100)]), 1,
+                          x_label, y_label)
         
         ret_data = np.array([], dtype=dtype)
         for rpm in self.rpm_array:

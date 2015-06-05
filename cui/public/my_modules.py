@@ -719,11 +719,8 @@ def estimate(xlist, tlist, M):
     wlist = np.linalg.solve(A, T)
     return wlist
 
-def draw_approx_curve(coefficients, title, dir_path, xlist, degree):
+def draw_approx_curve(coefficients, title, dir_path, xlist, degree, x_label, y_label):
     output_file_path = "%s/engine_%s.png" % (dir_path, title_to_snake(title))
-
-    x_label = "x".upper()
-    y_label = "y".upper()
     graphInitializer(title,
                      x_label,
                      y_label)

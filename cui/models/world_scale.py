@@ -136,7 +136,7 @@ class WorldScale:
         previous_month, previous_world_scale = self.history_data[-1]
         for predict_month, predicted_oilprice in oilprice_predicted_data:
             change_rate           = calc_change_rate(previous_oilprice, predicted_oilprice)
-            predicted_world_scale = previous_world_scale * (1.0 - change_rate)
+            predicted_world_scale = self.calc_ws(previous_world_scale * (1.0 - change_rate))
             previous_month, previous_oilprice    = predict_month, predicted_oilprice
             previous_month, previous_world_scale = predict_month, predicted_world_scale
             self.predicted_data = np.append(self.predicted_data, np.array([(predict_month, round(predicted_world_scale, 4))], dtype=dt))            
