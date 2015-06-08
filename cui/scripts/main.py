@@ -26,11 +26,12 @@ def run(options):
     print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
 
     # get option variables #
-    initial_hull_id      = options.hull_id
-    initial_engine_id    = options.engine_id
-    initial_propeller_id = options.propeller_id
-    design_num           = options.design_num
-    create_combination   = options.create_combination
+    initial_hull_id       = options.hull_id
+    initial_engine_id     = options.engine_id
+    initial_propeller_id  = options.propeller_id
+    design_num            = options.design_num
+    create_combination    = options.create_combination
+    result_visualize_mode = options.result_visualize_mode
 
     # load history data
     from_date = '2004/01/01'
@@ -44,7 +45,7 @@ def run(options):
     world_scale = WorldScale(world_scale_history_data)
 
     # draw multiple scenario part #
-    #base_sinario.draw_multiple_scenarios(world_scale)
+    # base_sinario.draw_multiple_scenarios(world_scale)
     
     # correlation analysis #
     analyze_correlation(oil_price_history_data, world_scale_history_data,
@@ -53,6 +54,21 @@ def run(options):
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
 
+    if result_visualize_mode:
+        output_dir_path = "%s/visualization" % (RESULT_DIR_PATH)
+        initializeDirHierarchy(output_dir_path)
+        if not( (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None) ):
+            combination_key  = generate_combination_str_with_id(initial_hull_id, initial_engine_id, initial_propeller_id)
+            base_file_path   = "%s/designs/%s" % (COMBINATIONS_DIR_PATH, combination_key)
+            json_filepath    = "%s_combinations.json" % (base_file_path)
+            if not os.path.exists(json_filepath):
+                print "abort: there is no such json file, %s" % (json_filepath)
+                sys.exit()
+            output_file_path = "%s_combinations.json" % (base_file_path)
+            draw_NPV_histogram(json_filepath, output_filepath)
+        print_with_notice("Program (visualization) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        sys.exit()
+    
     # only creating velocity combinations
     if create_combination:
         retrofit_mode = RETROFIT_MODE['none']
@@ -125,6 +141,8 @@ if __name__ == '__main__':
                       help="designate execute simmulate num", default=None, type="int")
     parser.add_option("-C", "--combinations", dest="create_combination",
                       help="only create velocity combinations", default=False)
+    parser.add_option("-R", "--result-mode", dest="result_visualize_mode",
+                      help="results visualize mode", default=False)
 
     (options, args) = parser.parse_args()
     run(options)

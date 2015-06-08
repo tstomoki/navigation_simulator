@@ -719,11 +719,8 @@ def estimate(xlist, tlist, M):
     wlist = np.linalg.solve(A, T)
     return wlist
 
-def draw_approx_curve(coefficients, title, dir_path, xlist, degree):
+def draw_approx_curve(coefficients, title, dir_path, xlist, degree, x_label, y_label):
     output_file_path = "%s/engine_%s.png" % (dir_path, title_to_snake(title))
-
-    x_label = "x".upper()
-    y_label = "y".upper()
     graphInitializer(title,
                      x_label,
                      y_label)
@@ -843,3 +840,30 @@ def get_component_from_narrowed_down_combination(component_ids, hull_list, engin
     engine    = Engine(engine_list, engine_id) 
     propeller = Propeller(propeller_list, propeller_id)    
     return hull, engine, propeller
+
+def draw_NPV_histogram(json_filepath, output_filepath):
+    data         = load_json_file(json_filepath)
+    averaged_NPV = data['averaged_NPV']
+    
+    title   = "NPV histogram\n"
+    x_label = "%s [$]" % "npv".upper()
+    y_label = "probability".upper()
+
+    # initialize graph
+    graphInitializer(title, x_label, y_label)
+    # overwrite title
+    plt.title (title, fontweight="bold")
+
+    # draw averaged pv
+    plt.axvline(x=averaged_NPV, color='r', linewidth=3, linestyle='--')
+    
+    draw_data = np.array([])
+    for scenario_num, npv in data['raw_results'].items():
+        draw_data = np.append(draw_data, npv)
+    
+    range_minimum = np.amin(draw_data)
+    range_maximum = np.amax(draw_data)    
+    plt.hist(draw_data, normed=False, bins=20, alpha=0.8, range=(range_minimum, range_maximum))
+    plt.savefig(output_filepath)
+    plt.close()
+    return
