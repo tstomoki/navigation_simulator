@@ -847,7 +847,34 @@ def draw_NPV_histogram(json_filepath, output_filepath):
     
     title   = "NPV histogram\n"
     x_label = "%s [$]" % "npv".upper()
-    y_label = "probability".upper()
+    y_label = "frequency".upper()
+
+    # initialize graph
+    graphInitializer(title, x_label, y_label)
+    # overwrite title
+    plt.title (title, fontweight="bold")
+
+    # draw averaged pv
+    plt.axvline(x=averaged_NPV, color='r', linewidth=3, linestyle='--')
+    
+    draw_data = np.array([])
+    for scenario_num, npv in data['raw_results'].items():
+        draw_data = np.append(draw_data, npv)
+    
+    range_minimum = np.amin(draw_data)
+    range_maximum = np.amax(draw_data)    
+    plt.hist(draw_data, normed=False, bins=20, alpha=0.8, range=(range_minimum, range_maximum))
+    plt.savefig(output_filepath)
+    plt.close()
+    return
+
+def draw_NPV_histogram_m(json_filepath, output_filepath):
+    data         = load_json_file(json_filepath)
+    averaged_NPV = data['averaged_NPV']
+    
+    title   = "NPV histogram\n"
+    x_label = "%s [$]" % "npv".upper()
+    y_label = "frequency".upper()
 
     # initialize graph
     graphInitializer(title, x_label, y_label)

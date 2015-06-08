@@ -57,15 +57,22 @@ def run(options):
     if result_visualize_mode:
         output_dir_path = "%s/visualization" % (RESULT_DIR_PATH)
         initializeDirHierarchy(output_dir_path)
-        if not( (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None) ):
-            combination_key  = generate_combination_str_with_id(initial_hull_id, initial_engine_id, initial_propeller_id)
-            base_file_path   = "%s/designs/%s" % (COMBINATIONS_DIR_PATH, combination_key)
-            json_filepath    = "%s_combinations.json" % (base_file_path)
-            if not os.path.exists(json_filepath):
-                print "abort: there is no such json file, %s" % (json_filepath)
-                sys.exit()
-            output_file_path = "%s_combinations.json" % (base_file_path)
-            draw_NPV_histogram(json_filepath, output_filepath)
+        json_dirpath   = "../results/agent_log/201506050108/initial_design/narrow_down"
+        if not os.path.exists(json_dirpath):
+            print "abort: there is no such directory, %s" % (json_dirpath)
+            sys.exit()
+        files = os.listdir(json_dirpath)
+
+        #draw_NPV_histogram_m(json_filepath, output_filepath)
+
+        for target_filename in files:
+            try:
+                combination_key, = re.compile(r'(H.+)\.json').search(target_filename).groups()
+            except:
+                continue
+            target_filepath  = "%s/%s" % (json_dirpath, target_filename)
+            output_filepath = "%s/%s_NPV_result.png" % (output_dir_path, combination_key)
+            draw_NPV_histogram(target_filepath, output_filepath)
         print_with_notice("Program (visualization) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         sys.exit()
     
