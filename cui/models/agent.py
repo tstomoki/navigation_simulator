@@ -151,7 +151,6 @@ class Agent(object):
         narrow_down_output_dir_path   = "%s/narrow_down" % (output_dir_path)
         initializeDirHierarchy(narrow_down_output_dir_path)
         narrowed_down_combinations    = self.narrow_down_combinations(ret_hull, engine_list, propeller_list, narrow_down_output_dir_path)
-
         component_id_keys        = ['hull_id', 'engine_id', 'propeller_id']
         narrowed_component_ids   = unleash_np_array_array(narrowed_down_combinations)[component_id_keys]
         # devide the range of narrowed_down_combinations
@@ -161,7 +160,6 @@ class Agent(object):
         
         simulation_duration_years = SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN
         simulate_count            = DEFAULT_SIMULATE_COUNT
-        
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -1318,8 +1316,8 @@ class Agent(object):
         # devide the range of propeller list
         propeller_combinations    = np.array_split(propeller_list, PROC_NUM)
         # 2 years simulation for 10 scenarios
-        simulation_duration_years = 2
-        simulate_count            = 10
+        simulation_duration_years = NARROWED_DOWN_DURATION_YEARS
+        simulate_count            = NARROWED_DOWN_DURATION_SIMULATE_COUNT
 
         # initialize
         pool = mp.Pool(PROC_NUM)

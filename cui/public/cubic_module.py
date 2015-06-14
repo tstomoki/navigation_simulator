@@ -2,8 +2,35 @@
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
-from mylib import *
+import pdb
 from scipy import stats
+
+def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filename):
+	fig = plt.figure()
+	ax = Axes3D(fig)
+	
+	lx= len(column_names)            # Work out matrix dimensions
+	ly= len(row_names)
+	xpos = np.arange(0,lx,1)    # Set up a mesh of positions
+	ypos = np.arange(0,ly,1)
+	xpos, ypos = np.meshgrid(xpos+0.25, ypos+0.25)
+
+	xpos = xpos.flatten()   # Convert positions to 1D array
+	ypos = ypos.flatten()
+	zpos = np.zeros(lx*ly)
+	
+	dx = 0.5 * np.ones_like(zpos)
+	dy = dx.copy()
+	dz = zlist.astype(float).flatten()
+	ax.bar3d(xpos,ypos,zpos, dx, dy, dz, color='b', alpha=0.8)
+	
+	#ax.w_xaxis.set_ticklabels(column_names)
+	#ax.w_yaxis.set_ticklabels(row_names, rotation=20)
+	ax.set_xlabel(x_label, fontsize='small')
+	ax.set_ylabel(y_label, fontsize='small')
+	ax.set_zlabel(z_label, fontsize='small')
+	plt.savefig(output_filename)
+	return 
 
 # 時間(X)ごとのラインを表示するメソッド(X:時間(unitTime), Y:LogSpeed, Z:馬力)
 def showLineFrame3DGraph(title, output_path, coefficientList, yList = [10,11,12,13,14,15,16,17,18,19,20], yMesh = False):

@@ -21,6 +21,7 @@ import pandas as pd
 sys.path.append('../public')
 sys.path.append('../models')
 from constants  import *
+from cubic_module  import *
 # import own modules #
 
 #initialize dir_name
@@ -295,7 +296,7 @@ def search_near_index(current_date, date_list):
         day_delta = ( date2datetime(current_date) - str_to_datetime(date_elem) ).days
         day_delta = np.abs(day_delta)
         tmp_array = append_for_np_array(tmp_array, [day_delta, index])
-    day_delta, index = tmp_array[np.argmin(tmp_array, axis=0)[0]]
+    day_delta, index = tmp_array[np.argmin(tmp_array, axis=0)[0]] if not isinstance(np.argmin(tmp_array, axis=0), np.int64) else tmp_array
     return date_list[index]
 
 def date2datetime(current_date):
@@ -868,6 +869,32 @@ def draw_NPV_histogram(json_filepath, output_filepath):
     plt.close()
     return
 
+def draw_NPV_for_each3D(designs_data, output_filepath):
+    title   = "PV histogram for each design\n"
+    x_label = "engine_id".upper()
+    y_label = "propeller_id".upper()    
+    z_label = "averaged_NPV".upper()
+
+    draw_data = []
+    for design_key, design_data in designs_data.items():
+        hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key) 
+        append_data = [hull_id, engine_id, propeller_id, design_data['averaged_NPV'] ]
+        draw_data.append(append_data)
+    draw_data = np.array(draw_data)
+    pdb.set_trace()
+    xlist = draw_data.transpose()[1]
+    ylist = draw_data.transpose()[2]
+    zlist = draw_data.transpose()[3]
+
+    column_names = [ "%s%s" % ('engine'.upper(), _x) for _x in np.unique(xlist)]
+    row_names    = [ "%s%s" % ('propeller'.upper(), _x) for _x in np.unique(ylist)]
+    draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filepath)
+    sys.exit()
+    pdb.set_trace()
+    plt.savefig(output_file_path)
+    plt.close()    
+    return
+
 def draw_NPV_histogram_m(json_filepath, output_filepath):
     data         = load_json_file(json_filepath)
     averaged_NPV = data['averaged_NPV']
@@ -894,3 +921,13 @@ def draw_NPV_histogram_m(json_filepath, output_filepath):
     plt.savefig(output_filepath)
     plt.close()
     return
+
+def get_component_ids_from_design_key(design_key):
+    p = re.compile(r'H(\d+)E(\d+)P(\d+)')
+    try:
+        a = p.search(design_key)
+    except:
+        pdb.set_trace()
+    hull_id, engine_id, propeller_id = a.groups()
+
+    return hull_id, engine_id, propeller_id

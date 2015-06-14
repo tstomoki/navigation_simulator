@@ -29,6 +29,7 @@ def run(options):
     initial_hull_id       = options.hull_id
     initial_engine_id     = options.engine_id
     initial_propeller_id  = options.propeller_id
+    initial_design        = options.initial_design
     design_num            = options.design_num
     create_combination    = options.create_combination
     result_visualize_mode = options.result_visualize_mode
@@ -65,14 +66,19 @@ def run(options):
 
         #draw_NPV_histogram_m(json_filepath, output_filepath)
 
+        results_data = {}
         for target_filename in files:
             try:
                 combination_key, = re.compile(r'(H.+)\.json').search(target_filename).groups()
             except:
                 continue
-            target_filepath  = "%s/%s" % (json_dirpath, target_filename)
-            output_filepath = "%s/%s_NPV_result.png" % (output_dir_path, combination_key)
-            draw_NPV_histogram(target_filepath, output_filepath)
+            target_filepath               = "%s/%s" % (json_dirpath, target_filename)
+            results_data[combination_key] = load_json_file(target_filepath)
+
+        output_filepath = "%s/NPV_for_each_design3D.png" % (output_dir_path)
+        draw_NPV_for_each3D(results_data, output_filepath)
+        #    output_filepath = "%s/%s_NPV_result.png" % (output_dir_path, combination_key)
+        #    draw_NPV_histogram(target_filepath, output_filepath)
         print_with_notice("Program (visualization) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         sys.exit()
     

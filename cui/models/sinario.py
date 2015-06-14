@@ -124,7 +124,7 @@ class Sinario:
                          'formats': ('S10' , np.float)})
         self.predicted_data = np.array([], dtype=dt)
         
-        predict_months_num = self.predict_years * 12
+        predict_months_num = int(self.predict_years * 12)
 
         # latest date from history_data
         latest_history_date_str, latest_oilprice = self.history_data[-1]
