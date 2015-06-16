@@ -33,6 +33,8 @@ def run(options):
     design_num            = options.design_num
     create_combination    = options.create_combination
     result_visualize_mode = options.result_visualize_mode
+    result_dir_path       = options.result_dir_path
+
 
     # load history data
     from_date = '2004/01/01'
@@ -99,7 +101,7 @@ def run(options):
         agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
         initial_design_dir = "%s/initial_design" % (output_dir_path)
         initializeDirHierarchy(initial_design_dir)
-        averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir)
+        averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir, result_dir_path)
         # get initial design #
         # for design 0 #
         if initial_design:
@@ -156,6 +158,8 @@ if __name__ == '__main__':
                       help="only create velocity combinations", default=False)
     parser.add_option("-R", "--result-mode", dest="result_visualize_mode",
                       help="results visualize mode", default=False)
+    parser.add_option("-A", "--result-path", dest="result_dir_path",
+                      help="results dir path", default=None)
 
     (options, args) = parser.parse_args()
     run(options)

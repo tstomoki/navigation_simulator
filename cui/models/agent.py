@@ -137,7 +137,7 @@ class Agent(object):
 
     ### full search with hull, engine and propeller
     # multi processing method #
-    def get_initial_design_m(self, output_dir_path):
+    def get_initial_design_m(self, output_dir_path, initial_design_result_path=None):
         # load components list
         hull_list           = load_hull_list()
         engine_list         = load_engine_list()
@@ -148,23 +148,24 @@ class Agent(object):
         ret_hull = Hull(hull_list, 1)
 
         # narrow down the potential combination
-        narrow_down_output_dir_path   = "%s/narrow_down" % (output_dir_path)
+        narrow_down_output_dir_path = "%s/narrow_down" % (output_dir_path)
         initializeDirHierarchy(narrow_down_output_dir_path)
-        narrowed_down_combinations    = self.narrow_down_combinations(ret_hull, engine_list, propeller_list, narrow_down_output_dir_path)
-        component_id_keys        = ['hull_id', 'engine_id', 'propeller_id']
-        narrowed_component_ids   = unleash_np_array_array(narrowed_down_combinations)[component_id_keys]
+        narrowed_down_combinations  = self.narrow_down_combinations(ret_hull, engine_list, propeller_list, narrow_down_output_dir_path, initial_design_result_path)
+        component_id_keys           = ['hull_id', 'engine_id', 'propeller_id']
+        narrowed_component_ids      = unleash_np_array_array(narrowed_down_combinations)[component_id_keys]
         # devide the range of narrowed_down_combinations
-        devided_component_ids    = np.array_split(narrowed_component_ids, PROC_NUM)
-        narrowed_output_dir_path = "%s/narrowed" % (output_dir_path)
+        devided_component_ids       = np.array_split(narrowed_component_ids, PROC_NUM)
+        narrowed_output_dir_path    = "%s/narrowed" % (output_dir_path)
         initializeDirHierarchy(narrowed_output_dir_path)
         
         simulation_duration_years = SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN
         simulate_count            = DEFAULT_SIMULATE_COUNT
+        print_with_notice("initiate narrowed down simulation")
         # initialize
-        pool = mp.Pool(PROC_NUM)
+        pool                      = mp.Pool(PROC_NUM)
 
         # multi processing #
-        callback              = [pool.apply_async(self.calc_initial_design_for_narrawed_down_combinations_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path, devided_component_ids)) for index in xrange(PROC_NUM)]
+        callback              = [pool.apply_async(self.calc_initial_design_for_narrowed_down_combinations_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, narrowed_output_dir_path, devided_component_ids)) for index in xrange(PROC_NUM)]
         callback_combinations = [p.get() for p in callback]
         ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
@@ -857,6 +858,7 @@ class Agent(object):
         return self.current_date >= next_dockin_date
 
     def initiate_dockin(self):
+        import copy
         left_dock_date          = add_month(copy.deepcopy(self.current_date), DOCK_IN_DURATION)
         self.latest_dockin_date = left_dock_date
         self.dockin_flag = True
@@ -899,7 +901,7 @@ class Agent(object):
             combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
         return combinations
     
-    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path):
+    def calc_initial_design_m(self, index, propeller_combinations, ret_hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path, result_path):
         column_names    = ['scenario_num',
                            'hull_id',
                            'engine_id',
@@ -908,7 +910,8 @@ class Agent(object):
         dtype  = np.dtype({'names': ('scenario_num', 'hull_id', 'engine_id', 'propeller_id', 'NPV'),
                            'formats': (np.int, np.int, np.int , np.int, np.float)})
         design_array = np.array([], dtype=dtype)
-        start_time = time.clock()
+        start_time   = time.clock()
+        result_data  = {}
         # conduct multiple simmulation for each design
         for scenario_num in range(simulate_count):
             # fix the random seed #
@@ -922,14 +925,23 @@ class Agent(object):
                 for engine_info in engine_list:
                     propeller = Propeller(propeller_list, propeller_info['id'])
                     engine    = Engine(engine_list, engine_info['id'])
-                    # conduct simulation #
-                    agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller)
-                    agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
-                    NPV   = agent.simmulate()
-                    # conduct simulation #
-                    # ignore aborted simmulation
-                    if NPV is None:
-                        continue
+                    # get existing result file
+                    combination_str  = generate_combination_str(ret_hull, engine, propeller)
+                    result_file_path = "%s/%s.json" % (result_path, combination_str)
+                    if os.path.exists(result_file_path):
+                        if not result_data.has_key(combination_str):
+                            result_data[combination_str] = load_json_file(result_file_path)
+                            print_with_notice("load %s result from %s" % (combination_str, result_file_path))
+                        NPV         = result_data[combination_str]['raw_results'][str(scenario_num)]
+                    else:
+                        # conduct simulation #
+                        agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller)
+                        agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
+                        NPV   = agent.simmulate()
+                        # conduct simulation #
+                        # ignore aborted simmulation
+                        if NPV is None:
+                            continue
                     # write simmulation result
                     output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
                     lap_time         = convert_second(time.clock() - start_time)
@@ -944,10 +956,10 @@ class Agent(object):
                                               propeller.base_data['id'],
                                               NPV)],
                                             dtype=dtype)
-                    design_array = append_for_np_array(design_array, add_design)                    
+                    design_array = append_for_np_array(design_array, add_design)   
         return design_array
 
-    def calc_initial_design_for_narrawed_down_combinations_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path, devided_component_ids):
+    def calc_initial_design_for_narrowed_down_combinations_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path, devided_component_ids):
         column_names    = ['scenario_num',
                            'hull_id',
                            'engine_id',
@@ -1312,18 +1324,19 @@ class Agent(object):
         ret_ehp      = propeller.BHP2EHP(modified_bhp, propeller, rps, J, velocity_ms)
         return ret_ehp    
 
-    def narrow_down_combinations(self, hull, engine_list, propeller_list, output_dir_path):
+    def narrow_down_combinations(self, hull, engine_list, propeller_list, output_dir_path, initial_design_result_path):
         # devide the range of propeller list
         propeller_combinations    = np.array_split(propeller_list, PROC_NUM)
         # 2 years simulation for 10 scenarios
         simulation_duration_years = NARROWED_DOWN_DURATION_YEARS
         simulate_count            = NARROWED_DOWN_DURATION_SIMULATE_COUNT
+        narrow_down_result_path = "%s/narrow_down_result" % (initial_design_result_path)
 
         # initialize
         pool = mp.Pool(PROC_NUM)
 
         # multi processing #
-        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path)) for index in xrange(PROC_NUM)]
+        callback              = [pool.apply_async(self.calc_initial_design_m, args=(index, propeller_combinations, hull, engine_list, propeller_list, simulation_duration_years, simulate_count, output_dir_path, narrow_down_result_path)) for index in xrange(PROC_NUM)]
         callback_combinations = [p.get() for p in callback]
         ret_combinations      = flatten_3d_to_2d(callback_combinations)
         pool.close()
@@ -1338,7 +1351,9 @@ class Agent(object):
         narrawed_down_induces = np.array([])
         for averaged_NPV in averaged_NPV_array:
             index, _dummy         = np.where(aggregated_designs['averaged_NPV']==averaged_NPV)
+            # retrieve the first element if the index is array
+            if isinstance(index, np.ndarray):
+                index = index[0]
             narrawed_down_induces = np.append(narrawed_down_induces, index)
         narrowed_down_combinations = aggregated_designs[narrawed_down_induces.astype(np.int64)]
-        
         return narrowed_down_combinations
