@@ -498,7 +498,7 @@ def generate_combination_str(hull, engine, propeller):
     return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
 
 def generate_combination_str_with_id(hull_id, engine_id, propeller_id):
-    return "H%dE%dP%d" % (hull_id, engine_id, propeller_id)
+    return "H%sE%sP%s" % (str(hull_id), str(engine_id), str(propeller_id))
 
 def select_retrofits_design(temp_npv):
     retrofit_design = {}
@@ -931,3 +931,24 @@ def get_component_ids_from_design_key(design_key):
     hull_id, engine_id, propeller_id = a.groups()
 
     return hull_id, engine_id, propeller_id
+
+def load_result(result_path):
+    ret_result = {}
+    result_data = np.array([])
+    result_files = [ "%s/%s" % (result_path, _f) for _f in os.listdir(result_path) if _f[:14] == 'initial_design']
+
+    for result_file in result_files:
+        header, load_data = read_csv(result_file)
+        if len(result_data) == 0:
+            result_data = load_data
+        else:
+            for _e in load_data:
+                result_data = np.vstack((result_data, _e))
+
+    for element in result_data:
+        scenario_num, hull_id, engine_id, propeller_id, NPV, lap_time = element
+        combination_key = generate_combination_str_with_id(hull_id, engine_id, propeller_id)
+        if not ret_result.has_key(combination_key):
+            ret_result[combination_key] = {}
+        ret_result[combination_key][int(scenario_num)] = float(NPV)
+    return ret_result
