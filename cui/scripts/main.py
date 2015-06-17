@@ -118,11 +118,13 @@ def run(options):
 
     if (design_num is None) or (design_num == 1):
         # for design 1
-        retrofit_mode = RETROFIT_MODE['propeller']
-        sinario_mode  = DERIVE_SINARIO_MODE['binomial']
-        tmp_output_path = "%s/propeller" % (output_dir_path)
+        retrofit_mode         = RETROFIT_MODE['propeller']
+        sinario_mode          = DERIVE_SINARIO_MODE['binomial']
+        tmp_output_path       = "%s/propeller" % (output_dir_path)
         initializeDirHierarchy(tmp_output_path)
-        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+        agent                 = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+        agent.output_dir_path = tmp_output_path
+        agent.simmulate()
         agent.output_dir_path = tmp_output_path
         # simmulate with multi flag
         agent.simmulate(None, None, None, True)

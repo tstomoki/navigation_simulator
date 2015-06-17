@@ -200,6 +200,10 @@ def add_month(current_date, num=1):
 
 def add_year(start_date, year_num=1):
     current_date = start_date
+    if year_num < 1:
+        current_date = add_month(current_date, int(year_num * 12))
+        return current_date
+    
     for year_index in range(year_num):
         current_date = add_month(current_date, 12)
     return current_date
@@ -548,19 +552,14 @@ def calc_base_score(rank, rank_length):
     
     return math.exp( (2 * rank) / float(1 - rank_length) * math.log(10) )
 
-def change_design(design_key):
+# retrofit_design: (hull_id, engine_id, propeller_id, NPV)
+def change_design(retrofit_design):
     # import models #
     from hull        import Hull
     from engine      import Engine
     from propeller   import Propeller
     # import models #
-    # get component_ids
-    p = re.compile(r'H(\d+)E(\d+)P(\d+)')
-    try:
-        a = p.search(design_key)
-    except:
-        pdb.set_trace()
-    hull_id, engine_id, propeller_id = a.groups()
+    hull_id, engine_id, propeller_id, NPV = retrofit_design
 
     # load components list
     hull_list           = load_hull_list()
@@ -572,14 +571,14 @@ def change_design(design_key):
     propeller = Propeller(propeller_list, int(propeller_id))
     return hull, engine, propeller
 
-def update_retrofit_design_log(retrofit_design_log, combinations):
+def update_retrofit_design_log(retrofit_design_log, combinations, scenario_num):
     for combination in combinations:
         combination_key = generate_combination_str_with_id(combination['hull_id'],
                                                            combination['engine_id'],
                                                            combination['propeller_id'])
         if not retrofit_design_log.has_key(combination_key):
-            retrofit_design_log[combination_key] = np.array([])
-        retrofit_design_log[combination_key] = np.append(retrofit_design_log[combination_key], combination['NPV'])
+            retrofit_design_log[combination_key] = {}
+        retrofit_design_log[combination_key][scenario_num] = combination['NPV']
     return retrofit_design_log
 
 def draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str, current_combinations):
@@ -594,19 +593,19 @@ def draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str
     # overwrite
     plt.title (title, fontweight="bold")
     # draw current_design
-    current_design_NPV = np.average(retrofit_design_log[current_combination_key])
+    current_design_NPV = np.average(retrofit_design_log[current_combination_key].values())
     plt.axhline(current_design_NPV, 
-                xmin=0, xmax=len(retrofit_design_log),                    
+                xmin=0, xmax=len(retrofit_design_log.keys()),                    
                 linewidth=1.5, color='r',
                 linestyle="--")
     # draw other NPV
     draw_data     = np.array([])
-    for_json_data = {'current_design': current_design_NPV, 'other_design': {}}
+    for_json_data = {'current_design': {'combination': current_combination_key,  'average_NPV': current_design_NPV}, 'other_design': {}}
     for index, combination_key in enumerate(retrofit_design_log.keys()):
         # exclude current design
         if combination_key == current_combination_key:
             continue
-        ave_npv       = np.average(retrofit_design_log[combination_key])
+        ave_npv       = np.average(retrofit_design_log[combination_key].values())
         add_elem      = np.array([index, ave_npv])
         draw_data     = append_for_np_array(draw_data, add_elem)
         for_json_data['other_design'][combination_key] = ave_npv
