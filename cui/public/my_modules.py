@@ -779,6 +779,7 @@ def draw_statistical_graphs(panda_frame, title, filename, output_dir_path):
     pd.scatter_matrix(panda_frame)
     plt.savefig(filepath)
     plt.clf()
+    plt.close()
 
     # plot
     filepath = "%s/%s_plot.png" % (output_dir_path, filename)
@@ -786,7 +787,8 @@ def draw_statistical_graphs(panda_frame, title, filename, output_dir_path):
     plt.title(title, fontweight="bold")
     panda_frame.plot()
     plt.savefig(filepath)
-    plt.clf()    
+    plt.clf()
+    plt.close()
 
     '''
     # area
@@ -807,7 +809,8 @@ def draw_statistical_graphs(panda_frame, title, filename, output_dir_path):
     plt.legend(shadow=True)
     plt.legend(loc='upper right')        
     plt.savefig(filepath)
-    plt.clf()    
+    plt.clf()
+    plt.close()
     return
 
 def calc_change_rate(previous_value, predicted_value):
@@ -880,18 +883,37 @@ def draw_NPV_for_each3D(designs_data, output_filepath):
         append_data = [hull_id, engine_id, propeller_id, design_data['averaged_NPV'] ]
         draw_data.append(append_data)
     draw_data = np.array(draw_data)
-    pdb.set_trace()
-    xlist = draw_data.transpose()[1]
-    ylist = draw_data.transpose()[2]
-    zlist = draw_data.transpose()[3]
+    xlist     = draw_data.transpose()[1]
+    ylist     = draw_data.transpose()[2]
+    zlist     = draw_data.transpose()[3]
 
     column_names = [ "%s%s" % ('engine'.upper(), _x) for _x in np.unique(xlist)]
     row_names    = [ "%s%s" % ('propeller'.upper(), _x) for _x in np.unique(ylist)]
-    draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filepath)
-    sys.exit()
-    pdb.set_trace()
-    plt.savefig(output_file_path)
-    plt.close()    
+    ylim         = [0, 900]
+    zlim         = [35000000.0, 80000000.0]
+
+    # draw scatter
+    draw_3d_scatter(xlist.astype(np.int64), ylist.astype(np.int64), zlist.astype(np.float), x_label, y_label, z_label, column_names, row_names, output_filepath, ylim, zlim, 0.4)
+    xticks       = np.unique(xlist).astype(np.int64)
+    plt.xticks(xticks-0.5, xticks)
+    plt.show()
+    plt.savefig(output_filepath)
+    plt.close()
+    
+    # draw bar
+    draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filepath, ylim, zlim, 0.4)
+    xticks       = np.unique(xlist).astype(np.int64)
+    plt.xticks(xticks-0.5, xticks)
+    plt.show()
+    plt.savefig(output_filepath)
+    plt.close()
+
+    # describe
+    panda_frame = pd.DataFrame({'engine_list': xlist.astype(np.int64),
+                                'propeller_list': ylist.astype(np.int64),
+                                'averaged_NPV': zlist.astype(np.float)})
+    text_file_path  = output_filepath[:-4] + '_describe.txt'
+    write_file_as_text(str(panda_frame.describe()), text_file_path, 'w')
     return
 
 def draw_NPV_histogram_m(json_filepath, output_filepath):

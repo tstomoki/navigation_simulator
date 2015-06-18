@@ -5,8 +5,29 @@ import numpy as np
 import pdb
 from scipy import stats
 
-def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filename):
-	fig = plt.figure()
+def draw_3d_scatter(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filename, ylim=None, zlim=None, alpha=None):
+	fig   = plt.figure()
+	ax    = Axes3D(fig)
+	ax.set_xlabel(x_label)
+	ax.set_ylabel(y_label)
+        ax.set_zlabel(z_label)
+
+        # set ylim if defined
+        if not ylim is None:
+                ax.set_ylim(ylim)
+        # set zlim if defined
+        if not zlim is None:
+                ax.set_zlim(zlim)
+        alpha = alpha if not alpha is None else 1.0
+        X = np.array(xlist)
+        Y = np.array(ylist)
+        Z = np.array(zlist)
+        pdb.set_trace()
+        ax.scatter3D(np.ravel(X),np.ravel(Y),np.ravel(Z))
+        return
+
+def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filename, ylim=None, zlim=None, alpha=None):
+        fig = plt.figure()
 	ax = Axes3D(fig)
 	
 	lx= len(column_names)            # Work out matrix dimensions
@@ -21,8 +42,19 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
 	
 	dx = 0.5 * np.ones_like(zpos)
 	dy = dx.copy()
-	dz = zlist.astype(float).flatten()
-	ax.bar3d(xpos,ypos,zpos, dx, dy, dz, color='b', alpha=0.8)
+        dz = zlist.astype(float).flatten()
+
+        # set ylim if defined
+        if not ylim is None:
+                ax.set_ylim(ylim)        
+        # set zlim if defined
+        if not zlim is None:
+                dz    -= zlim[0]
+                zpos  += zlim[0]
+                ax.set_zlim(zlim)
+        alpha = alpha if not alpha is None else 1.0
+                
+	ax.bar3d(xpos,ypos,zpos, dx, dy, dz, color='b', alpha=alpha)
 	
 	#ax.w_xaxis.set_ticklabels(column_names)
 	#ax.w_yaxis.set_ticklabels(row_names, rotation=20)
