@@ -901,7 +901,7 @@ def draw_each_NPV_distribution(designs_data, output_dirpath):
         plt.close()        
     return 
 
-def draw_NPV_for_each3D(designs_data, output_dirpath):
+def draw_NPV_for_each3D(designs_data, output_dirpath, ylim=None, zlim=None):
     title   = "PV histogram for each design\n"
     x_label = "engine_id".upper()
     y_label = "propeller_id".upper()    
@@ -912,15 +912,14 @@ def draw_NPV_for_each3D(designs_data, output_dirpath):
         hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key) 
         append_data = [hull_id, engine_id, propeller_id, design_data['averaged_NPV'] ]
         draw_data.append(append_data)
-    draw_data = np.array(draw_data)
+    draw_data = np.array(clean_draw_data(draw_data))
+
     xlist     = draw_data.transpose()[1]
     ylist     = draw_data.transpose()[2]
     zlist     = draw_data.transpose()[3]
 
     column_names = [ "%s%s" % ('engine'.upper(), _x) for _x in np.unique(xlist)]
     row_names    = [ "%s%s" % ('propeller'.upper(), _x) for _x in np.unique(ylist)]
-    ylim         = [0, 900]
-    zlim         = [35000000.0, 80000000.0]
 
     # draw scatter
     output_filepath = "%s/NPV_for_each_design3D_scatter.png" % (output_dirpath)
@@ -932,7 +931,7 @@ def draw_NPV_for_each3D(designs_data, output_dirpath):
     
     # draw bar
     output_filepath = "%s/NPV_for_each_design3D_bar.png" % (output_dirpath)
-    draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, ylim, zlim, 0.4)
+    draw_3d_bar(xlist.astype(np.int64), ylist.astype(np.int64), zlist.astype(np.float), x_label, y_label, z_label, column_names, row_names, ylim, zlim, 0.4)
     xticks       = np.unique(xlist).astype(np.int64)
     plt.xticks(xticks-0.5, xticks)
     plt.savefig(output_filepath)
@@ -1055,3 +1054,18 @@ def draw_whole_NPV(designs_data, output_dir_path):
     plt.savefig(png_filename)
     plt.close()
     return
+
+def clean_draw_data(draw_data):
+    # load components list
+    engine_list         = load_engine_list()
+    propeller_list      = load_propeller_list()
+
+    hull_id = '1'
+    for engine_info in engine_list:
+        engine_id = str(engine_info[0])
+        for propeller_info in propeller_list:
+            propeller_id = str(propeller_info[0])
+            if len( [_d for _d in draw_data if _d[0] == hull_id and _d[1] == engine_id and _d[2] == propeller_id]) == 0:
+                append_data = [hull_id, engine_id, propeller_id, 0 ]
+                draw_data.append(append_data)
+    return draw_data

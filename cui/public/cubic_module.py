@@ -31,6 +31,7 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
 	
 	lx= len(column_names)            # Work out matrix dimensions
 	ly= len(row_names)
+
 	xpos = np.arange(0,lx,1)    # Set up a mesh of positions
 	ypos = np.arange(0,ly,1)
 	xpos, ypos = np.meshgrid(xpos+0.25, ypos+0.25)
@@ -45,10 +46,10 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
 
         # set ylim if defined
         if not ylim is None:
-                ax.set_ylim(ylim)        
+                ax.set_ylim(ylim)
         # set zlim if defined
         if not zlim is None:
-                dz    -= zlim[0]
+                dz = np.array( [ max(0, num - zlim[0]) for num in dz] )
                 zpos  += zlim[0]
                 ax.set_zlim(zlim)
         alpha = alpha if not alpha is None else 1.0

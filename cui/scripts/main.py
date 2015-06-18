@@ -80,7 +80,7 @@ def run(options):
             results_data[combination_key] = load_json_file(target_filepath)
 
         # display maximum_designs
-        draw_NPV_for_each3D(results_data, output_dir_path)
+        draw_NPV_for_each3D(results_data, output_dir_path, [0, 900], [190000000, 206000000])
         display_maximum_designs(results_data, 10)
         draw_whole_NPV(results_data, output_dir_path)
         draw_each_NPV_distribution(results_data, output_dir_path)
@@ -105,7 +105,7 @@ def run(options):
             target_filepath               = "%s/%s" % (json_dirpath, target_filename)
             results_data[combination_key] = load_json_file(target_filepath)
 
-        draw_NPV_for_each3D(results_data, output_dir_path)
+        draw_NPV_for_each3D(results_data, output_dir_path, [0, 900], [35000000.0, 80000000.0])
         #    output_filepath = "%s/%s_NPV_result.png" % (output_dir_path, combination_key)
         #    draw_NPV_histogram(target_filepath, output_filepath)
         print_with_notice("Program (visualization) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
