@@ -15,13 +15,14 @@ import operator
 import re
 from pylab import *
 import pandas as pd
+from scipy.interpolate import spline
 # import common modules #
 
 # import own modules #
 sys.path.append('../public')
 sys.path.append('../models')
 from constants  import *
-from cubic_module  import *
+from cubic_module import *
 # import own modules #
 
 #initialize dir_name
@@ -870,6 +871,34 @@ def draw_NPV_histogram(json_filepath, output_filepath):
     plt.savefig(output_filepath)
     plt.close()
     return
+
+def draw_each_NPV_distribution(designs_data, output_dirpath):
+    # create dir
+    distribution_dir_path = "%s/distribution" % (output_dirpath)
+    initializeDirHierarchy(distribution_dir_path)
+
+    x_label = 'NPV [$]'
+    y_label = 'frequency'.upper()
+    for design_key, design_data in designs_data.items():
+        draw_data = []
+        title = "NPV Distribution of design %s" % (design_key)
+        for key, data in design_data['raw_results'].items():
+            draw_data.append([int(key), data])
+        draw_data      = np.array(draw_data)
+        panda_frame    = pd.DataFrame({'scenario_num': draw_data.transpose()[0],
+                                       'NPV': draw_data.transpose()[1]})
+        text_file_path = "%s/describe_%s.txt" % (distribution_dir_path, design_key)
+        write_file_as_text(str(panda_frame.describe()), text_file_path, 'w')
+        # hist
+        filepath = "%s/hist_%s.png" % (distribution_dir_path, design_key)
+        plt.figure()
+        graphInitializer(title, x_label, y_label)
+
+        panda_frame['NPV'].hist(color="#5F9BFF", alpha=.5)
+        plt.savefig(filepath)
+        plt.clf()
+        plt.close()        
+    return 
 
 def draw_NPV_for_each3D(designs_data, output_filepath):
     title   = "PV histogram for each design\n"

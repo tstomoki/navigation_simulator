@@ -70,16 +70,17 @@ def run(options):
             print "abort: there is no such directory, %s" % (json_dirpath)
             sys.exit()
         files = os.listdir(json_dirpath)
+        results_data = {}
         for target_filename in files:
-            if not target_filename[:14] == 'initial_design':
-                hull_id, engine_id, propeller_id, = re.compile(r'H\[(.+)\]E(.+)P(.+)\.json').search(target_filename).groups()
-                origin_filepath = "%s/%s" % (json_dirpath, target_filename)
-                target_filepath = "%s/%s.json" % (json_dirpath, generate_combination_str_with_id(hull_id, engine_id, propeller_id))
-                os.rename(origin_filepath, target_filepath)
+            try:
+                combination_key, = re.compile(r'(H.+)\.json').search(target_filename).groups()
+            except:
+                continue
+            target_filepath               = "%s/%s" % (json_dirpath, target_filename)
+            results_data[combination_key] = load_json_file(target_filepath)
+        draw_each_NPV_distribution(results_data, json_dirpath)
         sys.exit()
-        target_filepath               = "%s/%s" % (json_dirpath, target_filename)
-        results_data[combination_key] = load_json_file(target_filepath)        
-        
+
         # for narrow_down result
         output_dir_path = "%s/visualization/narrow_down" % (RESULT_DIR_PATH)
         initializeDirHierarchy(output_dir_path)
@@ -88,6 +89,7 @@ def run(options):
             print "abort: there is no such directory, %s" % (json_dirpath)
             sys.exit()
         files = os.listdir(json_dirpath)
+
         #draw_NPV_histogram_m(json_filepath, output_filepath)
 
         results_data = {}
