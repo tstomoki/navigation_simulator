@@ -22,7 +22,6 @@ def draw_3d_scatter(xlist, ylist, zlist, x_label, y_label, z_label, column_names
         X = np.array(xlist)
         Y = np.array(ylist)
         Z = np.array(zlist)
-        pdb.set_trace()
         ax.scatter3D(np.ravel(X),np.ravel(Y),np.ravel(Z))
         return
 

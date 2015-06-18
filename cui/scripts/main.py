@@ -81,7 +81,7 @@ def run(options):
 
         # display maximum_designs
         display_maximum_designs(results_data, 10)
-        draw_each_NPV_distribution(results_data, json_dirpath)
+        draw_each_NPV_distribution(results_data, output_dir_path)
 
         # for narrow_down result
         output_dir_path = "%s/visualization/narrow_down" % (RESULT_DIR_PATH)

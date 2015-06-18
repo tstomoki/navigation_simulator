@@ -926,7 +926,6 @@ def draw_NPV_for_each3D(designs_data, output_filepath):
     draw_3d_scatter(xlist.astype(np.int64), ylist.astype(np.int64), zlist.astype(np.float), x_label, y_label, z_label, column_names, row_names, output_filepath, ylim, zlim, 0.4)
     xticks       = np.unique(xlist).astype(np.int64)
     plt.xticks(xticks-0.5, xticks)
-    plt.show()
     plt.savefig(output_filepath)
     plt.close()
     
@@ -934,7 +933,6 @@ def draw_NPV_for_each3D(designs_data, output_filepath):
     draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filepath, ylim, zlim, 0.4)
     xticks       = np.unique(xlist).astype(np.int64)
     plt.xticks(xticks-0.5, xticks)
-    plt.show()
     plt.savefig(output_filepath)
     plt.close()
 
