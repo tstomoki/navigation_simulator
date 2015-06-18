@@ -16,6 +16,7 @@ import re
 from pylab import *
 import pandas as pd
 from scipy.interpolate import spline
+import operator
 # import common modules #
 
 # import own modules #
@@ -1002,3 +1003,26 @@ def load_result(result_path):
             ret_result[combination_key] = {}
         ret_result[combination_key][int(scenario_num)] = float(NPV)
     return ret_result
+
+# display maximum_designs
+def display_maximum_designs(designs_data, display_num):
+    each_data = []
+    for design_key, design_data in designs_data.items():
+        each_data.append((design_key, np.average([val for key, val in design_data['raw_results'].items()])))
+    dtype           = np.dtype({'names': ('key', 'averaged_NPV'),
+                                'formats': ('S10', np.float)})
+    each_data       = np.array(each_data, dtype=dtype)
+    maximum_designs = each_data[each_data['averaged_NPV'].argsort()[-display_num:][::-1]]
+
+
+    for maximum_design in maximum_designs:
+        design_key, averaged_NPV = maximum_design
+        std = float(designs_data[design_key]['std'])
+        hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)        
+        print_str = "hull_id: %s, engine_id: %s, propeller_id: %s, averaged_NPV: %lf, standard deviation: %lf, variance: %lf" % (hull_id, engine_id, propeller_id,
+                                                                                                                                 averaged_NPV,
+                                                                                                                                 std,
+                                                                                                                                 math.pow(std, 2))
+        print print_str.upper()
+    return
+    

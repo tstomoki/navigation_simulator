@@ -78,8 +78,10 @@ def run(options):
                 continue
             target_filepath               = "%s/%s" % (json_dirpath, target_filename)
             results_data[combination_key] = load_json_file(target_filepath)
+
+        # display maximum_designs
+        display_maximum_designs(results_data, 10)
         draw_each_NPV_distribution(results_data, json_dirpath)
-        sys.exit()
 
         # for narrow_down result
         output_dir_path = "%s/visualization/narrow_down" % (RESULT_DIR_PATH)
