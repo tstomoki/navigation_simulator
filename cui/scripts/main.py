@@ -81,6 +81,7 @@ def run(options):
 
         # display maximum_designs
         display_maximum_designs(results_data, 10)
+        draw_whole_NPV(results_data, output_dir_path)
         draw_each_NPV_distribution(results_data, output_dir_path)
 
         # for narrow_down result

@@ -1024,3 +1024,33 @@ def display_maximum_designs(designs_data, display_num):
         print print_str.upper()
     return
     
+def draw_whole_NPV(designs_data, output_dir_path):
+    each_data = []
+    for design_key, design_data in designs_data.items():
+        each_data.append((design_key, np.average([val for key, val in design_data['raw_results'].items()])))
+    dtype     = np.dtype({'names': ('key', 'averaged_NPV'),
+                                'formats': ('S10', np.float)})
+    each_data = np.array(each_data, dtype=dtype)
+    title     = "NPV comparison with top designs\n"
+    x_label   = "combination id".upper()
+    y_label   = "%s %s" % ('npv'.upper(), '[$]')
+    # initialize graph
+    graphInitializer(title, x_label, y_label)
+    # overwrite
+    plt.title (title, fontweight="bold")
+
+    png_filename = "%s/comparison_whole_NPV.png" % (output_dir_path)
+    draw_data = []
+    for index, data in enumerate(each_data):
+        design_key, averaged_NPV = data
+        draw_data.append((index, averaged_NPV))
+    draw_data = np.array(draw_data)
+    x_data    = draw_data.transpose()[0]
+    y_data    = draw_data.transpose()[1]
+    plt.bar(x_data, y_data)
+    plt.xlim([0, len(x_data)])
+    plt.ylim([floor(y_data.min()), np.max(y_data) * 1.001])
+    pdb.set_trace()
+    plt.savefig(png_filename)
+    plt.close()
+    return
