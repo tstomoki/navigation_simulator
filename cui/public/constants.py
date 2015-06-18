@@ -34,6 +34,15 @@ RETROFIT_MODE = {'none': 0,
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}
 
+# default simulate count for searching initial design
+DEFAULT_SIMULATE_COUNT                        = 100
+SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 5
+# narrowed down design ratio for initial design
+NARROWED_DOWN_DESIGN_RATIO                    = 0.1
+NARROWED_DOWN_DURATION_YEARS                  = 2
+NARROWED_DOWN_DURATION_SIMULATE_COUNT         = 10
+MINIMUM_NARROWED_DOWN_DESIGN_NUM              = 100
+
 # simmulation duration for retrofits
 SIMMULATION_DURATION_YEARS_FOR_RETROFITS = 5
 SIMMULATION_TIMES_FOR_RETROFITS          = 10
@@ -154,15 +163,6 @@ CULL_THRESHOLD = 6
 # Rank weight
 APPR_RANK_WEIGHT = 2
 NPV_RANK_WEIGHT  = 1
-
-# default simulate count for searching initial design
-DEFAULT_SIMULATE_COUNT = 100
-SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 5
-# narrowed down design ratio for initial design
-NARROWED_DOWN_DESIGN_RATIO            = 0.1
-NARROWED_DOWN_DURATION_YEARS          = 2
-NARROWED_DOWN_DURATION_SIMULATE_COUNT = 10
-MINIMUM_NARROWED_DOWN_DESIGN_NUM      = 100
 
 # engine rpm curve approx degree
 ENGINE_CURVE_APPROX_DEGREE = 3
