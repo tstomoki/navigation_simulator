@@ -5,7 +5,7 @@ import numpy as np
 import pdb
 from scipy import stats
 
-def draw_3d_scatter(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filename, ylim=None, zlim=None, alpha=None):
+def draw_3d_scatter(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, ylim=None, zlim=None, alpha=None):
 	fig   = plt.figure()
 	ax    = Axes3D(fig)
 	ax.set_xlabel(x_label)
@@ -25,7 +25,7 @@ def draw_3d_scatter(xlist, ylist, zlist, x_label, y_label, z_label, column_names
         ax.scatter3D(np.ravel(X),np.ravel(Y),np.ravel(Z))
         return
 
-def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filename, ylim=None, zlim=None, alpha=None):
+def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, ylim=None, zlim=None, alpha=None):
         fig = plt.figure()
 	ax = Axes3D(fig)
 	
@@ -60,7 +60,6 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
 	ax.set_xlabel(x_label, fontsize='small')
 	ax.set_ylabel(y_label, fontsize='small')
 	ax.set_zlabel(z_label, fontsize='small')
-	plt.savefig(output_filename)
 	return 
 
 # 時間(X)ごとのラインを表示するメソッド(X:時間(unitTime), Y:LogSpeed, Z:馬力)

@@ -901,7 +901,7 @@ def draw_each_NPV_distribution(designs_data, output_dirpath):
         plt.close()        
     return 
 
-def draw_NPV_for_each3D(designs_data, output_filepath):
+def draw_NPV_for_each3D(designs_data, output_dirpath):
     title   = "PV histogram for each design\n"
     x_label = "engine_id".upper()
     y_label = "propeller_id".upper()    
@@ -923,14 +923,16 @@ def draw_NPV_for_each3D(designs_data, output_filepath):
     zlim         = [35000000.0, 80000000.0]
 
     # draw scatter
-    draw_3d_scatter(xlist.astype(np.int64), ylist.astype(np.int64), zlist.astype(np.float), x_label, y_label, z_label, column_names, row_names, output_filepath, ylim, zlim, 0.4)
+    output_filepath = "%s/NPV_for_each_design3D_scatter.png" % (output_dirpath)
+    draw_3d_scatter(xlist.astype(np.int64), ylist.astype(np.int64), zlist.astype(np.float), x_label, y_label, z_label, column_names, row_names, ylim, zlim, 0.4)
     xticks       = np.unique(xlist).astype(np.int64)
     plt.xticks(xticks-0.5, xticks)
     plt.savefig(output_filepath)
     plt.close()
     
     # draw bar
-    draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, output_filepath, ylim, zlim, 0.4)
+    output_filepath = "%s/NPV_for_each_design3D_bar.png" % (output_dirpath)
+    draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, ylim, zlim, 0.4)
     xticks       = np.unique(xlist).astype(np.int64)
     plt.xticks(xticks-0.5, xticks)
     plt.savefig(output_filepath)
@@ -1050,7 +1052,6 @@ def draw_whole_NPV(designs_data, output_dir_path):
     plt.bar(x_data, y_data)
     plt.xlim([0, len(x_data)])
     plt.ylim([floor(y_data.min()), np.max(y_data) * 1.001])
-    pdb.set_trace()
     plt.savefig(png_filename)
     plt.close()
     return
