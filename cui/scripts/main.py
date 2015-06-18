@@ -2,7 +2,6 @@
 import sys
 import pdb
 import matplotlib
-matplotlib.use('Agg')
 from optparse import OptionParser
 # import common modules #
 
@@ -21,6 +20,11 @@ from propeller   import Propeller
 from world_scale import WorldScale
 from agent       import Agent
 # import models #
+
+# server configuration #
+if current_user == 'tsaito':
+    matplotlib.use('Agg')
+# server configuration #
 
 def run(options):
     print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
@@ -58,14 +62,32 @@ def run(options):
     initializeDirHierarchy(output_dir_path)
 
     if result_visualize_mode:
-        output_dir_path = "%s/visualization" % (RESULT_DIR_PATH)
+        # for narrowed result
+        output_dir_path = "%s/visualization/narrowed_result" % (RESULT_DIR_PATH)
         initializeDirHierarchy(output_dir_path)
-        json_dirpath   = "../results/agent_log/201506050108/initial_design/narrow_down"
+        json_dirpath    = NARROWED_RESULT_PATH
         if not os.path.exists(json_dirpath):
             print "abort: there is no such directory, %s" % (json_dirpath)
             sys.exit()
         files = os.listdir(json_dirpath)
-
+        for target_filename in files:
+            if not target_filename[:14] == 'initial_design':
+                hull_id, engine_id, propeller_id, = re.compile(r'H\[(.+)\]E(.+)P(.+)\.json').search(target_filename).groups()
+                origin_filepath = "%s/%s" % (json_dirpath, target_filename)
+                target_filepath = "%s/%s.json" % (json_dirpath, generate_combination_str_with_id(hull_id, engine_id, propeller_id))
+                os.rename(origin_filepath, target_filepath)
+        sys.exit()
+        target_filepath               = "%s/%s" % (json_dirpath, target_filename)
+        results_data[combination_key] = load_json_file(target_filepath)        
+        
+        # for narrow_down result
+        output_dir_path = "%s/visualization/narrow_down" % (RESULT_DIR_PATH)
+        initializeDirHierarchy(output_dir_path)
+        json_dirpath    = NARROW_DOWN_RESULT_PATH
+        if not os.path.exists(json_dirpath):
+            print "abort: there is no such directory, %s" % (json_dirpath)
+            sys.exit()
+        files = os.listdir(json_dirpath)
         #draw_NPV_histogram_m(json_filepath, output_filepath)
 
         results_data = {}
@@ -81,7 +103,7 @@ def run(options):
         draw_NPV_for_each3D(results_data, output_filepath)
         #    output_filepath = "%s/%s_NPV_result.png" % (output_dir_path, combination_key)
         #    draw_NPV_histogram(target_filepath, output_filepath)
-        print_with_notice("Program (visualization) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        print_with_notice("Program (visualization) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
         sys.exit()
     
     # only creating velocity combinations
