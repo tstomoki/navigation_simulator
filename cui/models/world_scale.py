@@ -181,15 +181,6 @@ class WorldScale:
 
         return
 
-    # set flat_rate [%]
-    def set_flat_rate(self, flat_rate):
-        self.flat_rate = flat_rate
-        return
-    
-    # flat_rate [%]
-    def calc_fare(self, oil_price, flat_rate):
-        return (self.alpha * oil_price + self.beta) * (flat_rate / 100.0)
-
     # multiple world_scale drawing part with binomial lattice
     def draw_multiple_scenarios(self):
         draw_data = np.array([])

@@ -43,7 +43,7 @@ def run(options):
 
     # load history data
     from_date = '2004/01/01'
-    to_date = '2014/01/01'
+    to_date = '2015/01/01'
     oil_price_history_data   = load_monthly_history_data(from_date, to_date)
     world_scale_history_data = load_world_scale_history_data()
     flat_rate_history_data   = load_flat_rate_history_data()
@@ -130,7 +130,7 @@ def run(options):
         # get initial design #
         retrofit_mode = RETROFIT_MODE['none']
         sinario_mode  = DERIVE_SINARIO_MODE['binomial']
-        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
+        agent         = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode)
         initial_design_dir = "%s/initial_design" % (output_dir_path)
         initializeDirHierarchy(initial_design_dir)
         averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir, result_dir_path)

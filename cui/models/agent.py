@@ -39,9 +39,10 @@ from world_scale import WorldScale
 # import models #
 
 class Agent(object):
-    def __init__(self, sinario, world_scale, retrofit_mode, sinario_mode, hull=None, engine=None, propeller=None, rpm_array=None, velocity_array=None):
+    def __init__(self, sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, hull=None, engine=None, propeller=None, rpm_array=None, velocity_array=None):
         self.sinario       = sinario
         self.world_scale   = world_scale
+        self.flat_rate     = flat_rate
         self.retrofit_mode = retrofit_mode
         self.sinario_mode  = sinario_mode
         self.icr           = DEFAULT_ICR_RATE
@@ -239,14 +240,15 @@ class Agent(object):
         self.total_elapsed_days    = 0
 
         # dynamic variables
+        self.current_date          = self.sinario.history_data['date'][-1]
         self.current_distance      = 0
         self.left_distance_to_port = NAVIGATION_DISTANCE
         self.voyage_date           = self.origin_date
         self.previous_oilprice     = self.sinario.history_data[-2]['price']
         self.oilprice_ballast      = self.sinario.history_data[-1]['price']
         self.oilprice_full         = self.sinario.history_data[-1]['price']
-        self.flat_rate             = self.world_scale.history_data[-1]['ws']
-        self.current_fare          = self.world_scale.calc_fare(self.previous_oilprice, self.flat_rate)
+        self.current_flat_rate     = self.flat_rate.history_data[-1]['fr']
+        self.current_fare          = self.calc_fare()
         self.cash_flow             = 0
         self.loading_flag          = False
         self.loading_days          = 0
@@ -785,15 +787,13 @@ class Agent(object):
             self.oilprice_ballast = self.sinario.predicted_data[current_index[0]]['price']
 
         # update world_scale (flate_rate)
-        current_index,            = np.where(self.world_scale.predicted_data['date']==current_date_index)
+        current_index,             = np.where(self.world_scale.predicted_data['date']==current_date_index)
         try:
-            self.flat_rate = round(self.world_scale.predicted_data[current_index]['ws'][0], 4)
+            self.current_flat_rate = round(self.world_scale.predicted_data[current_index]['ws'][0], 4)
         except:
             print "debug: %s is not in %s" % (current_index, "self.world_scale.predicted_data")
-            
         # update fare
-        self.current_fare         = self.world_scale.calc_fare(self.previous_oilprice, self.flat_rate)
-
+        self.current_fare = self.calc_fare()
         return
 
     def get_previous_oilprice(self, date_index):
@@ -922,6 +922,7 @@ class Agent(object):
             ## generate scenairo and world scale
             self.sinario.generate_sinario(self.sinario_mode, simulation_duration_years)
             self.world_scale.generate_sinario_with_oil_corr(self.sinario.history_data[-1], self.sinario.predicted_data)
+            self.flat_rate.generate_flat_rate(self.sinario_mode, simulation_duration_years)
             # fix the random seed #
             result_array = {}
             for propeller_info in propeller_combinations[index]:
@@ -938,7 +939,7 @@ class Agent(object):
                         NPV         = result_data[combination_str]['raw_results'][str(scenario_num)]
                     else:
                         # conduct simulation #
-                        agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller)
+                        agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller)
                         agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
                         NPV   = agent.simmulate()
                         # conduct simulation #
@@ -1386,3 +1387,16 @@ class Agent(object):
         if not self.propeller.base_data == propeller.base_data:
             retrofit_cost += RETROFIT_COST['propeller']
         return retrofit_cost
+
+    # fare = world_scale * flat_rate (e.g. WS50)
+    def calc_fare(self):
+        if not ( isinstance(self.current_date, datetime.date) or isinstance(self.current_date, datetime.datetime)):
+            current_date           = str_to_datetime(self.current_date)
+        else:
+            current_date = self.current_date
+        flat_rate_index        = search_near_index(current_date, self.flat_rate.predicted_data['date'])
+        designated_flat_rate   = self.flat_rate.predicted_data[np.where(self.flat_rate.predicted_data['date']==flat_rate_index)]
+        world_scale_index      = search_near_index(current_date, self.world_scale.predicted_data['date'])
+        designated_world_scale = self.world_scale.predicted_data[np.where(self.world_scale.predicted_data['date']==world_scale_index)]
+        # return world_scale * flat_rate
+        return designated_world_scale['ws'][0] * ( designated_flat_rate['fr'][0] / 100.0)
