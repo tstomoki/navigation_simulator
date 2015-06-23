@@ -153,17 +153,16 @@ class WorldScale:
         index   = 0
         delta_t = 1.0 / 12
         values  = np.array([])
-        for date, oil_price in self.history_data:
+        for date, world_scale in self.history_data:
             if index == 0:
                 # initialize the price
-                s_0 = oil_price
-                next
+                s_0 = world_scale
             else:
-                s_t      = oil_price
+                s_t      = world_scale
                 base_val = math.log(s_t / s_0)
                 values   = np.append(values, base_val)
                 # update the price
-                s_0      = oil_price
+                s_0      = world_scale
             index += 1
 
         # substitute inf to nan in values

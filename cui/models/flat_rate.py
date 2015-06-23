@@ -17,12 +17,12 @@ from constants  import *
 RESULTSDIR = '../results/'
 # constants #
 
-class Sinario:
+class FlatRate:
     def __init__(self, history_data=None, neu=None, sigma=None, u=None, d=None, p=None):
-        self.default_xlabel   = "date".title()
-        self.default_ylabel   = "oil price".title() + " [$/barrel]"
+        self.default_xlabel = "date".title()
+        self.default_ylabel = "flat rate".title() + " [%]"
         if history_data is None:
-            self.history_data = load_monthly_history_data()
+            self.history_data = load_flat_rate_history_data()
             self.draw_history_data()
         else:
             self.history_data = history_data
@@ -66,110 +66,85 @@ class Sinario:
 
 
     def draw_history_data(self):
-        title = "oil price history data".title()
+        title = "flat rate historical data".title()
         graphInitializer(title,
                          self.default_xlabel,
                          self.default_ylabel)
 
-        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.history_data]
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['fr']] for data in self.history_data]
         draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
         
         plt.plot(draw_data.transpose()[0],
                  draw_data.transpose()[1],
                  color='#9370DB', lw=5, markersize=0, marker='o')
-        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])                
-
-        output_file_path = RESULTSDIR + title + '.png'
-        plt.savefig(output_file_path)
-
-    def draw_predicted_data(self):
-        title = "oil price predicted data".title()
-        graphInitializer("history data",
-                         self.default_xlabel,
-                         self.default_ylabel)
-
-        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.predicted_data]
-        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-
-        plt.plot(draw_data.transpose()[0],
-                 draw_data.transpose()[1],
-                 color='#9370DB', lw=5, markersize=0, marker='o')
-        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
-
-        output_file_path = RESULTSDIR + title + '.png'
-        plt.savefig(output_file_path)
-
-    def draw_generated_data(self):
-        title = "oil price generated data".title()
-        graphInitializer(title,
-                         self.default_xlabel,
-                         self.default_ylabel)
-
-        plt.axvline(x=datetime.datetime.strptime(self.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')
-        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in np.r_[self.history_data, self.predicted_data]]
-        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-
-        plt.plot(draw_data.transpose()[0],
-                 draw_data.transpose()[1],
-                 color='#9370DB', lw=5, markersize=0, marker='o')
-        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
+        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])
+        plt.ylim([0, 100])
 
         output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
         plt.savefig(output_file_path)
         return
 
+    def draw_predicted_data(self):
+        title = "flat rate predicted data".title()
+        graphInitializer(title,
+                         self.default_xlabel,
+                         self.default_ylabel)
+
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['fr']] for data in self.predicted_data]
+        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+
+        plt.plot(draw_data.transpose()[0],
+                 draw_data.transpose()[1],
+                 color='#9370DB', lw=5, markersize=0, marker='o')
+        plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])
+        plt.ylim([0, 100])        
+        output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.savefig(output_file_path)
+        return
+
     # generate predicted sinario
-    def generate_sinario(self, sinario_mode, predict_years=DEFAULT_PREDICT_YEARS):
+    def generate_flat_rate(self, sinario_mode, predict_years=DEFAULT_PREDICT_YEARS):
         # default predict_years is 15 years [180 months]
         self.predict_years  = predict_years
 
         # predicted data type
-        dt   = np.dtype({'names': ('date', 'price'),
+        dt   = np.dtype({'names': ('date', 'fr'),
                          'formats': ('S10' , np.float)})
         self.predicted_data = np.array([], dtype=dt)
-        
-        predict_months_num = int(self.predict_years * 12)
 
         # latest date from history_data
-        latest_history_date_str, latest_oilprice = self.history_data[-1]
+        latest_history_date_str, latest_flatrate = self.history_data[-1]
         latest_history_date                      = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
 
-        current_date  = latest_history_date
-        current_oilprice = latest_oilprice
-        for predict_month_num in range(predict_months_num):
-            current_date        = add_month(current_date)
-            current_date_str    = datetime.datetime.strftime(current_date, '%Y/%m/%d')
-
-            # change oil_price by mode
-            if sinario_mode == DERIVE_SINARIO_MODE['high']:
-                current_oilprice = HIGH_OIL_PRICE
-            elif sinario_mode == DERIVE_SINARIO_MODE['low']:
-                current_oilprice = LOW_OIL_PRICE
-            elif sinario_mode == DERIVE_SINARIO_MODE['maintain']:
-                current_oilprice = current_oilprice
-            else:
-                current_oilprice    = self.calc_oilprice(current_oilprice)
-            # change oil_price by mode
-                
-            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_oilprice)], dtype=dt))
+        end_date         = add_year(latest_history_date, predict_years)
+        current_date     = latest_history_date
+        current_flatrate = latest_flatrate
+        while end_date > current_date:
+            current_date    += datetime.timedelta(days=1)
+            current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
+            current_flatrate = self.calc_flatrate(current_flatrate)
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_flatrate)], dtype=dt))
             
         return
+
+    def calc_flatrate(self, current_flatrate):
+        return self.u * current_flatrate if prob(self.p) else self.d * current_flatrate
             
     # calc new and sigma from history data
     def calc_params_from_history(self):
         index   = 0
-        delta_t = 1.0 / 12
+        delta_t = 1.0 / 365
         values  = np.array([])
-        for date, oil_price in self.history_data:
+        for date, flat_rate in self.history_data:
             if index == 0:
-                # initialize the price
-                s_0 = oil_price
+                # initialize the rate
+                s_0 = flat_rate
             else:
-                s_t      = oil_price
+                s_t      = flat_rate
                 base_val = math.log(s_t / s_0)
                 values   = np.append(values, base_val)
                 # update the price
-                s_0      = oil_price
+                s_0      = flat_rate
             index += 1
 
         # substitute inf to nan in values
@@ -181,17 +156,14 @@ class Sinario:
         self.p      = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
         return
 
-    def calc_oilprice(self, current_oilprice):
-        return self.u * current_oilprice if prob(self.p) else self.d * current_oilprice
-
     # multiple oil price drawing part    
-    def draw_multiple_scenarios(self, world_scale=None):
+    def draw_multiple_flat_rates(self):
         draw_data = np.array([])
-        title     = "oil price multiple scenarios".title()
+        title     = "flat rate multiple scenarios".title()
         graphInitializer(title,
                          self.default_xlabel,
                          self.default_ylabel)
-        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.history_data]
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['fr']] for data in self.history_data]
         draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
         xlim_date = draw_data.transpose()[0].min()
         plt.plot(draw_data.transpose()[0],
@@ -204,8 +176,8 @@ class Sinario:
             sinario_mode = DERIVE_SINARIO_MODE['binomial']
             # fix the random seed #
             np.random.seed(index)
-            self.generate_sinario(sinario_mode)
-            draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in self.predicted_data]
+            self.generate_flat_rate(sinario_mode)
+            draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['fr']] for data in self.predicted_data]
             draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
             sinario_log[index] = draw_data
             plt.plot(draw_data.transpose()[0],
@@ -214,32 +186,5 @@ class Sinario:
             plt.xlim([xlim_date, draw_data.transpose()[0].max()])
         output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
         plt.savefig(output_file_path)
-
-        if not world_scale is None:
-            draw_data = np.array([])
-            title     = "world scale multiple scenarios".title()
-            graphInitializer(title,
-                             world_scale.default_xlabel,
-                             world_scale.default_ylabel)
-            draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in world_scale.history_data]
-            draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-            xlim_date = draw_data.transpose()[0].min()
-            plt.plot(draw_data.transpose()[0],
-                     draw_data.transpose()[1],
-                     color='#9370DB', lw=5, markersize=0, marker='o')
-            colors = ['b', 'r', 'k', 'c', 'g', 'm', 'y', 'orange', 'aqua', 'brown']
-            plt.axvline(x=datetime.datetime.strptime(world_scale.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')
-            for index in range(10):
-                oilprice_array = sinario_log[index]
-                draw_data      = np.array([])
-                world_scale.generate_sinario_with_oil_corr(self.history_data[-1], oilprice_array)
-                draw_data = [ [datetime.datetime.strptime(data['date'], '%Y-%m-%d'), data['ws']] for data in world_scale.predicted_data]
-                draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))                
-                plt.plot(draw_data.transpose()[0],
-                         draw_data.transpose()[1],                
-                         color=colors[-index], lw=5, markersize=0, marker='o')
-                plt.xlim([xlim_date, draw_data.transpose()[0].max()])
-                output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
-            plt.savefig(output_file_path)            
             
-        return
+        return    

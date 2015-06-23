@@ -18,6 +18,7 @@ from sinario     import Sinario
 from engine      import Engine
 from propeller   import Propeller
 from world_scale import WorldScale
+from flat_rate   import FlatRate
 from agent       import Agent
 # import models #
 
@@ -45,12 +46,16 @@ def run(options):
     to_date = '2014/01/01'
     oil_price_history_data   = load_monthly_history_data(from_date, to_date)
     world_scale_history_data = load_world_scale_history_data()
+    flat_rate_history_data   = load_flat_rate_history_data()
 
     # generate sinario
     base_sinario = Sinario(oil_price_history_data)
     # generate world scale
-    world_scale = WorldScale(world_scale_history_data)
-
+    world_scale  = WorldScale(world_scale_history_data)
+    # generate flat rate
+    #flat_rate    = FlatRate(flat_rate_history_data)
+    flat_rate    = FlatRate(flat_rate_history_data)
+    
     # draw multiple scenario part #
     # base_sinario.draw_multiple_scenarios(world_scale)
     
