@@ -18,6 +18,7 @@ PROC_NUM = 15 if current_user == 'tsaito' else 2
 # for multiprocessing
 
 OPERATION_DURATION_YEARS = 15
+VESSEL_LIFE_TIME         = 15
 DEFAULT_PREDICT_YEARS    = OPERATION_DURATION_YEARS
 
 # navigation infomation [mile]

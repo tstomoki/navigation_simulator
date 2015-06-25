@@ -36,7 +36,6 @@ def run(options):
     initial_engine_id     = options.engine_id
     initial_propeller_id  = options.propeller_id
     initial_design        = options.initial_design
-    design_num            = options.design_num
     create_combination    = options.create_combination
     result_visualize_mode = options.result_visualize_mode
     result_dir_path       = options.result_dir_path
@@ -121,7 +120,7 @@ def run(options):
     if create_combination:
         retrofit_mode = RETROFIT_MODE['none']
         sinario_mode  = DERIVE_SINARIO_MODE['maintain']
-        agent         = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)        
+        agent         = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode)        
         agent.only_create_velocity_combinations()
         print_with_notice("Program (calc velocity combinations) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
         sys.exit()
@@ -149,30 +148,48 @@ def run(options):
         initial_engine    = Engine(engine_list, initial_engine_id)
         initial_propeller = Propeller(propeller_list, initial_propeller_id)        
 
-    if (design_num is None) or (design_num == 1):
-        # for design 1
-        retrofit_mode         = RETROFIT_MODE['propeller']
-        sinario_mode          = DERIVE_SINARIO_MODE['binomial']
-        tmp_output_path       = "%s/propeller" % (output_dir_path)
-        initializeDirHierarchy(tmp_output_path)
-        agent                 = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-        agent.output_dir_path = tmp_output_path
-        agent.simmulate()
-        agent.output_dir_path = tmp_output_path
+    if not initial_design:
+        # to compare retrofitting mode #
+        # fix seed #
+        common_seed_num                 = 19901129
+        sinario_mode                    = DERIVE_SINARIO_MODE['binomial']
+        #vessel_life_time_for_simulation = VESSEL_LIFE_TIME
+        vessel_life_time_for_simulation = 0.2
+        ## no retrofit ##
+        np.random.seed(common_seed_num)
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
+        each_output_path           = "%s/no_retrofit" % (output_dir_path)
+        initializeDirHierarchy(each_output_path)
+        retrofit_mode              = RETROFIT_MODE['none']
+        agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+        agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))        
+        agent.output_dir_path      = each_output_path
+        # simmulate with multi flag        
+        agent.simmulate(None, None, None, True)
+        
+        ## propeller retrofit ##
+        np.random.seed(common_seed_num)
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
+        each_output_path           = "%s/propeller" % (output_dir_path)
+        initializeDirHierarchy(each_output_path)
+        retrofit_mode              = RETROFIT_MODE['propeller']
+        agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+        agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))                
+        agent.output_dir_path      = each_output_path
+        # simmulate with multi flag        
+        agent.simmulate(None, None, None, True)
+        ## propeller and engine retrofit ##
+        np.random.seed(common_seed_num)
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
+        each_output_path           = "%s/propeller_and_engine" % (output_dir_path)
+        initializeDirHierarchy(each_output_path)
+        retrofit_mode              = RETROFIT_MODE['propeller_and_engine']
+        agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+        agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
+        agent.output_dir_path      = each_output_path
         # simmulate with multi flag
         agent.simmulate(None, None, None, True)
-        print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
-    elif (design_num is None) or (design_num == 2):
-        # for design 2
-        retrofit_mode   = RETROFIT_MODE['propeller_and_engine']
-        sinario_mode    = DERIVE_SINARIO_MODE['binomial']
-        tmp_output_path = "%s/propeller_and_engine" % (output_dir_path)
-        initializeDirHierarchy(tmp_output_path)
-        agent           = Agent(base_sinario, world_scale, retrofit_mode, sinario_mode)
-        agent.output_dir_path = tmp_output_path
-        # simmulate with multi flag
-        agent.simmulate(None, None, None, True)
-        print_with_notice("Program (retrofit propeller_and_engine) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
+        print_with_notice("Program (retrofit simulation) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         
     return 
 
@@ -187,8 +204,6 @@ if __name__ == '__main__':
                       help="designate initial propeller", default=None, type="int")
     parser.add_option("-I", "--initial", dest="initial_design",
                       help="only search initial design", default=False)
-    parser.add_option("-D", "--design", dest="design_num",
-                      help="designate execute simmulate num", default=None, type="int")
     parser.add_option("-C", "--combinations", dest="create_combination",
                       help="only create velocity combinations", default=False)
     parser.add_option("-R", "--result-mode", dest="result_visualize_mode",
