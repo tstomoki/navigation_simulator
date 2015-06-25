@@ -163,7 +163,6 @@ class Agent(object):
         simulate_count            = DEFAULT_SIMULATE_COUNT
         print_with_notice("initiate narrowed down simulation")
         narrowed_result_path = "%s/narrowed_result" % (initial_design_result_path)
-
         # initialize
         pool                      = mp.Pool(PROC_NUM)
 
@@ -935,7 +934,7 @@ class Agent(object):
                     if os.path.exists(result_file_path):
                         if not result_data.has_key(combination_str):
                             result_data[combination_str] = load_json_file(result_file_path)
-                            print_with_notice("load %s result from %s" % (combination_str, result_file_path))
+                            print_with_notice("loaded %s result from %s" % (combination_str, result_file_path))
                         NPV         = result_data[combination_str]['raw_results'][str(scenario_num)]
                     else:
                         # conduct simulation #
