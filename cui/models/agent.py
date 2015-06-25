@@ -198,7 +198,7 @@ class Agent(object):
         propeller                                           = Propeller(propeller_list, propeller_id)
         return averaged_NPV, hull, engine, propeller, std
 
-    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None):
+    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None, log_mode=None):
         # use instance variables if hull or engine or propeller are not given
         if (hull is None) or (engine is None) or (propeller is None):
             hull      = self.hull
@@ -407,6 +407,9 @@ class Agent(object):
             print "%25s: %10s"            % ('Retrofit Mode'        , self.retrofit_mode_to_human())
             print "--------------Retire Date: %s--------------" % (self.retire_date)
 
+            if log_mode:
+                self.update_CF_log(CF_day)
+            
         # update whole NPV in vessel life time
         return round(self.update_whole_NPV(), 3)
 
@@ -1410,3 +1413,14 @@ class Agent(object):
 
     def retrofit_mode_to_human(self):
         return [key for key, value in RETROFIT_MODE.iteritems() if value == self.retrofit_mode][0]
+
+    def update_CF_log(self, CF_day):
+        if CF_day is None:
+            return
+        ## make zero CF when the ship condition changes
+        #CF_day           = 0 if CF_day is None else CF_day
+        column_names     = ['date', 'cash_flow']
+        write_data       = [self.current_date, CF_day]
+        output_file_path = "%s/CF_log.csv" % (self.output_dir_path)
+        write_csv(column_names, write_data, output_file_path)        
+        return

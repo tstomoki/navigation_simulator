@@ -164,8 +164,8 @@ def run(options):
         agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
         agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))        
         agent.output_dir_path      = each_output_path
-        # simmulate with multi flag        
-        agent.simmulate(None, None, None, True)
+        # simmulate with multi flag and log
+        agent.simmulate(None, None, None, True, True)
         
         ## propeller retrofit ##
         np.random.seed(common_seed_num)
@@ -176,8 +176,8 @@ def run(options):
         agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
         agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))                
         agent.output_dir_path      = each_output_path
-        # simmulate with multi flag        
-        agent.simmulate(None, None, None, True)
+        # simmulate with multi flag and log
+        agent.simmulate(None, None, None, True, True)
         ## propeller and engine retrofit ##
         np.random.seed(common_seed_num)
         generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
@@ -187,8 +187,8 @@ def run(options):
         agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
         agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
         agent.output_dir_path      = each_output_path
-        # simmulate with multi flag
-        agent.simmulate(None, None, None, True)
+        # simmulate with multi flag and log
+        agent.simmulate(None, None, None, True, True)
         print_with_notice("Program (retrofit simulation) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         
     return 
