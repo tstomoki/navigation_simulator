@@ -2,6 +2,12 @@
 import sys
 import pdb
 import matplotlib
+# server configuration #
+import getpass
+current_user = getpass.getuser()
+if current_user == 'tsaito':
+    matplotlib.use('Agg')
+# server configuration #
 from optparse import OptionParser
 # import common modules #
 
@@ -21,11 +27,6 @@ from world_scale import WorldScale
 from flat_rate   import FlatRate
 from agent       import Agent
 # import models #
-
-# server configuration #
-if current_user == 'tsaito':
-    matplotlib.use('Agg')
-# server configuration #
 
 def run(options):
     print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
