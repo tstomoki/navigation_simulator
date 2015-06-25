@@ -153,8 +153,7 @@ def run(options):
         # fix seed #
         common_seed_num                 = 19901129
         sinario_mode                    = DERIVE_SINARIO_MODE['binomial']
-        #vessel_life_time_for_simulation = VESSEL_LIFE_TIME
-        vessel_life_time_for_simulation = 0.2
+        vessel_life_time_for_simulation = VESSEL_LIFE_TIME
         ## no retrofit ##
         np.random.seed(common_seed_num)
         generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
