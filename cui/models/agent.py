@@ -163,6 +163,7 @@ class Agent(object):
         simulate_count            = DEFAULT_SIMULATE_COUNT
         print_with_notice("initiate narrowed down simulation")
         narrowed_result_path = "%s/narrowed_result" % (initial_design_result_path)
+
         # initialize
         pool                      = mp.Pool(PROC_NUM)
 
@@ -982,6 +983,7 @@ class Agent(object):
             ## generate scenairo and world scale
             self.sinario.generate_sinario(self.sinario_mode, simulation_duration_years)
             self.world_scale.generate_sinario_with_oil_corr(self.sinario.history_data[-1], self.sinario.predicted_data)
+            self.flat_rate.generate_flat_rate(self.sinario_mode, simulation_duration_years)
             # fix the random seed #
             result_array = {}
             for component_ids in devided_component_ids[index]:
@@ -993,7 +995,7 @@ class Agent(object):
                     NPV = result_data[combination_str][scenario_num]
                 else:
                     # conduct simulation #
-                    agent = Agent(self.sinario, self.world_scale, self.retrofit_mode, self.sinario_mode, hull, engine, propeller)
+                    agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, hull, engine, propeller)
                     agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
                     NPV   = agent.simmulate()
                     # conduct simulation #

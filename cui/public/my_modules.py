@@ -1004,6 +1004,10 @@ def get_component_ids_from_design_key(design_key):
     return hull_id, engine_id, propeller_id
 
 def load_result(result_path):
+    # return vacant dict if path doesn't exist
+    if not os.path.exists(result_path):
+        return {}
+
     ret_result = {}
     result_data = np.array([])
     result_files = [ "%s/%s" % (result_path, _f) for _f in os.listdir(result_path) if _f[:14] == 'initial_design']
