@@ -525,7 +525,10 @@ def generate_combination_str(hull, engine, propeller):
     return "H%dE%dP%d" % (hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'])
 
 def generate_combination_str_with_id(hull_id, engine_id, propeller_id):
-    return "H%sE%sP%s" % (str(hull_id), str(engine_id), str(propeller_id))
+    hull_id_str      = str(hull_id[0]) if isinstance(hull_id, np.ndarray) else str(hull_id)
+    engine_id_str    = str(engine_id[0]) if isinstance(engine_id, np.ndarray) else str(engine_id)
+    propeller_id_str = str(propeller_id[0]) if isinstance(propeller_id, np.ndarray) else str(propeller_id)
+    return "H%sE%sP%s" % (hull_id_str, engine_id_str, propeller_id_str)
 
 def select_retrofits_design(temp_npv):
     retrofit_design = {}
