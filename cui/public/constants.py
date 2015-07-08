@@ -1,5 +1,6 @@
 # dir path from models
 RESULT_DIR_PATH         = '../results'
+COMPONENT_PATH          = '../data/components_lists'
 AGNET_LOG_DIR_PATH      = "%s/agent_log"    % (RESULT_DIR_PATH)
 COMBINATIONS_DIR_PATH   = "%s/combinations" % (RESULT_DIR_PATH)
 WAVE_DIR_PATH           = "%s/wave"         % (RESULT_DIR_PATH)
