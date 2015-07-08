@@ -48,22 +48,20 @@ def run(options):
                         result[propeller_id] = clean_load(exist_data[str(propeller_id)], 'str')
                         result[propeller_id]['coef'] = clean_load(result[propeller_id]['coef'], 'float')
                     else:
-                        coef = calc_ks(kt_list, kq_list, P_D, EAR, D, Z, J_a)
+                        approx_coef, coef = calc_ks(kt_list, kq_list, P_D, EAR, D, Z, J_a)
                         result[propeller_id] = {'P_D': P_D,
                                                 'EAR': EAR,
                                                 'D': D,
                                                 'Z': Z,
-                                                'coef': coef}
+                                                'coef': coef,
+                                                'approx_coef': approx_coef}
                     propeller_id += 1
-
     # output json
     write_file_as_json(result, output_json_path)
     # draw graph
     draw_k_comparison(result, J_a, output_dir_path)
-    J_cons = 1.0
-    draw_propeller_kinds(result, J_cons, output_dir_path)
-    draw_propeller_characteristics(result, J_a, output_dir_path)
-
+    draw_propeller_kinds(result, output_dir_path)
+    draw_propeller_characteristics(result, J_a, output_dir_path)                    
     seconds = convert_second(time.clock() - start_time)
     print_with_notice("Program finished (takes %10s seconds for process)" % (seconds))
 
@@ -103,12 +101,22 @@ def generate_parameters():
     return P_D_a, EAR_a, D_a, Z_a
 
 def calc_ks(kt_list, kq_list, P_D, EAR, D, Z, J_a):
+    approx_coef = {}
     coef = {}
 
     for J in J_a:
         coef[J] = {}
         coef[J]['KT'], coef[J]['KQ'] = calc_k_from_list(kt_list, kq_list, P_D, EAR, D, Z, J)
-    return coef
+
+    # approx coeff #
+    ## KQ
+    kq_coef =  [ [J, coef[J]['KQ']] for J in J_a]
+    approx_coef['kq'] = calc_approx_coef(kq_coef)
+    
+    ## KT
+    kt_coef =  [ [J, coef[J]['KT']] for J in J_a]
+    approx_coef['kt']  = calc_approx_coef(kt_coef)
+    return approx_coef, coef
 
 def calc_k_from_list(kt_list, kq_list, P_D, EAR, D, Z, J):
     s_a = np.unique(kt_list['s'])
@@ -151,7 +159,8 @@ def draw_propeller_characteristics(results, J_a, output_dir_path):
     for propeller_id, values in results.items():
         J_a = sorted(values['coef'].keys())     
         fig, ax1 = plt.subplots()
-        KT = [values['coef'][_j]['KT'] for _j in J_a]
+        approx_list_kt = [values['approx_coef']['kt']['constant'], values['approx_coef']['kt']['linear'], values['approx_coef']['kt']['square']]
+        KT = [ calc_y(_j, approx_list_kt, 2) for _j in J_a]
         lns1 = ax1.plot(J_a, KT, 'b-', label='KT')
         ax1.set_xlabel(x_label)
         # Make the y-axis label and tick labels match the line color.
@@ -159,11 +168,12 @@ def draw_propeller_characteristics(results, J_a, output_dir_path):
         ax1.set_ylim(0, 1.0)
         
         ax2 = ax1.twinx()
-        KQ = [values['coef'][_j]['KQ'] for _j in J_a]
+        approx_list_kq = [values['approx_coef']['kq']['constant'], values['approx_coef']['kq']['linear'], values['approx_coef']['kq']['square']]
+        KQ = [ calc_y(_j, approx_list_kq, 2) for _j in J_a]        
         ax2.plot(J_a, KQ, 'r-', label='KQ')
         ax2.set_ylabel('torque coeff(KQ)'.upper(), color='k')
         ax2.set_ylim(0, 0.07)
-        plt.title("ID:%5.3d %d Blades EAR:%5.3lf PD: %5.3lf D: %5.3lf" % (propeller_id, values['Z'], values['EAR'], values['P_D'], values['D']),       fontweight="bold")
+        plt.title("ID:%5.3d Blades: %d EAR:%5.3lf PD: %5.3lf D: %5.3lf" % (propeller_id, values['Z'], values['EAR'], values['P_D'], values['D']),       fontweight="bold")
         output_filepath = "%s/propeller_%d.png" % (output_dir_path, propeller_id)
         plt.grid(True)
         ax1.legend(loc='upper left')
@@ -184,7 +194,7 @@ def clean_load(raw_data, cast_mode):
         
     return ret_data
 
-def draw_propeller_kinds(result, J_cons, output_dir_path):
+def draw_propeller_kinds(result, output_dir_path):
     x_label = "pitch diameter ratio".upper()
     y_label = "blade area ratio".upper()
     z_label = "propeller diameter ".upper() + '[m]'
@@ -244,6 +254,15 @@ def draw_k_comparison(result, J_a, output_dir_path):
     plt.clf()
     plt.close()            
     return
+
+def calc_approx_coef(data):
+    ret_coef = {}
+    data     = np.array(data)
+    M        = 2
+    xlist    = data.transpose()[0]
+    ylist    = data.transpose()[1]
+    ret_coef['constant'], ret_coef['linear'], ret_coef['square'] = estimate(xlist, ylist, M)
+    return ret_coef
 
 # authorize exeucation as main script
 if __name__ == '__main__':
