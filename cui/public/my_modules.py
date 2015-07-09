@@ -66,8 +66,8 @@ def load_hull_list(path=None):
         path = '../data/components_lists/hull_list.csv'
         
     # read data
-    dt = np.dtype({'names'  : ('id'  , 'Loa'   , 'Lpp'   , 'Disp'  , 'DWT'   , 'Bmld'  , 'Dmld'  , 'draft_full', 'draft_ballast', 'Cb'    , 'S'     , 'ehp0_ballast', 'ehp1_ballast', 'ehp2_ballast', 'ehp3_ballast', 'ehp4_ballast', 'ehp0_full', 'ehp1_full', 'ehp2_full', 'ehp3_full', 'ehp4_full'),
-                   'formats': (np.int16, np.float, np.float, np.float, np.float, np.float, np.float, np.float    ,  np.float      , np.float, np.float, np.float      , np.float      , np.float      , np.float      , np.float      , np.float   , np.float   , np.float   , np.float   , np.float)})
+    dt = np.dtype({'names'  : ('id'  , 'Loa'   , 'Lpp'   , 'Disp'  , 'DWT'   , 'Bmld'  , 'Dmld'  , 'draft_full', 'draft_ballast', 'Cb'    , 'S'     , 'ehp0_ballast', 'ehp1_ballast', 'ehp2_ballast', 'ehp3_ballast', 'ehp4_ballast', 'ehp0_full', 'ehp1_full', 'ehp2_full', 'ehp3_full', 'ehp4_full', 'with_bow'),
+                   'formats': (np.int16, np.float, np.float, np.float, np.float, np.float, np.float, np.float    ,  np.float      , np.float, np.float, np.float      , np.float      , np.float      , np.float      , np.float      , np.float   , np.float   , np.float   , np.float   , np.float, 'S10')})
 
     hull_list = np.genfromtxt(path,
                               delimiter=',',
@@ -880,7 +880,7 @@ def output_NPV_log_to_json(design_str, averaged_NPV, std, raw_results, output_di
 def unleash_np_array_array(np_array_array):
     return np.array([_d[0] for _d in np_array_array])
 
-def get_component_from_narrowed_down_combination(component_ids, hull_list, engine_list, propeller_list):
+def get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list):
     # import models #
     from hull        import Hull
     from engine      import Engine
