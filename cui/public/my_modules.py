@@ -91,7 +91,8 @@ def load_engine_list(path=None):
 
 def load_propeller_list(path=None):
     if path is None:
-        path = '../data/components_lists/propeller_list.csv'
+        #path = '../data/components_lists/propeller_list.csv'
+        path = '../data/components_lists/results/selected_propeller.csv'
         
     # read data
     dt = np.dtype({'names'  : ('id'    , 'name', 'P_D'   , 'EAR'   , 'blade_num', 'Rn'    , 'D'     , 'KT0'   , 'KT1'   , 'KT2'   , 'KQ0'   , 'KQ1'   , 'KQ2'),
@@ -352,6 +353,20 @@ def write_csv(column_names, write_data, output_file_path):
     f.close()
     return
 
+def write_simple_array_csv(column_names, write_data, output_file_path):
+    # for initial write
+    write_column_flg = False if os.path.exists(output_file_path) else True
+    
+    # write file
+    f = open(output_file_path, 'a')
+    csvWriter = csv.writer(f)
+    if write_column_flg:
+        csvWriter.writerow(column_names)
+    csvWriter.writerows(write_data)
+    
+    f.close()
+    return
+
 def write_array_to_csv(column_names, write_array, output_file_path):
     # write file
     f = open(output_file_path, 'w')
@@ -363,6 +378,7 @@ def write_array_to_csv(column_names, write_array, output_file_path):
     for write_row in write_array:
         write_row_data = []
         for column_name in column_names:
+            pdb.set_trace()
             write_data = write_row[column_name]
             # for numpy array
             if isinstance(write_data, np.ndarray):
@@ -1103,3 +1119,16 @@ def generate_market_scenarios(scenario, world_scale, flat_rate, sinario_mode, si
     world_scale.generate_sinario_with_oil_corr(scenario.history_data[-1], scenario.predicted_data)
     flat_rate.generate_flat_rate(sinario_mode, simulation_duration_years)
     return
+
+def separate_list(raw_list, num):
+    ret_data = []
+    delta = round( len(raw_list) / float(num) )
+    index = 0
+    while index < len(raw_list):
+        index = int(index)
+        if (index+delta) > len(raw_list):
+            ret_data.append(raw_list[index:])
+        else:
+            ret_data.append(raw_list[index:int(index+delta)])
+        index += delta
+    return ret_data

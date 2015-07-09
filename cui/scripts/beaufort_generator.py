@@ -10,19 +10,6 @@ from scipy.stats import beta
 sys.path.append('../public')
 from my_modules  import *
 
-def separate_list(raw_list, num):
-    ret_data = []
-    delta = round( len(raw_list) / float(num) )
-    index = 0
-    while index < len(raw_list):
-        index = int(index)
-        if (index+delta) > len(raw_list):
-            ret_data.append(raw_list[index:])
-        else:
-            ret_data.append(raw_list[index:int(index+delta)])
-        index += delta
-    return ret_data
-
 '''
 s = np.random.poisson(14, 10000)
 count, bins, ignored = matplotlib.pyplot.hist(s, 8, normed=True)

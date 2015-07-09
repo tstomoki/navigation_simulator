@@ -19,10 +19,11 @@ from cubic_module import *
 # import own modules #
 
 def run(options):
-    start_time = time.clock()
-    output_dir_path = "%s/results" % (COMPONENT_PATH)
+    start_time       = time.clock()
+    output_dir_path  = "%s/results" % (COMPONENT_PATH)
     initializeDirHierarchy(output_dir_path)
     output_json_path = "%s/result.json" % (output_dir_path)
+    output_csv_path  = "%s/selected_propeller.csv" % (output_dir_path)
     # load KT, KQ list
     kt_list, kq_list = load_k_list(COMPONENT_PATH)
 
@@ -56,6 +57,24 @@ def run(options):
                                                 'coef': coef,
                                                 'approx_coef': approx_coef}
                     propeller_id += 1
+    # select propellers
+    selected_ids = [_array[0] for _array in separate_list(result.keys(), 6)]
+    selected_propellers = {}
+    for selected_id in selected_ids:
+        selected_propellers[selected_id] = result[selected_id]
+    output_csv = [[p_id,
+                   "P_%d" % (p_id),
+                   values['P_D'],
+                   values['EAR'],
+                   values['Z'],
+                   0,
+                   values['D'],
+                   values['approx_coef']['kt']['constant'], values['approx_coef']['kt']['linear'], values['approx_coef']['kt']['square'],
+                   values['approx_coef']['kq']['constant'], values['approx_coef']['kq']['linear'], values['approx_coef']['kq']['square']]
+                  for p_id, values in selected_propellers.items()]
+    column_names = ['id', 'name', 'P_D', 'EAR', 'blade_num', 'Rn', 'D', 'KT0', 'KT1', 'KT2', 'KQ0', 'KQ1', 'KQ2']
+    write_simple_array_csv(column_names, output_csv, output_csv_path)
+    sys.exit()
     # output json
     write_file_as_json(result, output_json_path)
     # draw graph
