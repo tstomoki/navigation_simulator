@@ -159,6 +159,8 @@ class Agent(object):
                     devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
         devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
 
+        self.calc_initial_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, devided_component_ids, output_dir_path)
+        sys.exit()
         # initialize
         pool                      = mp.Pool(PROC_NUM)
         # multi processing #
@@ -439,6 +441,7 @@ class Agent(object):
                 tmp_combinations = np.array([])
                 for velocity in self.velocity_array:
                     velocity    = round(velocity, 4)
+                    velocity    = consider_bow_for_v(hull, velocity, load_condition)
                     velocity_ms = knot2ms(velocity)
                     # calc error of fitness bhp values
                     error = self.rpm_velocity_fitness(hull, engine, propeller, velocity_ms, rpm, load_condition)
@@ -1412,6 +1415,10 @@ class Agent(object):
         current_bf          = prob_with_weight(self.bf_prob)
         current_wave_height = get_wave_height(current_bf)
         delta_v = calc_y(current_wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
+
+        # reduce for bow
+        delta_v = self.consider_bow_for_wave(delta_v)
+        
         return v_knot + delta_v
 
     # consider dock-to-dock deterioration    
@@ -1465,4 +1472,8 @@ class Agent(object):
         modified_v_knot -= self.age_eff['v_knot']        
         return modified_rpm, modified_v_knot
 
-                
+    def consider_bow_for_wave(self, delta_v):
+        if self.hull.base_data['with_bow'] == 'FALSE':
+            return delta_v
+        index = 0.40 if self.is_ballast() else 0.50        
+        return delta_v * index

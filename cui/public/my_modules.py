@@ -1152,3 +1152,11 @@ def get_wave_height(current_bf):
     else:
         current_wave_height = current_bf_info['wave_height'][0]
     return current_wave_height
+
+# consider bow for velocity
+def consider_bow_for_v(hull, velocity, load_condition):
+    if hull.base_data['with_bow'] == 'FALSE':
+        return velocity
+    index = 3.0 if LOAD_CONDITION[load_condition] == 'ballast' else 16
+    velocity *= ( (100 - math.pow(index, 1.0/3)) / 100 )    
+    return velocity
