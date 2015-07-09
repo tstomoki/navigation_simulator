@@ -384,7 +384,6 @@ def write_array_to_csv(column_names, write_array, output_file_path):
     for write_row in write_array:
         write_row_data = []
         for column_name in column_names:
-            pdb.set_trace()
             write_data = write_row[column_name]
             # for numpy array
             if isinstance(write_data, np.ndarray):
