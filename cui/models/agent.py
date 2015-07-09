@@ -298,6 +298,9 @@ class Agent(object):
                     CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
 
 
+            # consider beaufort for velocity
+            v_knot = self.modify_by_external(v_knot)
+                    
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -952,7 +955,7 @@ class Agent(object):
                         NPV         = result_data[combination_str]['raw_results'][str(scenario_num)]
                     else:
                         # conduct simulation #
-                        agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, ret_hull, engine, propeller)
+                        agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, ret_hull, engine, propeller)
                         agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
                         NPV   = agent.simmulate()
                         # conduct simulation #
@@ -1452,3 +1455,9 @@ class Agent(object):
         bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}        
         return bf_prob
 
+    # consider beaufort for velocity
+    def modify_by_external(self, v_knot):
+        current_bf          = prob_with_weight(self.bf_prob)
+        current_wave_height = get_wave_height(current_bf)
+        delta_v = calc_y(current_wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
+        return v_knot + delta_v

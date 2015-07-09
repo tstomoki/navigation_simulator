@@ -1,5 +1,6 @@
 # dir path from models
 RESULT_DIR_PATH         = '../results'
+DATA_PATH               = '../data/'
 COMPONENT_PATH          = '../data/components_lists'
 AGNET_LOG_DIR_PATH      = "%s/agent_log"    % (RESULT_DIR_PATH)
 COMBINATIONS_DIR_PATH   = "%s/combinations" % (RESULT_DIR_PATH)
@@ -183,3 +184,9 @@ BF_MODE = {'rough': 0,
            'neutral': 1,
            'calm': 2,
            'none': 3}
+
+# velocity deterioration func
+V_DETERIO_FUNC_COEFFS = {'cons': -0.0621757689405,
+                         'lin': -0.13738023067,
+                         "squ": -0.167749562986}
+V_DETERIO_M = 2

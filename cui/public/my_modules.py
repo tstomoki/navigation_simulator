@@ -3,7 +3,7 @@
 import math
 import os
 import sys
-import pdb
+from pdb import *
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
@@ -238,6 +238,12 @@ def prob(prob_value):
     nonzero_num = np.count_nonzero(np.random.binomial(1, prob_value, N))
     threshold   = N * prob_value
     return (nonzero_num > threshold)
+
+# {c0: 0.1, c2:0.3.....}
+def prob_with_weight(weight_dict):
+    # normalization
+    data_sum = sum(weight_dict.values())
+    return np.random.choice(weight_dict.keys(), p=[ _v / data_sum for _v in weight_dict.values()])
 
 # preconditions: there is only 2 conditions
 def get_another_condition(load_condition):
@@ -1132,3 +1138,18 @@ def separate_list(raw_list, num):
             ret_data.append(raw_list[index:int(index+delta)])
         index += delta
     return ret_data
+
+def get_wave_height(current_bf):
+    bf_info_path = "%s/beaufort_info.csv" % (DATA_PATH)
+    dt   = np.dtype({'names': ('BF', 'wind_speed', 'wave_height', 'wave_period'),
+                   'formats': ('S5', np.float, np.float, np.float)})
+    bf_info = np.genfromtxt(bf_info_path,
+                            delimiter=',',
+                            dtype=dt,
+                            skiprows=1)
+    current_bf_info = bf_info[np.where(bf_info['BF'] == current_bf)]
+    if len(current_bf_info) == 0:
+        current_wave_height = 0
+    else:
+        current_wave_height = current_bf_info['wave_height'][0]
+    return current_wave_height
