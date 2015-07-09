@@ -130,7 +130,8 @@ def run(options):
         # get initial design #
         retrofit_mode = RETROFIT_MODE['none']
         sinario_mode  = DERIVE_SINARIO_MODE['binomial']
-        agent         = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode)
+        bf_mode       = BF_MODE['rough']
+        agent         = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, bf_mode)
         initial_design_dir = "%s/initial_design" % (output_dir_path)
         initializeDirHierarchy(initial_design_dir)
         averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir, result_dir_path)

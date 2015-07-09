@@ -2,7 +2,7 @@
 import sys
 import math
 import copy
-import pdb
+from pdb import *
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,12 +40,13 @@ from world_scale import WorldScale
 # import models #
 
 class Agent(object):
-    def __init__(self, sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, hull=None, engine=None, propeller=None, rpm_array=None, velocity_array=None):
+    def __init__(self, sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, bf_mode, hull=None, engine=None, propeller=None, rpm_array=None, velocity_array=None):
         self.sinario       = sinario
         self.world_scale   = world_scale
         self.flat_rate     = flat_rate
         self.retrofit_mode = retrofit_mode
         self.sinario_mode  = sinario_mode
+        self.bf_mode       = bf_mode
         self.icr           = DEFAULT_ICR_RATE
         self.operation_date_array = None
 
@@ -56,6 +57,9 @@ class Agent(object):
         self.rpm_array      = np.arange(DEFAULT_RPM_RANGE['from'], DEFAULT_RPM_RANGE['to'], DEFAULT_RPM_RANGE['stride']) if rpm_array is None else rpm_array
         # for velocity and rps array #
 
+        # beaufort mode
+        self.bf_prob = self.load_bf_prob()
+        
         ### full search with sinario and world_scale
         if not hasattr(self.sinario, 'predicted_data'):
             self.sinario.generate_sinario(self.sinario_mode)
@@ -1424,3 +1428,27 @@ class Agent(object):
         output_file_path = "%s/CF_log.csv" % (self.output_dir_path)
         write_csv(column_names, write_data, output_file_path)        
         return
+
+    # beaufort mode
+    def load_bf_prob(self):
+        whole_reslut_path = "%s/result.json" % BEAUFORT_RESULT_PATH
+        beaufort_data     = load_json_file(whole_reslut_path)
+
+        if self.bf_mode == BF_MODE['rough']:
+            alpha = 7
+            beta  = 3
+        elif self.bf_mode == BF_MODE['neutral']:
+            alpha = 5
+            beta  = 5
+        elif self.bf_mode == BF_MODE['calm']:
+            alpha = 3
+            beta  = 7
+        else:
+            # none
+            ## WIP
+            return 
+
+        bf_key = "a_%d_b_%d" % (alpha, beta)
+        bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}        
+        return bf_prob
+
