@@ -262,6 +262,10 @@ class Agent(object):
         self.dockin_flag           = False
         self.ballast_trip_days     = 0
         self.return_trip_days      = 0
+
+        # deteriorate
+        self.d2d_det = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
+        self.age_eff = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
         
         # initialize the temporal variables
         CF_day = rpm = v_knot = None                        
@@ -296,11 +300,19 @@ class Agent(object):
                     CF_day, rpm, v_knot  = self.calc_optimal_velocity_m(hull, engine, propeller)
                 else:
                     CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
+            else:
+                # conserve calm sea velocity
+                v_knot = raw_v
+                
+            # modification of the performance #
+            raw_v = v_knot
+            raw_rpm = rpm            
+            ## consider deterioration
+            rpm, v_knot = self.modify_by_deterioration(rpm, v_knot)
 
-
-            # consider beaufort for velocity
+            ## consider beaufort for velocity
             v_knot = self.modify_by_external(v_knot)
-                    
+                  
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -331,7 +343,7 @@ class Agent(object):
                 self.total_cash_flow += CF_day
                 
                 # initialize the temporal variables
-                CF_day = rpm = v_knot = None                
+                CF_day = rpm = v_knot = None
         
             elif updated_distance >= self.round_trip_distance:
                 # full -> ballast
@@ -363,14 +375,23 @@ class Agent(object):
 
                 # dock-in flag
                 if self.update_dockin_flag():
+                    # clear dock-to-dock deterioration
+                    self.clear_d2d()
+                    # initiate dock-in
                     self.initiate_dockin()
                     retrofit_design = self.check_retrofit()
                     if not retrofit_design is None:
                         hull, engine, propeller = change_design(retrofit_design)
+                        self.clear_age_effect()
+                    else:
+                        self.update_age_effect()
                     
                 # update cash flow
                 self.cash_flow       += CF_day
                 self.total_cash_flow += CF_day
+
+                # consider dock-to-dock deterioration
+                self.update_d2d()
                 
                 # initialize the temporal variables
                 CF_day = rpm = v_knot = None
@@ -1461,3 +1482,56 @@ class Agent(object):
         current_wave_height = get_wave_height(current_bf)
         delta_v = calc_y(current_wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
         return v_knot + delta_v
+
+    # consider dock-to-dock deterioration    
+    def update_d2d(self):
+        navigation_elpased_days = self.ballast_trip_days + self.return_trip_days + PORT_DWELL_DAYS
+        denominator = (DOCK_IN_PERIOD * 365)
+        # velocity
+        delta_v = (1.0 * navigation_elpased_days) / float(denominator)
+        self.d2d_det['v_knot'] += delta_v
+        # rpm
+        delta_rpm = ( np.random.uniform(2.0, 4.0) * navigation_elpased_days) / float(denominator)
+        self.d2d_det['rpm'] += delta_rpm
+        # EHP
+        delta_ehp = ( np.random.uniform(20, 60) * navigation_elpased_days) / float(denominator)
+        self.d2d_det['ehp'] += delta_ehp
+        return
+
+    def clear_d2d(self):
+        self.d2d_det = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
+        return
+
+    def update_age_effect(self):
+        # velocity
+        delta_v = 0.1 * DOCK_IN_PERIOD
+        self.age_eff['v_knot'] += delta_v
+        # rpm
+        delta_rpm = np.random.uniform(0.5, 2.0) * DOCK_IN_PERIOD
+        self.age_eff['rpm'] += delta_rpm
+        # EHP
+        delta_ehp = 2.5 * DOCK_IN_PERIOD
+        self.age_eff['ehp'] += delta_ehp
+        return
+
+    def clear_age_effect(self):
+        self.age_eff = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
+        return
+    
+    ## consider deterioration    
+    def modify_by_deterioration(self, rpm, v_knot):
+        modified_rpm    = rpm
+        modified_v_knot = v_knot
+        # dock-to-dock
+        ## rpm
+        modified_rpm -= self.d2d_det['rpm']
+        ## v_knot
+        modified_v_knot -= self.d2d_det['v_knot']
+        # age effect
+        ## rpm
+        modified_rpm -= self.age_eff['rpm']
+        ## v_knot
+        modified_v_knot -= self.age_eff['v_knot']        
+        return modified_rpm, modified_v_knot
+
+                
