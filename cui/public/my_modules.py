@@ -3,7 +3,7 @@
 import math
 import os
 import sys
-import pdb
+from pdb import *
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
@@ -66,8 +66,8 @@ def load_hull_list(path=None):
         path = '../data/components_lists/hull_list.csv'
         
     # read data
-    dt = np.dtype({'names'  : ('id'  , 'Loa'   , 'Lpp'   , 'Disp'  , 'DWT'   , 'Bmld'  , 'Dmld'  , 'draft_full', 'draft_ballast', 'Cb'    , 'S'     , 'ehp0_ballast', 'ehp1_ballast', 'ehp2_ballast', 'ehp3_ballast', 'ehp4_ballast', 'ehp0_full', 'ehp1_full', 'ehp2_full', 'ehp3_full', 'ehp4_full'),
-                   'formats': (np.int16, np.float, np.float, np.float, np.float, np.float, np.float, np.float    ,  np.float      , np.float, np.float, np.float      , np.float      , np.float      , np.float      , np.float      , np.float   , np.float   , np.float   , np.float   , np.float)})
+    dt = np.dtype({'names'  : ('id'  , 'Loa'   , 'Lpp'   , 'Disp'  , 'DWT'   , 'Bmld'  , 'Dmld'  , 'draft_full', 'draft_ballast', 'Cb'    , 'S'     , 'ehp0_ballast', 'ehp1_ballast', 'ehp2_ballast', 'ehp3_ballast', 'ehp4_ballast', 'ehp0_full', 'ehp1_full', 'ehp2_full', 'ehp3_full', 'ehp4_full', 'with_bow'),
+                   'formats': (np.int16, np.float, np.float, np.float, np.float, np.float, np.float, np.float    ,  np.float      , np.float, np.float, np.float      , np.float      , np.float      , np.float      , np.float      , np.float   , np.float   , np.float   , np.float   , np.float, 'S10')})
 
     hull_list = np.genfromtxt(path,
                               delimiter=',',
@@ -91,7 +91,8 @@ def load_engine_list(path=None):
 
 def load_propeller_list(path=None):
     if path is None:
-        path = '../data/components_lists/propeller_list.csv'
+        #path = '../data/components_lists/propeller_list.csv'
+        path = '../data/components_lists/results/selected_propeller.csv'
         
     # read data
     dt = np.dtype({'names'  : ('id'    , 'name', 'P_D'   , 'EAR'   , 'blade_num', 'Rn'    , 'D'     , 'KT0'   , 'KT1'   , 'KT2'   , 'KQ0'   , 'KQ1'   , 'KQ2'),
@@ -238,6 +239,12 @@ def prob(prob_value):
     threshold   = N * prob_value
     return (nonzero_num > threshold)
 
+# {c0: 0.1, c2:0.3.....}
+def prob_with_weight(weight_dict):
+    # normalization
+    data_sum = sum(weight_dict.values())
+    return np.random.choice(weight_dict.keys(), p=[ _v / data_sum for _v in weight_dict.values()])
+
 # preconditions: there is only 2 conditions
 def get_another_condition(load_condition):
     if not load_condition in LOAD_CONDITION.keys():
@@ -352,6 +359,20 @@ def write_csv(column_names, write_data, output_file_path):
     f.close()
     return
 
+def write_simple_array_csv(column_names, write_data, output_file_path):
+    # for initial write
+    write_column_flg = False if os.path.exists(output_file_path) else True
+    
+    # write file
+    f = open(output_file_path, 'a')
+    csvWriter = csv.writer(f)
+    if write_column_flg:
+        csvWriter.writerow(column_names)
+    csvWriter.writerows(write_data)
+    
+    f.close()
+    return
+
 def write_array_to_csv(column_names, write_array, output_file_path):
     # write file
     f = open(output_file_path, 'w')
@@ -363,6 +384,7 @@ def write_array_to_csv(column_names, write_array, output_file_path):
     for write_row in write_array:
         write_row_data = []
         for column_name in column_names:
+            pdb.set_trace()
             write_data = write_row[column_name]
             # for numpy array
             if isinstance(write_data, np.ndarray):
@@ -858,7 +880,7 @@ def output_NPV_log_to_json(design_str, averaged_NPV, std, raw_results, output_di
 def unleash_np_array_array(np_array_array):
     return np.array([_d[0] for _d in np_array_array])
 
-def get_component_from_narrowed_down_combination(component_ids, hull_list, engine_list, propeller_list):
+def get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list):
     # import models #
     from hull        import Hull
     from engine      import Engine
@@ -1103,3 +1125,31 @@ def generate_market_scenarios(scenario, world_scale, flat_rate, sinario_mode, si
     world_scale.generate_sinario_with_oil_corr(scenario.history_data[-1], scenario.predicted_data)
     flat_rate.generate_flat_rate(sinario_mode, simulation_duration_years)
     return
+
+def separate_list(raw_list, num):
+    ret_data = []
+    delta = round( len(raw_list) / float(num) )
+    index = 0
+    while index < len(raw_list):
+        index = int(index)
+        if (index+delta) > len(raw_list):
+            ret_data.append(raw_list[index:])
+        else:
+            ret_data.append(raw_list[index:int(index+delta)])
+        index += delta
+    return ret_data
+
+def get_wave_height(current_bf):
+    bf_info_path = "%s/beaufort_info.csv" % (DATA_PATH)
+    dt   = np.dtype({'names': ('BF', 'wind_speed', 'wave_height', 'wave_period'),
+                   'formats': ('S5', np.float, np.float, np.float)})
+    bf_info = np.genfromtxt(bf_info_path,
+                            delimiter=',',
+                            dtype=dt,
+                            skiprows=1)
+    current_bf_info = bf_info[np.where(bf_info['BF'] == current_bf)]
+    if len(current_bf_info) == 0:
+        current_wave_height = 0
+    else:
+        current_wave_height = current_bf_info['wave_height'][0]
+    return current_wave_height

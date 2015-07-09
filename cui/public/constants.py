@@ -1,9 +1,12 @@
 # dir path from models
 RESULT_DIR_PATH         = '../results'
+DATA_PATH               = '../data/'
+COMPONENT_PATH          = '../data/components_lists'
 AGNET_LOG_DIR_PATH      = "%s/agent_log"    % (RESULT_DIR_PATH)
 COMBINATIONS_DIR_PATH   = "%s/combinations" % (RESULT_DIR_PATH)
 WAVE_DIR_PATH           = "%s/wave"         % (RESULT_DIR_PATH)
 CORRELATION_DIR_PATH    = "%s/correlation"  % (RESULT_DIR_PATH)
+BEAUFORT_RESULT_PATH    = "%s/beauforts"  % (RESULT_DIR_PATH)
 INITIAL_DESIGN_RESULT   = "%s/initial_design"  % (RESULT_DIR_PATH)
 NARROW_DOWN_RESULT_PATH = "%s/narrow_down_result"  % (INITIAL_DESIGN_RESULT)
 NARROWED_RESULT_PATH    = "%s/narrowed_result"  % (INITIAL_DESIGN_RESULT)
@@ -175,3 +178,15 @@ RELATIVE_ENGINE_EFFICIENCY = {1.0: 1.0,
                               0.65: 0.35,
                               0.45: 0.2,
                               0:0}
+
+# Beaufort mode
+BF_MODE = {'rough': 0,
+           'neutral': 1,
+           'calm': 2,
+           'none': 3}
+
+# velocity deterioration func
+V_DETERIO_FUNC_COEFFS = {'cons': -0.0621757689405,
+                         'lin': -0.13738023067,
+                         "squ": -0.167749562986}
+V_DETERIO_M = 2
