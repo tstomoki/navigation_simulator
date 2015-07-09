@@ -45,6 +45,10 @@ for alpha in alpha_a:
     title  = "incidence rate of Beaufort".title()
     output_file_path = "%s/alpha_%d_beta_%d.png" % (output_dir_path, alpha, beta)
     xticks = ["BF%d" % (_x) for _x in x_data ]
+    x_label   = "beaufort".upper()
+    y_label   = "probability".upper()
+    matplotlib.pyplot.xlabel(x_label, fontweight="bold")
+    matplotlib.pyplot.ylabel(y_label, fontweight="bold")
     matplotlib.pyplot.xticks(x_data+0.5, xticks)
     matplotlib.pyplot.bar(x_data, y_data)
     matplotlib.pyplot.ylim(0, 0.40)
