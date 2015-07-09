@@ -159,8 +159,6 @@ class Agent(object):
                     devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
         devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
 
-        self.calc_initial_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, devided_component_ids, output_dir_path)
-        sys.exit()
         # initialize
         pool                      = mp.Pool(PROC_NUM)
         # multi processing #
