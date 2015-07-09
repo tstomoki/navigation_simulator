@@ -1265,9 +1265,11 @@ class Agent(object):
                 target_design_array = append_for_np_array(target_design_array, add_design)
         elif self.retrofit_mode == RETROFIT_MODE['propeller_and_engine']:
             # load components list            
-            engine_list         = load_engine_list()
-            propeller_list      = load_propeller_list()
+            hull_id        = self.hull.base_data['id']
+            engine_list    = load_engine_list()
+            propeller_list = load_propeller_list()
             for engine_info in engine_list:
+                engine_id = engine_info['id']
                 for propeller_info in propeller_list:
                     propeller_id = propeller_info['id']
                     add_design          = np.array([(hull_id,

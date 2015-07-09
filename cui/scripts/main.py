@@ -32,14 +32,16 @@ def run(options):
     print_with_notice("Program started at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
 
     # get option variables #
-    initial_hull_id       = options.hull_id
-    initial_engine_id     = options.engine_id
-    initial_propeller_id  = options.propeller_id
-    initial_design        = options.initial_design
-    create_combination    = options.create_combination
-    result_visualize_mode = options.result_visualize_mode
-    result_dir_path       = options.result_dir_path
-
+    initial_hull_id                      = options.hull_id
+    initial_engine_id                    = options.engine_id
+    initial_propeller_id                 = options.propeller_id
+    initial_design                       = options.initial_design
+    create_combination                   = options.create_combination
+    result_visualize_mode                = options.result_visualize_mode
+    result_dir_path                      = options.result_dir_path
+    no_retrofit_ignore                   = options.no_retrofit_ignore
+    propeller_retrofit_ignore            = options.propeller_retrofit_ignore
+    propeller_and_engine_retrofit_ignore = options.propeller_and_engine_retrofit_ignore
 
     # load history data
     from_date = '2004/01/01'
@@ -155,40 +157,50 @@ def run(options):
         sinario_mode                    = DERIVE_SINARIO_MODE['binomial']
         vessel_life_time_for_simulation = VESSEL_LIFE_TIME
         ## no retrofit ##
-        np.random.seed(common_seed_num)
-        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
-        each_output_path           = "%s/no_retrofit" % (output_dir_path)
-        initializeDirHierarchy(each_output_path)
-        retrofit_mode              = RETROFIT_MODE['none']
-        agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-        agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))        
-        agent.output_dir_path      = each_output_path
-        # simmulate with multi flag and log
-        agent.simmulate(None, None, None, True, True)
+        if no_retrofit_ignore:
+            print "%30s" % ("ignoring the no retrofit simulation")
+        else:
+            np.random.seed(common_seed_num)
+            generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
+            each_output_path           = "%s/no_retrofit" % (output_dir_path)
+            initializeDirHierarchy(each_output_path)
+            retrofit_mode              = RETROFIT_MODE['none']
+            agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+            agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))        
+            agent.output_dir_path      = each_output_path
+            # simmulate with multi flag and log
+            agent.simmulate(None, None, None, True, True)
         
         ## propeller retrofit ##
-        np.random.seed(common_seed_num)
-        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
-        each_output_path           = "%s/propeller" % (output_dir_path)
-        initializeDirHierarchy(each_output_path)
-        retrofit_mode              = RETROFIT_MODE['propeller']
-        agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-        agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))                
-        agent.output_dir_path      = each_output_path
-        # simmulate with multi flag and log
-        agent.simmulate(None, None, None, True, True)
+        if propeller_retrofit_ignore:
+            print "%30s" % ("ignoring the propeller retrofit simulation")
+        else:
+            np.random.seed(common_seed_num)
+            generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)
+            each_output_path           = "%s/propeller" % (output_dir_path)
+            initializeDirHierarchy(each_output_path)
+            retrofit_mode              = RETROFIT_MODE['propeller']
+            agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+            agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))                
+            agent.output_dir_path      = each_output_path
+            # simmulate with multi flag and log
+            agent.simmulate(None, None, None, True, True)
+
         ## propeller and engine retrofit ##
-        np.random.seed(common_seed_num)
-        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
-        each_output_path           = "%s/propeller_and_engine" % (output_dir_path)
-        initializeDirHierarchy(each_output_path)
-        retrofit_mode              = RETROFIT_MODE['propeller_and_engine']
-        agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-        agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
-        agent.output_dir_path      = each_output_path
-        # simmulate with multi flag and log
-        agent.simmulate(None, None, None, True, True)
-        print_with_notice("Program (retrofit simulation) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        if propeller_and_engine_retrofit_ignore:
+            print "%30s" % ("ignoring the propeller retrofit simulation")
+        else:
+            np.random.seed(common_seed_num)
+            generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
+            each_output_path           = "%s/propeller_and_engine" % (output_dir_path)
+            initializeDirHierarchy(each_output_path)
+            retrofit_mode              = RETROFIT_MODE['propeller_and_engine']
+            agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
+            agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
+            agent.output_dir_path      = each_output_path
+            # simmulate with multi flag and log
+            agent.simmulate(None, None, None, True, True)
+        print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         
     return 
 
@@ -209,6 +221,12 @@ if __name__ == '__main__':
                       help="results visualize mode", default=False)
     parser.add_option("-A", "--result-path", dest="result_dir_path",
                       help="results dir path", default=None)
+    parser.add_option("-N", "--no-retrofit", dest="no_retrofit_ignore",
+                      help="ignore no retrofit simulation if True", default=False)
+    parser.add_option("-B", "--propeller-retrofit", dest="propeller_retrofit_ignore",
+                      help="ignore propeller retrofit simulation if True", default=False)
+    parser.add_option("-D", "--propeller-and-engine-retrofit", dest="propeller_and_engine_retrofit_ignore",
+                      help="ignore propeller and engine retrofit simulation if True", default=False)
 
     (options, args) = parser.parse_args()
     run(options)
