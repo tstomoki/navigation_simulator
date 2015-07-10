@@ -42,7 +42,7 @@ RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}
 
 # default simulate count for searching initial design
-DEFAULT_SIMULATE_COUNT                        = 100
+DEFAULT_SIMULATE_COUNT                        = 30
 SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 5
 # narrowed down design ratio for initial design
 NARROWED_DOWN_DESIGN_RATIO                    = 0.1

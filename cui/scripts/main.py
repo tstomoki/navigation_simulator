@@ -70,21 +70,37 @@ def run(options):
 
     if result_visualize_mode:
         # for narrowed result
-        output_dir_path = "%s/visualization/narrowed_result" % (RESULT_DIR_PATH)
-        initializeDirHierarchy(output_dir_path)
-        json_dirpath    = NARROWED_RESULT_PATH
-        if not os.path.exists(json_dirpath):
-            print "abort: there is no such directory, %s" % (json_dirpath)
-            sys.exit()
-        files = os.listdir(json_dirpath)
-        results_data = {}
-        for target_filename in files:
-            try:
-                combination_key, = re.compile(r'(H.+)\.json').search(target_filename).groups()
-            except:
-                continue
-            target_filepath               = "%s/%s" % (json_dirpath, target_filename)
-            results_data[combination_key] = load_json_file(target_filepath)
+        dir_path = '../results/agent_log/201507100335/initial_design'
+        files = os.listdir(dir_path)
+        target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+        target_files = [ "%s/%s" % (dir_path, _f) for _f in target_files]
+
+        dt   = np.dtype({'names': ('scenario_num','hull_id','engine_id','propeller_id','NPV'),
+                         'formats': (np.int64, np.int64, np.int64, np.int64, np.float)})
+        npv_result = {}
+        for _target_file in target_files:
+            data = np.genfromtxt(_target_file,
+                                 delimiter=',',
+                                 dtype=dt,
+                                 skiprows=1)
+            for _d in data:
+                s_num, h_id, e_id, p_id, npv = _d
+                combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
+                if not npv_result.has_key(combination_key):
+                    npv_result[combination_key] = []
+                npv_result[combination_key].append(npv)
+                
+        output_result = {}
+        for c_key, npv_array in npv_result.items():
+            if not output_result.has_key(c_key):
+                output_result[c_key] = {}
+            output_result[c_key]['npv'] = np.average(npv_array)
+            output_result[c_key]['std'] = np.std(npv_array)
+        
+        column_names = ['c_key', 'ave_npv', 'std']
+        write_data = [ [c_key, val['npv'], val['std']] for c_key, val in output_result.items()]
+        write_simple_array_csv(column_names, write_data, './test.csv')
+        sys.exit()
 
         # display maximum_designs
         draw_NPV_for_each3D(results_data, output_dir_path, [0, 900], [190000000, 206000000])
