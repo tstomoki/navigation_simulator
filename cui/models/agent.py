@@ -893,9 +893,7 @@ class Agent(object):
             # fix the random seed #
             np.random.seed(scenario_num)
             ## generate scenairo and world scale
-            self.sinario.generate_sinario(self.sinario_mode, simulation_duration_years)
-            self.world_scale.generate_sinario_with_oil_corr(self.sinario.history_data[-1], self.sinario.predicted_data)
-            self.flat_rate.generate_flat_rate(self.sinario_mode, simulation_duration_years)
+            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)        
             # fix the random seed #
             result_array = {}
             for component_ids in devided_component_ids[index]:
@@ -1337,12 +1335,9 @@ class Agent(object):
         if self.bf_mode == BF_MODE['rough']:
             alpha = 7
             beta  = 3
-        elif self.bf_mode == BF_MODE['neutral']:
-            alpha = 5
-            beta  = 5
         elif self.bf_mode == BF_MODE['calm']:
-            alpha = 3
-            beta  = 7
+            alpha = 4
+            beta  = 6
         else:
             # none
             ## WIP

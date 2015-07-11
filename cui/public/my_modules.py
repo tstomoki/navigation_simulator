@@ -1122,7 +1122,7 @@ def clean_draw_data(draw_data):
 
 def generate_market_scenarios(scenario, world_scale, flat_rate, sinario_mode, simulation_duration_years):
     scenario.generate_sinario(sinario_mode, simulation_duration_years)
-    world_scale.generate_sinario_with_oil_corr(scenario.history_data[-1], scenario.predicted_data)
+    world_scale.generate_sinario_with_oil_corr(sinario_mode, scenario.history_data[-1], scenario.predicted_data)
     flat_rate.generate_flat_rate(sinario_mode, simulation_duration_years)
     return
 

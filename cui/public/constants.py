@@ -41,6 +41,11 @@ RETROFIT_MODE = {'none': 0,
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}
 
+# Beaufort mode
+BF_MODE = {'rough': 0,
+           'calm': 1,
+           'none': 2}
+
 # default simulate count for searching initial design
 DEFAULT_SIMULATE_COUNT                        = 30
 SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 5
@@ -178,12 +183,6 @@ RELATIVE_ENGINE_EFFICIENCY = {1.0: 1.0,
                               0.65: 0.35,
                               0.45: 0.2,
                               0:0}
-
-# Beaufort mode
-BF_MODE = {'rough': 0,
-           'neutral': 1,
-           'calm': 2,
-           'none': 3}
 
 # velocity deterioration func
 V_DETERIO_FUNC_COEFFS = {'cons': -0.0621757689405,

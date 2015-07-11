@@ -126,7 +126,11 @@ class WorldScale:
         return
 
     # generate world scale scenario with oil price correlation
-    def generate_sinario_with_oil_corr(self, latest_oilprice_history_data, oilprice_predicted_data):
+    def generate_sinario_with_oil_corr(self, sinario_mode, latest_oilprice_history_data, oilprice_predicted_data):
+        if sinario_mode == DERIVE_SINARIO_MODE['maintain']:
+            self.generate_sinario(sinario_mode)
+            return
+        
         # predicted data type
         dt   = np.dtype({'names':   ('date', 'ws'),
                          'formats': ('S10' , np.float)})

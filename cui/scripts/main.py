@@ -1,6 +1,6 @@
 # import common modules #
 import sys
-import pdb
+from pdb import *
 import matplotlib
 # server configuration #
 import getpass
@@ -144,17 +144,44 @@ def run(options):
         sys.exit()
     
     if (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None):
-        # for design 0 #
         # get initial design #
+        # initialize
         retrofit_mode = RETROFIT_MODE['none']
-        sinario_mode  = DERIVE_SINARIO_MODE['binomial']
-        bf_mode       = BF_MODE['rough']
-        agent         = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, bf_mode)
-        initial_design_dir = "%s/initial_design" % (output_dir_path)
+        # fix seed #
+        common_seed_num                 = 19901129        
+        ## market: maintain, weather: calm
+        agent         = Agent(base_sinario,
+                              world_scale,
+                              flat_rate,
+                              retrofit_mode,
+                              DERIVE_SINARIO_MODE['maintain'],
+                              BF_MODE['calm'])
+        initial_design_dir = "%s/initial_design_mode0" % (output_dir_path)
+        set_trace()
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
+
         initializeDirHierarchy(initial_design_dir)
-        averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir, result_dir_path)
-        # get initial design #
-        # for design 0 #
+        averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir)        
+        ## market: binomial, weather: calm
+        agent         = Agent(base_sinario,
+                              world_scale,
+                              flat_rate,
+                              retrofit_mode,
+                              DERIVE_SINARIO_MODE['binomial'],
+                              BF_MODE['calm'])
+        initial_design_dir = "%s/initial_design_mode1" % (output_dir_path)
+        initializeDirHierarchy(initial_design_dir)
+        averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir)                
+        ## market: binomial, weather: rough 
+        agent         = Agent(base_sinario,
+                              world_scale,
+                              flat_rate,
+                              retrofit_mode,
+                              DERIVE_SINARIO_MODE['binomial'],
+                              BF_MODE['rough'])
+        initial_design_dir = "%s/initial_design_mode2" % (output_dir_path)
+        initializeDirHierarchy(initial_design_dir)
+        averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir)                
         if initial_design:
             print_with_notice("Program (search initial design) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
     else:

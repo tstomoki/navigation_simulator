@@ -122,7 +122,16 @@ class FlatRate:
         while end_date > current_date:
             current_date    += datetime.timedelta(days=1)
             current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
-            current_flatrate = self.calc_flatrate(current_flatrate)
+
+            # change by mode
+            if sinario_mode == DERIVE_SINARIO_MODE['high']:
+                current_flatrate = None
+            elif sinario_mode == DERIVE_SINARIO_MODE['low']:
+                current_flatrate = None
+            elif sinario_mode == DERIVE_SINARIO_MODE['maintain']:
+                current_flatrate = current_flatrate
+            else:
+                current_flatrate = self.calc_flatrate(current_flatrate)
             self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_flatrate)], dtype=dt))
             
         return
