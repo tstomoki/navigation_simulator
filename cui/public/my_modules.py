@@ -713,26 +713,27 @@ def aggregate_combinations(raw_combinations, output_dir_path):
                        'formats': (np.int, np.int, np.int , np.float, np.float)})
     ret_combinations = np.array([], dtype=dtype)
 
-    hull_id       = raw_combinations['hull_id'][0]
+    hull_ids      = np.unique(raw_combinations['hull_id'])
     engine_ids    = np.unique(raw_combinations['engine_id'])
     propeller_ids = np.unique(raw_combinations['propeller_id'])
 
-    for engine_id in engine_ids:
-        for propeller_id in propeller_ids:
-            target_induces  = np.where( (raw_combinations['hull_id']==hull_id) &
-                                       (raw_combinations['engine_id']==engine_id) &
-                                       (raw_combinations['propeller_id']==propeller_id) )
-            target_results  = raw_combinations[target_induces]
-            if len(target_results) == 0:
-                continue
-            averaged_NPV    = np.average(target_results['NPV'])
-            std             = np.std(target_results['NPV'])
-            add_combination = np.array([(hull_id,
-                                         engine_id,
-                                         propeller_id,
-                                         averaged_NPV,
-                                         std)],
-                                       dtype=dtype)
+    for hull_id in hull_ids:
+        for engine_id in engine_ids:
+            for propeller_id in propeller_ids:
+                target_induces  = np.where( (raw_combinations['hull_id']==hull_id) &
+                                            (raw_combinations['engine_id']==engine_id) &
+                                            (raw_combinations['propeller_id']==propeller_id) )
+                target_results  = raw_combinations[target_induces]
+                if len(target_results) == 0:
+                    continue
+                averaged_NPV    = np.average(target_results['NPV'])
+                std             = np.std(target_results['NPV'])
+                add_combination = np.array([(hull_id,
+                                             engine_id,
+                                             propeller_id,
+                                             averaged_NPV,
+                                             std)],
+                                           dtype=dtype)
             ret_combinations = append_for_np_array(ret_combinations, add_combination)
             output_NPV_log_to_json(generate_combination_str_with_id(hull_id, engine_id, propeller_id),
                                    averaged_NPV,

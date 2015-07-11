@@ -86,62 +86,6 @@ class Agent(object):
         return
            
     ### full search with hull, engine and propeller
-    def get_initial_design(self, output_dir_path):
-        # load components list
-        hull_list           = load_hull_list()
-        engine_list         = load_engine_list()
-        propeller_list      = load_propeller_list()
-
-        ## hull
-        ### list has only 1 hull
-        ret_hull = Hull(hull_list, 1)
-
-        ## engine and propeller
-        ### full search with sinario and world_scale
-        self.sinario.generate_sinario(self.sinario_mode)
-        ### default flat_rate is 50 [%]
-        self.world_scale.set_flat_rate(50)
-
-        dtype  = np.dtype({'names': ('NPV', 'hull_id', 'engine_id', 'propeller_id'),'formats': (np.float, np.int , np.int, np.int)})
-        design_array    = np.array([], dtype=dtype)
-        simmulate_count = 0
-        column_names    = ['simmulate_count',
-                           'ret_hull',
-                           'engine',
-                           'propeller',
-                           'NPV',
-                           'processing_time']
-
-        start_time = time.clock()
-        for engine_info in engine_list:
-            engine = Engine(engine_list, engine_info['id'])
-            for propeller_info in propeller_list:
-                propeller = Propeller(propeller_list, propeller_info['id'])
-                print_with_notice("conducting the %10d th combination" % (simmulate_count + 1))
-                # conduct simmulation
-                NPV = self.simmulate(ret_hull, engine, propeller)
-                # update design #
-                add_design   = np.array([(NPV,
-                                        ret_hull.base_data['id'],
-                                        engine.base_data['id'],
-                                        propeller.base_data['id'])],
-                                        dtype=dtype)
-                design_array = append_for_np_array(design_array, add_design)
-                # update design #
-                # write simmulation result
-                output_file_path = "%s/%s" % (output_dir_path, 'initial_design.csv')
-                lap_time         = convert_second(time.clock() - start_time)
-                write_csv(column_names, [simmulate_count, ret_hull.base_data['id'], engine.base_data['id'], propeller.base_data['id'], NPV, lap_time], output_file_path)
-                simmulate_count += 1
-                    
-        # get design whose NPV is the maximum
-        NPV, hull_id, engine_id, propeller_id = design_array[np.argmax(design_array, axis=0)[0]]
-        hull      = Hull(hull_list, 1)
-        engine    = Engine(engine_list, engine_id) 
-        propeller = Propeller(propeller_list, propeller_id)
-        return NPV, hull, engine, propeller
-
-    ### full search with hull, engine and propeller
     # multi processing method #
     def get_initial_design_m(self, output_dir_path, initial_design_result_path=None):
         # load components list
