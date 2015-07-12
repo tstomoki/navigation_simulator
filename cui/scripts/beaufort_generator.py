@@ -16,33 +16,74 @@ count, bins, ignored = matplotlib.pyplot.hist(s, 8, normed=True)
 matplotlib.pyplot.show()
 sys.exit()
 '''
-alpha_a  = range(1,10)
-output_dir_path = "../results/beauforts"
-initializeDirHierarchy(output_dir_path)
-result = {}
-for alpha in alpha_a:
-    beta = 10 - alpha
-    x                    = [ 0.01*i for i in range(100)]
-    beta_func            = [scipy.stats.beta.pdf(xi, alpha, beta) / 2.0 for xi in x]
-    separated_beta       = separate_list(beta_func,7)
-    bfs    = [[index, sum(_d) * 0.01] for index, _d in enumerate(separated_beta)]
-    bfs    = np.array(bfs)
-    x_data = bfs.transpose()[0]
-    y_data = bfs.transpose()[1]
-    title  = "incidence rate of Beaufort".title()
-    output_file_path = "%s/alpha_%d_beta_%d.png" % (output_dir_path, alpha, beta)
+
+def run():
+    args = {'calm': 4, 'rough': 7}
+    designated_kinds(args)
+    sys.exit()
+    all_kinds()
+
+def designated_kinds(args):
+    output_dir_path = "../results/beauforts"
+    initializeDirHierarchy(output_dir_path)
+    output_file_path = "%s/alpha_%d_%d.png" % (output_dir_path, args['calm'], args['rough'])
+    result = {}
+    color = 'r'
+    for label, alpha in args.items():
+        beta           = 10 - alpha
+        x              = [ 0.01*i for i in range(100)]
+        beta_func      = [scipy.stats.beta.pdf(xi, alpha, beta) / 2.0 for xi in x]
+        separated_beta = separate_list(beta_func,7)
+        bfs            = [[index, sum(_d) * 0.01] for index, _d in enumerate(separated_beta)]
+        bfs            = np.array(bfs)
+        x_data         = bfs.transpose()[0]
+        y_data         = bfs.transpose()[1]
+        matplotlib.pyplot.bar(x_data, y_data, label=label, color=color, alpha=0.4)
+        color = 'b'
+    title  = "incidence rate of Beaufort at designated points".title()
     xticks = ["BF%d" % (_x) for _x in x_data ]
     x_label   = "beaufort".upper()
     y_label   = "probability".upper()
     matplotlib.pyplot.xlabel(x_label, fontweight="bold")
     matplotlib.pyplot.ylabel(y_label, fontweight="bold")
     matplotlib.pyplot.xticks(x_data+0.5, xticks)
-    matplotlib.pyplot.bar(x_data, y_data)
-    matplotlib.pyplot.ylim(0, 0.40)
+    matplotlib.pyplot.ylim(0, 0.20)
+    plt.legend(shadow=True)
+    plt.legend(loc='upper right')    
     matplotlib.pyplot.savefig(output_file_path)
-    matplotlib.pyplot.clf()
-    result_key = "a_%d_b_%d" % (alpha, beta)
-    result[result_key] = {int(_d[0]): _d[1]for _d in bfs}
+    matplotlib.pyplot.clf()    
+    
+def all_kinds():
+    alpha_a  = range(1,10)
+    output_dir_path = "../results/beauforts"
+    initializeDirHierarchy(output_dir_path)
+    result = {}
+    for alpha in alpha_a:
+        beta = 10 - alpha
+        x                    = [ 0.01*i for i in range(100)]
+        beta_func            = [scipy.stats.beta.pdf(xi, alpha, beta) / 2.0 for xi in x]
+        separated_beta       = separate_list(beta_func,7)
+        bfs    = [[index, sum(_d) * 0.01] for index, _d in enumerate(separated_beta)]
+        bfs    = np.array(bfs)
+        x_data = bfs.transpose()[0]
+        y_data = bfs.transpose()[1]
+        title  = "incidence rate of Beaufort".title()
+        output_file_path = "%s/alpha_%d_beta_%d.png" % (output_dir_path, alpha, beta)
+        xticks = ["BF%d" % (_x) for _x in x_data ]
+        x_label   = "beaufort".upper()
+        y_label   = "probability".upper()
+        matplotlib.pyplot.xlabel(x_label, fontweight="bold")
+        matplotlib.pyplot.ylabel(y_label, fontweight="bold")
+        matplotlib.pyplot.xticks(x_data+0.5, xticks)
+        matplotlib.pyplot.bar(x_data, y_data)
+        matplotlib.pyplot.ylim(0, 0.40)
+        matplotlib.pyplot.savefig(output_file_path)
+        matplotlib.pyplot.clf()
+        result_key = "a_%d_b_%d" % (alpha, beta)
+        result[result_key] = {int(_d[0]): _d[1]for _d in bfs}
 
-output_file_path = "%s/result.json" % (output_dir_path)
-write_file_as_json(result, output_file_path)
+    output_file_path = "%s/result.json" % (output_dir_path)
+    write_file_as_json(result, output_file_path)
+   
+if __name__ == '__main__':
+    run()
