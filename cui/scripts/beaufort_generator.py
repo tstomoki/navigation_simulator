@@ -18,7 +18,7 @@ sys.exit()
 '''
 
 def run():
-    args = {'calm': 4, 'rough': 7}
+    args = {'Calm': 4, 'Rough': 7}
     designated_kinds(args)
     sys.exit()
     all_kinds()
@@ -26,7 +26,14 @@ def run():
 def designated_kinds(args):
     output_dir_path = "../results/beauforts"
     initializeDirHierarchy(output_dir_path)
-    output_file_path = "%s/alpha_%d_%d.png" % (output_dir_path, args['calm'], args['rough'])
+    output_file_path = "%s/alpha_%d_%d.png" % (output_dir_path, args['Calm'], args['Rough'])
+    title  = "incidence rate of Beaufort at designated points".title()
+    x_label   = "beaufort scale".upper()
+    y_label   = "probability".upper()
+    graphInitializer(title,
+                     x_label,
+                     y_label)
+    
     result = {}
     color = 'r'
     for label, alpha in args.items():
@@ -40,12 +47,7 @@ def designated_kinds(args):
         y_data         = bfs.transpose()[1]
         matplotlib.pyplot.bar(x_data, y_data, label=label, color=color, alpha=0.4)
         color = 'b'
-    title  = "incidence rate of Beaufort at designated points".title()
-    xticks = ["BF%d" % (_x) for _x in x_data ]
-    x_label   = "beaufort".upper()
-    y_label   = "probability".upper()
-    matplotlib.pyplot.xlabel(x_label, fontweight="bold")
-    matplotlib.pyplot.ylabel(y_label, fontweight="bold")
+    xticks = ["BF%d" % (_x) for _x in x_data ]    
     matplotlib.pyplot.xticks(x_data+0.5, xticks)
     matplotlib.pyplot.ylim(0, 0.20)
     plt.legend(shadow=True)

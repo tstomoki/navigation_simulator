@@ -182,7 +182,6 @@ class WorldScale:
         self.d      = np.exp(self.sigma * (-1) * np.sqrt(delta_t))
         self.p      = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
         self.alpha, self.beta = alpha, beta
-
         return
 
     # multiple world_scale drawing part with binomial lattice
