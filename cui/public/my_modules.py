@@ -1161,3 +1161,63 @@ def consider_bow_for_v(hull, velocity, load_condition):
     index = 3.0 if LOAD_CONDITION[load_condition] == 'ballast' else 16
     velocity *= ( (100 - math.pow(index, 1.0/3)) / 100 )    
     return velocity
+
+def compare_hull_design(npv_result, initial_engine_id, initial_propeller_id):
+    if (initial_engine_id is None) or (initial_propeller_id is None):
+        print "Error: please input engine and propeller ids"
+        return
+
+    x_label    = 'NPV [$]'
+    y_label    = 'frequency'.upper()
+    title      = "NPV Distribution of design"
+    data_frame = {}
+    color_dict = {'A': 'r', 'B': 'b'}
+    for c_key, values in npv_result.items():
+        hull_id, engine_id, propeller_id = get_component_ids_from_design_key(c_key)
+        if ( int(engine_id) == initial_engine_id) and (int(propeller_id) == initial_propeller_id) :
+            hull_name = 'A' if int(hull_id) == 1 else 'B'
+            data_frame[hull_name] = values
+
+    df = pd.DataFrame(data_frame, columns=data_frame.keys())
+
+    graphInitializer(title, x_label, y_label)    
+    fig, ax = plt.subplots()
+
+    a_heights, a_bins = np.histogram(df['A'])
+    b_heights, b_bins = np.histogram(df['B'], bins=a_bins)
+    width = (a_bins[1] - a_bins[0])/3
+
+    ax.bar(a_bins[:-1], a_heights, width=width, facecolor='cornflowerblue')
+    ax.bar(b_bins[:-1]+width, b_heights, width=width, facecolor='seagreen')
+
+    # hist
+    filepath = "./hist_case.png"
+    #panda_frame.plot(kind='hist', alpha=.5, bins=10)
+    plt.ylim([0, 12])
+    plt.legend(shadow=True)
+    plt.legend(loc='upper right')
+    plt.savefig(filepath)
+    plt.clf()
+    plt.close()
+
+    return
+
+def output_ratio_dict_sub():
+    sub_ratio_dict = { 1: {'A': 518652960.15,'B': 519246707.05},
+                       2: {'A': 605747467.48,'B': 604835404.62},
+                       3: {'A': 604789731.48,'B': 601112254.09}}
+    draw_data   = []
+    hull_various = ['A', 'B']    
+    display_range = range(1,4)
+    for case_key in display_range:
+        draw_element = []
+        for hull_key in hull_various:
+            draw_element.append(sub_ratio_dict[case_key][hull_key])
+        draw_data.append(draw_element)
+        df2 = pd.DataFrame(draw_data, columns=hull_various)
+    df2.plot(kind='bar', alpha=0.8, color=['r', 'b'])
+    plt.ylim([0, 700000000])
+    plt.ylabel('Averaged NPV [$]', fontweight="bold")
+    plt.xticks(np.array(display_range)-0.35, ["Case %d" % (_d) for _d in display_range], rotation=0, fontsize=20)
+    plt.savefig('../result.png')
+    return

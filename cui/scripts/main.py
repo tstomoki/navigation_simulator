@@ -70,10 +70,9 @@ def run(options):
 
     if result_visualize_mode:
         # for narrowed result
-        dir_path = '../results/agent_log/201507100335/initial_design'
-        files = os.listdir(dir_path)
+        files = os.listdir(result_dir_path)
         target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
-        target_files = [ "%s/%s" % (dir_path, _f) for _f in target_files]
+        target_files = [ "%s/%s" % (result_dir_path, _f) for _f in target_files]
 
         dt   = np.dtype({'names': ('scenario_num','hull_id','engine_id','propeller_id','NPV'),
                          'formats': (np.int64, np.int64, np.int64, np.int64, np.float)})
@@ -89,7 +88,8 @@ def run(options):
                 if not npv_result.has_key(combination_key):
                     npv_result[combination_key] = []
                 npv_result[combination_key].append(npv)
-                
+
+        compare_hull_design(npv_result, initial_engine_id, initial_propeller_id)
         output_result = {}
         for c_key, npv_array in npv_result.items():
             if not output_result.has_key(c_key):
