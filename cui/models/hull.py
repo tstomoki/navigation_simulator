@@ -58,3 +58,27 @@ class Hull:
             variable_name = "self.base_data['ehp%d_%s']" % (index+1, load_condition)
             ret_ehp      += eval(variable_name) * math.pow(v_ms, index+1)
         return ret_ehp
+
+    def calc_froude(self, v_knot):
+        v_ms = knot2ms(v_knot)
+        return v_ms / math.sqrt(G_ACCEL * self.base_data['Lpp'])
+
+    def calc_ct(self, ehp, v_knot, load_condition):
+        if v_knot == 0:
+            return 0.0
+        v_ms = knot2ms(v_knot)        
+        draft_key = "draft_%s" % (load_condition)
+        return ( 2 * ehp ) / (v_ms * self.base_data['Lpp'] * self.base_data[draft_key] * FUILD_DENSITY_SEA)
+
+    def calc_ehp_from_ct(self, ct, v_knot, load_condition):
+        if v_knot == 0:
+            return 0.0
+        v_ms = knot2ms(v_knot)
+        draft_key = "draft_%s" % (load_condition)        
+        return (v_ms * self.base_data['Lpp'] * self.base_data[draft_key] * FUILD_DENSITY_SEA * ct) / 2.0
+    
+    def consider_bow_for_wave(self, delta_v, load_condition):
+        if self.base_data['with_bow'] == 'FALSE':
+            return delta_v
+        index = 0.40 if (load_condition == 'ballast') else 0.50        
+        return delta_v * index

@@ -1,5 +1,6 @@
 # dir path from models
 RESULT_DIR_PATH         = '../results'
+GRAPH_DIR_PATH          = "%s/graphs" % (RESULT_DIR_PATH)
 DATA_PATH               = '../data/'
 COMPONENT_PATH          = '../data/components_lists'
 AGNET_LOG_DIR_PATH      = "%s/agent_log"    % (RESULT_DIR_PATH)
@@ -165,7 +166,7 @@ AGENT_VARIABLES = ['dockin_flag',
                    'oilprice_full',
                    'elapsed_days',
                    'sinario_mode',
-                   'oilprice_ballast',
+                   'oilpr<<ice_ballast',
                    'NPV',
                    'velocity_array']
 
@@ -189,3 +190,8 @@ V_DETERIO_FUNC_COEFFS = {'cons': -0.0621757689405,
                          'lin': -0.13738023067,
                          "squ": -0.167749562986}
 V_DETERIO_M = 2
+
+# Gravitational Acceleration
+G_ACCEL = 9.80665
+
+FUILD_DENSITY_SEA = 1.025
