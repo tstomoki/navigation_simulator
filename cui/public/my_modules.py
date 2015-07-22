@@ -1177,8 +1177,26 @@ def compare_hull_design(npv_result, initial_engine_id, initial_propeller_id):
         if ( int(engine_id) == initial_engine_id) and (int(propeller_id) == initial_propeller_id) :
             hull_name = 'A' if int(hull_id) == 1 else 'B'
             data_frame[hull_name] = values
+            
+    # consider delta
+    '''
+    draw_data = []
+    for index, val in enumerate(data_frame['A']):
+        delta = val - data_frame['B'][index]
+        draw_data.append(delta)
+    # draw delta histgram
+    delta_frame = pd.DataFrame(draw_data)
+    delta_frame.hist()
+    plt.ylim([0, 15])
+    plt.xlim([-30000000, 30000000])
+    # draw origin line
+    plt.axvline(linewidth=1.7, color="k")
+    plt.savefig('../delta.png')
+    plt.clf()
+    '''
 
     df = pd.DataFrame(data_frame, columns=data_frame.keys())
+    
 
     graphInitializer(title, x_label, y_label)    
     fig, ax = plt.subplots()
@@ -1206,6 +1224,7 @@ def output_ratio_dict_sub():
     sub_ratio_dict = { 1: {'A': 518652960.15,'B': 519246707.05},
                        2: {'A': 605747467.48,'B': 604835404.62},
                        3: {'A': 604789731.48,'B': 601112254.09}}
+    data_labels = ['1', '2-1', '2-2']
     draw_data   = []
     hull_various = ['A', 'B']    
     display_range = range(1,4)
@@ -1218,6 +1237,8 @@ def output_ratio_dict_sub():
     df2.plot(kind='bar', alpha=0.8, color=['r', 'b'])
     plt.ylim([0, 700000000])
     plt.ylabel('Averaged NPV [$]', fontweight="bold")
-    plt.xticks(np.array(display_range)-0.35, ["Case %d" % (_d) for _d in display_range], rotation=0, fontsize=20)
+    #plt.xticks(np.array(display_range)-0.35, ["Case %d" % (_d) for _d in display_range], rotation=0, fontsize=20)
+    plt.xticks(np.array(display_range)-0.35, ["Case %s" % (_d) for _d in data_labels], rotation=0, fontsize=20)    
+    
     plt.savefig('../result.png')
     return
