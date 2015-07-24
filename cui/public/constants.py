@@ -21,8 +21,9 @@ current_user = getpass.getuser()
 PROC_NUM = 15 if current_user == 'tsaito' else 2
 # for multiprocessing
 
-OPERATION_DURATION_YEARS = 15
 VESSEL_LIFE_TIME         = 15
+OPERATION_DURATION_YEARS = VESSEL_LIFE_TIME
+
 DEFAULT_PREDICT_YEARS    = OPERATION_DURATION_YEARS
 
 # navigation infomation [mile]
@@ -37,15 +38,19 @@ DERIVE_SINARIO_MODE   = {'high': 0,
 
 RETROFIT_MODE = {'none': 0,
                  'propeller': 1,
-                 'propeller_and_engine': 2}
+                 'propeller_and_engine': 2,
+                 'whole': 3}
 
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}
 
 # Beaufort mode
 BF_MODE = {'rough': 0,
-           'calm': 1,
-           'none': 2}
+           'calm': 1}
+
+# Retrofit mode
+RETROFIT_SCENARIO_MODE = {'significant': 0,
+                          'binomiial': 1}
 
 # default simulate count for searching initial design
 DEFAULT_SIMULATE_COUNT                        = 30
@@ -57,8 +62,7 @@ NARROWED_DOWN_DURATION_SIMULATE_COUNT         = 10
 MINIMUM_NARROWED_DOWN_DESIGN_NUM              = 100
 
 # simmulation duration for retrofits
-SIMMULATION_DURATION_YEARS_FOR_RETROFITS = 5
-SIMMULATION_TIMES_FOR_RETROFITS          = 10
+SIMMULATION_TIMES_FOR_RETROFITS          = 15
 SIMMULATION_RANK_THRESHOLD_FOR_RETROFITS = 10
 
 # days taken to load 
@@ -66,7 +70,7 @@ LOAD_DAYS = 2
 
 # dock-in
 ## dock-in period [years] 
-DOCK_IN_PERIOD   = 2
+DOCK_IN_PERIOD   = 0.1
 ## dock-in duration [month]
 DOCK_IN_DURATION = 1
 
@@ -195,3 +199,17 @@ V_DETERIO_M = 2
 G_ACCEL = 9.80665
 
 FUILD_DENSITY_SEA = 1.025
+
+# MARKET FACTORS
+MARKET_FACTOR_KEYS = ['oilprice', 'world_scale', 'flat_rate']
+
+# SIGNIFICANT SENARIOS
+SIGNIFICANT_SENARIO_MODES = {'rise': 0,
+                             'maintain': 1,
+                             'decline': 2}
+
+# SIGNIFICANT SCENARIO
+## RISE RATIO
+RISE_RATIO = 1.5
+## DECLINE RATIO
+DECLINE_RATIO = 0.5

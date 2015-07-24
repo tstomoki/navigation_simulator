@@ -1242,3 +1242,25 @@ def output_ratio_dict_sub():
     
     plt.savefig('../result.png')
     return
+
+def generate_operation_date(start_month, operation_end_date=None):
+    operation_date_array = np.array([])
+    input_start_month = str_to_datetime(start_month) if isinstance(start_month, str) else start_month
+    operation_start_date = first_day_of_month(input_start_month)
+    if operation_end_date is None:
+        operation_end_date   = add_year(operation_start_date, OPERATION_DURATION_YEARS)
+
+    current_date = operation_start_date
+    while True:
+        operation_date_array = np.append(operation_date_array, current_date)
+        current_date += datetime.timedelta(days=1)
+        if current_date >= operation_end_date:
+            break
+    return operation_date_array
+
+def calc_simple_oilprice(length, index, constant, ratio):
+    # oilprice = ( c(t-1) / n )*x + c
+    if length == 0:
+        return 0
+    oilprice = ( constant * (ratio-1) / length ) * index + constant
+    return oilprice

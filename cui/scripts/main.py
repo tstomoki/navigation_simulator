@@ -200,6 +200,7 @@ def run(options):
         common_seed_num                 = 19901129
         sinario_mode                    = DERIVE_SINARIO_MODE['binomial']
         vessel_life_time_for_simulation = VESSEL_LIFE_TIME
+        retrofit_senario_mode           = RETROFIT_SCENARIO_MODE['significant']
         ## no retrofit ##
         if no_retrofit_ignore:
             print "%30s" % ("ignoring the no retrofit simulation")
@@ -209,12 +210,45 @@ def run(options):
             each_output_path           = "%s/no_retrofit" % (output_dir_path)
             initializeDirHierarchy(each_output_path)
             retrofit_mode              = RETROFIT_MODE['none']
-            agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-            agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))        
-            agent.output_dir_path      = each_output_path
+            for weather_mode, weather_mode_val in BF_MODE.items():
+                output_path = "%s/%s" % (each_output_path, weather_mode)
+                initializeDirHierarchy(output_path)
+                agent         = Agent(base_sinario,
+                                      world_scale,
+                                      flat_rate,
+                                      retrofit_mode,
+                                      DERIVE_SINARIO_MODE['binomial'],
+                                      weather_mode_val,
+                                      initial_hull, initial_engine, initial_propeller)
+                agent.operation_date_array  = generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
+                agent.output_dir_path       = each_output_path
+                agent.retrofit_senario_mode = retrofit_senario_mode
+                # simmulate with multi flag and log
+                agent.simmulate(None, None, None, True, True)
+
+        ## whole retrofit ##
+        np.random.seed(common_seed_num)
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
+        each_output_path           = "%s/whole_retrofits" % (output_dir_path)
+        initializeDirHierarchy(each_output_path)
+        retrofit_mode              = RETROFIT_MODE['whole']
+        for weather_mode, weather_mode_val in BF_MODE.items():
+            output_path = "%s/%s" % (each_output_path, weather_mode)
+            initializeDirHierarchy(output_path)
+            agent         = Agent(base_sinario,
+                                  world_scale,
+                                  flat_rate,
+                                  retrofit_mode,
+                                  DERIVE_SINARIO_MODE['binomial'],
+                                  weather_mode_val,
+                                  initial_hull, initial_engine, initial_propeller)
+            agent.operation_date_array  = generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
+            agent.output_dir_path       = each_output_path
+            agent.retrofit_senario_mode = retrofit_senario_mode
             # simmulate with multi flag and log
             agent.simmulate(None, None, None, True, True)
         
+        '''
         ## propeller retrofit ##
         if propeller_retrofit_ignore:
             print "%30s" % ("ignoring the propeller retrofit simulation")
@@ -225,7 +259,7 @@ def run(options):
             initializeDirHierarchy(each_output_path)
             retrofit_mode              = RETROFIT_MODE['propeller']
             agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-            agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))                
+            agent.operation_date_array = generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))                
             agent.output_dir_path      = each_output_path
             # simmulate with multi flag and log
             agent.simmulate(None, None, None, True, True)
@@ -240,10 +274,11 @@ def run(options):
             initializeDirHierarchy(each_output_path)
             retrofit_mode              = RETROFIT_MODE['propeller_and_engine']
             agent                      = Agent(base_sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, initial_hull, initial_engine, initial_propeller)
-            agent.operation_date_array = agent.generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
+            agent.operation_date_array = generate_operation_date(base_sinario.predicted_data['date'][0], str_to_date(base_sinario.predicted_data['date'][-1]))
             agent.output_dir_path      = each_output_path
             # simmulate with multi flag and log
             agent.simmulate(None, None, None, True, True)
+        '''
         print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         
     return 

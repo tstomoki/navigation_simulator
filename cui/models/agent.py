@@ -143,7 +143,8 @@ class Agent(object):
             propeller = self.propeller
 
         # initialize retrofit_count
-        self.retrofit_count = 0 if self.retrofit_mode == RETROFIT_MODE['none'] else 1
+        self.retrofit_count_limit = 0 if self.retrofit_mode == RETROFIT_MODE['none'] else 1
+        self.retrofit_count       = 0
 
         # define velocity and rps for given [hull, engine, propeller]
         ## load combinations if combination file exists 
@@ -163,7 +164,7 @@ class Agent(object):
 
         # static variables
         if self.operation_date_array is None:
-            self.operation_date_array  = self.generate_operation_date(self.sinario.predicted_data['date'][0])
+            self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0])
         self.origin_date           = self.operation_date_array[0]
         self.retire_date           = self.operation_date_array[-1]
         self.round_trip_distance   = NAVIGATION_DISTANCE * 2.0
@@ -185,6 +186,12 @@ class Agent(object):
         self.previous_oilprice     = self.sinario.history_data[-2]['price']
         self.oilprice_ballast      = self.sinario.history_data[-1]['price']
         self.oilprice_full         = self.sinario.history_data[-1]['price']
+
+        # market factors
+        self.current_oilprice      = self.oilprice_ballast
+        self.current_flat_rate     = self.flat_rate.history_data[-1]['fr']
+        self.current_world_scale   = self.world_scale.history_data[-1]['ws']
+        
         self.current_flat_rate     = self.flat_rate.history_data[-1]['fr']
         self.current_fare          = self.calc_fare()
         self.cash_flow             = 0
@@ -242,10 +249,8 @@ class Agent(object):
             raw_rpm = rpm            
             ## consider deterioration
             rpm, v_knot = self.modify_by_deterioration(rpm, v_knot)
-
             ## consider beaufort for velocity
             v_knot = self.modify_by_external(v_knot)
-                  
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
             
@@ -325,7 +330,6 @@ class Agent(object):
 
                 # consider dock-to-dock deterioration
                 self.update_d2d()
-                
                 # initialize the temporal variables
                 CF_day = rpm = v_knot = None
                 self.ballast_trip_days = 0
@@ -532,20 +536,6 @@ class Agent(object):
         CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(ret_combinations, axis=0)[0]]
         return CF_day, optimal_rpm, optimal_velocity    
 
-    def generate_operation_date(self, start_month, operation_end_date=None):
-        operation_date_array = np.array([])
-        operation_start_date = first_day_of_month(str_to_datetime(start_month))
-        if operation_end_date is None:
-            operation_end_date   = add_year(operation_start_date, OPERATION_DURATION_YEARS)
-
-        current_date = operation_start_date
-        while True:
-            operation_date_array = np.append(operation_date_array, current_date)
-            current_date += datetime.timedelta(days=1)
-            if current_date >= operation_end_date:
-                break
-        return operation_date_array
-    
     # return ND [days]
     # ND is whole number of days in navigation
     def calc_ND(self, velocity_first, velocity_second, hull):
@@ -745,15 +735,27 @@ class Agent(object):
         pass
 
     def update_oilprice_and_fare(self):
+        # get current_date
+        if not ( isinstance(self.current_date, datetime.date) or isinstance(self.current_date, datetime.datetime)):
+            current_date           = str_to_datetime(self.current_date)
+        else:
+            current_date = self.current_date
+        
         # update oilprice
         current_date_index        = search_near_index(self.current_date, self.sinario.predicted_data['date'])
         self.previous_oilprice    = self.get_previous_oilprice(current_date_index)
         current_index,            = np.where(self.sinario.predicted_data['date']==current_date_index)
         if self.is_ballast():
-            self.oilprice_full    = self.sinario.predicted_data[current_index[0]]['price']
-        else:
             self.oilprice_ballast = self.sinario.predicted_data[current_index[0]]['price']
+            self.current_oilprice = self.oilprice_ballast
+        else:
+            self.oilprice_full    = self.sinario.predicted_data[current_index[0]]['price']
+            self.current_oilprice = self.oilprice_full            
 
+        # update world_scale
+        world_scale_index      = search_near_index(current_date, self.world_scale.predicted_data['date'])
+        designated_world_scale = self.world_scale.predicted_data[np.where(self.world_scale.predicted_data['date']==world_scale_index)]        
+        self.current_world_scale = designated_world_scale['ws'][0]
         # update flat_rate
         if not ( isinstance(self.current_date, datetime.date) or isinstance(self.current_date, datetime.datetime)):
             current_date           = str_to_datetime(self.current_date)
@@ -905,7 +907,7 @@ class Agent(object):
                 else:
                     # conduct simulation #
                     agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
-                    agent.operation_date_array = self.generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
+                    agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
                     NPV   = agent.simmulate()
                     # conduct simulation #
                 # ignore aborted simmulation
@@ -1086,13 +1088,12 @@ class Agent(object):
         hull_list           = load_hull_list()
         engine_list         = load_engine_list()
         propeller_list      = load_propeller_list()        
-        
         # return if the retrofit is not allowed
-        if (self.retrofit_mode == RETROFIT_MODE['none']) or (self.retrofit_count == 0):
+        if (self.retrofit_mode == RETROFIT_MODE['none']) or (self.retrofit_count_limit == 0):
             return None
 
         # retrive days from current_day to SIMMULATION_DURATION_YEARS_FOR_RETROFITS [years]
-        simmulation_end_date = add_year(self.current_date, SIMMULATION_DURATION_YEARS_FOR_RETROFITS)
+        simmulation_end_date = add_year(self.current_date, VESSEL_LIFE_TIME)
         simmulation_days     = self.operation_date_array[np.where( (self.operation_date_array > self.current_date) &
                                                                    (self.operation_date_array < simmulation_end_date) )]
 
@@ -1105,29 +1106,41 @@ class Agent(object):
         devided_target_combinations = np.array_split(target_combinations_array, PROC_NUM)
         current_combinations        = (self.hull, self.engine, self.propeller)
         retrofit_design_log         = {}
-        for scenario_num in range(SIMMULATION_TIMES_FOR_RETROFITS):
-            # fix the random seed #
-            np.random.seed(scenario_num * SIMMULATION_TIMES_FOR_RETROFITS)
-            ## generate scenairo, world scale and flat rate
-            scenario    = Sinario(self.sinario.history_data)
-            world_scale = WorldScale(self.world_scale.history_data)
-            flat_rate   = FlatRate(self.flat_rate.history_data)
-            generate_market_scenarios(scenario, world_scale, flat_rate, self.sinario_mode, SIMMULATION_DURATION_YEARS_FOR_RETROFITS)
+        if self.retrofit_senario_mode == RETROFIT_SCENARIO_MODE['significant']:
+            for significant_senario_mode in SIGNIFICANT_SENARIO_MODES:
+                scenario, world_scale, flat_rate = self.generate_significant_senarios(simmulation_end_date, significant_senario_mode)
+                # initialize
+                pool = mp.Pool(PROC_NUM)
+                callback = [pool.apply_async(self.multi_simmulations, args=(index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days, scenario, world_scale, flat_rate)) for index in xrange(PROC_NUM)]
+                callback_combinations = [p.get() for p in callback]
+                ret_combinations      = flatten_3d_to_2d(callback_combinations)
+                pool.close()
+                pool.join()
+                # multi processing #                
+        else:
+            for scenario_num in range(SIMMULATION_TIMES_FOR_RETROFITS):
+                # fix the random seed #                
+                np.random.seed(scenario_num * SIMMULATION_TIMES_FOR_RETROFITS)                
+                ## generate scenairo, world scale and flat rate
+                scenario    = Sinario(self.sinario.history_data)
+                world_scale = WorldScale(self.world_scale.history_data)
+                flat_rate   = FlatRate(self.flat_rate.history_data)
+                generate_market_scenarios(scenario, world_scale, flat_rate, self.sinario_mode, SIMMULATION_DURATION_YEARS_FOR_RETROFITS)
 
-            start_time = time.clock()
-            # initialize
-            pool = mp.Pool(PROC_NUM)
+                start_time = time.clock()
+                # initialize
+                pool = mp.Pool(PROC_NUM)
 
-            callback = [pool.apply_async(self.multi_simmulations, args=(index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days, scenario, world_scale, flat_rate)) for index in xrange(PROC_NUM)]
-            callback_combinations = [p.get() for p in callback]
-            ret_combinations      = flatten_3d_to_2d(callback_combinations)
-            pool.close()
-            pool.join()
-            # multi processing #
+                callback = [pool.apply_async(self.multi_simmulations, args=(index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days, scenario, world_scale, flat_rate)) for index in xrange(PROC_NUM)]
+                callback_combinations = [p.get() for p in callback]
+                ret_combinations      = flatten_3d_to_2d(callback_combinations)
+                pool.close()
+                pool.join()
+                # multi processing #
 
-            retrofit_design_log = update_retrofit_design_log(retrofit_design_log, ret_combinations, scenario_num)
-            lap_time = convert_second(time.clock() - start_time)
-            print_with_notice("took %s for a scenario" % (lap_time))
+                retrofit_design_log = update_retrofit_design_log(retrofit_design_log, ret_combinations, scenario_num)
+                lap_time = convert_second(time.clock() - start_time)
+        print_with_notice("took %s for a scenario" % (lap_time))
             
         potential_retrofit_designs = self.get_potential_retrofit_designs(retrofit_design_log)
         retrofit_design =  potential_retrofit_designs[np.argmax(potential_retrofit_designs['NPV'], axis=0)]
@@ -1177,10 +1190,29 @@ class Agent(object):
                                                      propeller_id)],
                                                    dtype=dtype)
                     target_design_array = append_for_np_array(target_design_array, add_design)
-            
+        elif self.retrofit_mode == RETROFIT_MODE['whole']:
+            # load components list            
+            hull_list      = load_hull_list()
+            engine_list    = load_engine_list()
+            propeller_list = load_propeller_list()
+            for hull_info in hull_list:
+                hull_id = hull_info['id']
+                for engine_info in engine_list:
+                    engine_id = engine_info['id']
+                    if not engine_id in [1,3]:
+                        continue
+                    for propeller_info in propeller_list:
+                        propeller_id = propeller_info['id']
+                        if not propeller_id in [514,1028]:
+                            continue
+                        add_design          = np.array([(hull_id,
+                                                         engine_id,
+                                                         propeller_id)],
+                                                       dtype=dtype)
+                        target_design_array = append_for_np_array(target_design_array, add_design)            
         return target_design_array
 
-    def multi_simmulations(self, index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days, sinario, world_scale, flat_rate):
+    def multi_simmulations(self, index, devided_target_combinations, hull_list, engine_list, propeller_list, simmulation_days, sinario_predicted_data, world_scale_predicted_data, flat_rate_predicted_data):
         dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV'),
                            'formats': (np.int , np.int, np.int, np.float)})
         combinations = np.array([], dtype=dtype)
@@ -1194,7 +1226,13 @@ class Agent(object):
             # conduct simmulation
             # prohibit retrofits here #
             retrofit_mode                    = RETROFIT_MODE['none']
-            agent                            = Agent(sinario, world_scale, flat_rate, retrofit_mode, self.sinario_mode, hull, engine, propeller, rpm_array)
+            sinario                          = Sinario(self.sinario.history_data)
+            sinario.predicted_data           = sinario_predicted_data
+            world_scale                      = WorldScale(self.world_scale.history_data)
+            world_scale.predicted_data       = world_scale_predicted_data
+            flat_rate                        = FlatRate(self.flat_rate.history_data)
+            flat_rate.predicted_data         = flat_rate_predicted_data
+            agent                            = Agent(sinario, world_scale, flat_rate, retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller, rpm_array)
             agent.operation_date_array       = simmulation_days
             NPV                              = agent.simmulate()
             # ignore aborted simmulation
@@ -1302,16 +1340,8 @@ class Agent(object):
 
     # fare = world_scale * flat_rate (e.g. WS50)
     def calc_fare(self):
-        if not ( isinstance(self.current_date, datetime.date) or isinstance(self.current_date, datetime.datetime)):
-            current_date           = str_to_datetime(self.current_date)
-        else:
-            current_date = self.current_date
-        flat_rate_index        = search_near_index(current_date, self.flat_rate.predicted_data['date'])
-        designated_flat_rate   = self.flat_rate.predicted_data[np.where(self.flat_rate.predicted_data['date']==flat_rate_index)]
-        world_scale_index      = search_near_index(current_date, self.world_scale.predicted_data['date'])
-        designated_world_scale = self.world_scale.predicted_data[np.where(self.world_scale.predicted_data['date']==world_scale_index)]
         # return world_scale * flat_rate
-        return designated_world_scale['ws'][0] * ( designated_flat_rate['fr'][0] / 100.0)
+        return self.current_world_scale * ( self.current_flat_rate / 100.0)
 
     def retrofit_mode_to_human(self):
         return [key for key, value in RETROFIT_MODE.iteritems() if value == self.retrofit_mode][0]
@@ -1355,22 +1385,25 @@ class Agent(object):
 
         # reduce for bow
         delta_v = self.consider_bow_for_wave(delta_v)
-        
         return v_knot + delta_v
 
     # consider dock-to-dock deterioration    
     def update_d2d(self):
-        navigation_elpased_days = self.ballast_trip_days + self.return_trip_days + PORT_DWELL_DAYS
-        denominator = (DOCK_IN_PERIOD * 365)
+        navigation_elapsed_days = self.ballast_trip_days + self.return_trip_days + PORT_DWELL_DAYS
+        day_coeff = float( navigation_elapsed_days / 365 )
         # velocity
-        delta_v = (1.0 * navigation_elpased_days) / float(denominator)
-        self.d2d_det['v_knot'] += delta_v
+        # deterioration rate of velocity per year
+        d_rate_v                 = 1.0
+        delta_v                  = d_rate_v * day_coeff
+        self.d2d_det['v_knot']  += delta_v
         # rpm
-        delta_rpm = ( np.random.uniform(2.0, 4.0) * navigation_elpased_days) / float(denominator)
-        self.d2d_det['rpm'] += delta_rpm
+        d_rate_rpm               = np.random.uniform(2.0, 4.0)
+        delta_rpm                = d_rate_rpm * day_coeff
+        self.d2d_det['rpm']     += delta_rpm
         # EHP
-        delta_ehp = ( np.random.uniform(20, 60) * navigation_elpased_days) / float(denominator)
-        self.d2d_det['ehp'] += delta_ehp
+        d_rate_ehp               = np.random.uniform(20, 60)
+        delta_ehp                = d_rate_ehp * day_coeff
+        self.d2d_det['ehp']     += delta_ehp
         return
 
     def clear_d2d(self):
@@ -1406,7 +1439,8 @@ class Agent(object):
         ## rpm
         modified_rpm -= self.age_eff['rpm']
         ## v_knot
-        modified_v_knot -= self.age_eff['v_knot']        
+        modified_v_knot -= self.age_eff['v_knot']
+
         return modified_rpm, modified_v_knot
 
     def consider_bow_for_wave(self, delta_v):
@@ -1414,3 +1448,42 @@ class Agent(object):
             return delta_v
         index = 0.40 if self.is_ballast() else 0.50        
         return delta_v * index
+
+    def display_current_design(self):
+        print "Hull: %s, Engine: %s, Propeller: %s" % (self.hull.base_data['id'], self.engine.base_data['id'], self.propeller.base_data['id'])
+        return
+
+    def display_market_factors(self):
+        print "market factors on %s" % str(self.current_date)
+        for key in MARKET_FACTOR_KEYS:
+            designated_key = "self.current_%s" % (key)
+            print "%20s: %20s" % (key.upper(), eval(designated_key))
+        return
+    
+    def generate_significant_senarios(self, simulation_end_date, scenario_type):
+        scenario          = []
+        world_scale       = []
+        flat_rate         = []
+       
+        prediction_date_array = generate_operation_date(self.current_date, simulation_end_date)
+        if scenario_type == 'maintain':
+            for prediction_date in prediction_date_array:
+                for market_factor in MARKET_FACTOR_KEYS:
+                    designated_market_factor = market_factor if not market_factor == 'oilprice' else 'scenario'
+                    current_value            = eval("self.current_%s" % (market_factor))
+                    eval(designated_market_factor).append( ( datetime_to_human(prediction_date), current_value) )
+        else:
+            fluc_ratio = RISE_RATIO if scenario_type == 'rise' else DECLINE_RATIO
+            for prediction_date in prediction_date_array:
+                x             = np.where(prediction_date_array==prediction_date)[0][0]
+                initial_price = self.sinario.history_data[0]['price']
+                oilprice      = calc_simple_oilprice(len(prediction_date_array), x, initial_price, fluc_ratio)
+                scenario.append( (datetime_to_human(prediction_date), oilprice) )
+                world_scale.append( (datetime_to_human(prediction_date), self.world_scale.calc_ws_with_oilprice(oilprice)) )
+                flat_rate.append( (datetime_to_human(prediction_date), self.flat_rate.history_data[-1]['fr']) )
+        # configure format
+        scenario    = np.array( scenario, dtype=self.sinario.predicted_data.dtype)
+        world_scale = np.array( world_scale, dtype=self.world_scale.predicted_data.dtype)
+        flat_rate   = np.array( flat_rate, dtype=self.flat_rate.predicted_data.dtype)
+
+        return scenario, world_scale, flat_rate
