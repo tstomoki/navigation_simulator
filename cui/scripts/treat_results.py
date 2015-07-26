@@ -28,8 +28,39 @@ from world_scale import WorldScale
 # import models #
 
 def run(options):
+    result_dir_path = options.result_dir_path
+    aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
+    return
+
+def aggregate_results(result_dir_path):
+    whole_result = {}
+
+    for filename in os.listdir(result_dir_path):
+        mode_str  = re.compile(r'(mode.+).json').search(filename).groups()[0]
+        result_file_path = "%s/%s" % (result_dir_path, filename)
+        whole_result[mode_str] = load_json_file(result_file_path)
+
+    # display delta between Hull A and B
+    for target_mode in sorted(whole_result.keys()):
+        delta_array = {}
+        for c_key, values in whole_result[target_mode].items():
+            hull_id, engine_id, propeller_id = get_component_ids_from_design_key(c_key)
+            if hull_id == '1':
+                target_c_key = generate_combination_str_with_id(2, engine_id, propeller_id)
+                delta = values['npv'] - whole_result[target_mode][target_c_key]['npv']
+                delta_array[c_key] =delta
+        average_delta = np.average(delta_array.values())
+        print "%10s: %20.4lf" % (target_mode, average_delta)
+        
+    '''
+    # display delta between mode1 and mode2
+    delta_array = {}
+    for c_key, values in whole_result['mode1'].items():
+        target_val         = whole_result['mode2'][c_key]
+        delta_array[c_key] = values['npv'] - target_val['npv']
+    '''
     return
 
 def draw_ct_fn(wave=None, beaufort=None):
@@ -93,5 +124,7 @@ def draw_ct_fn(wave=None, beaufort=None):
 # authorize exeucation as main script
 if __name__ == '__main__':
     parser = OptionParser()
+    parser.add_option("-P", "--result-path", dest="result_dir_path",
+                      help="results dir path", default=None)    
     (options, args) = parser.parse_args()
     run(options)    
