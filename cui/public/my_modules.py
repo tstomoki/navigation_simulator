@@ -1163,10 +1163,6 @@ def consider_bow_for_v(hull, velocity, load_condition):
     return velocity
 
 def compare_hull_design(npv_result, initial_engine_id, initial_propeller_id):
-    if (initial_engine_id is None) or (initial_propeller_id is None):
-        print "Error: please input engine and propeller ids"
-        return
-
     x_label    = 'NPV [$]'
     y_label    = 'frequency'.upper()
     title      = "NPV Distribution of design"

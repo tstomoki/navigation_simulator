@@ -88,14 +88,24 @@ def run(options):
                 if not npv_result.has_key(combination_key):
                     npv_result[combination_key] = []
                 npv_result[combination_key].append(npv)
-
-        compare_hull_design(npv_result, initial_engine_id, initial_propeller_id)
+        if (initial_engine_id is None) or (initial_propeller_id is None):
+            print "Error: please input engine and propeller ids"
+        else:
+            compare_hull_design(npv_result, initial_engine_id, initial_propeller_id)
+            
         output_result = {}
         for c_key, npv_array in npv_result.items():
             if not output_result.has_key(c_key):
                 output_result[c_key] = {}
             output_result[c_key]['npv'] = np.average(npv_array)
             output_result[c_key]['std'] = np.std(npv_array)
+
+        # output result
+        output_mode_str  = re.compile(r'(mode.+)').search(result_dir_path).groups()[0]
+        output_json_dir  = "%s/json" % (RESULT_DIR_PATH)
+        initializeDirHierarchy(output_json_dir)
+        output_json_path = "%s/%s.json" % (output_json_dir, output_mode_str)
+        write_file_as_json(output_result, output_json_path)
         
         column_names = ['c_key', 'ave_npv', 'std']
         write_data = [ [c_key, val['npv'], val['std']] for c_key, val in output_result.items()]
