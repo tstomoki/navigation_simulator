@@ -29,8 +29,10 @@ from world_scale import WorldScale
 
 def run(options):
     result_dir_path = options.result_dir_path
-    draw_engine_features()
+    draw_hull_features()
     sys.exit()
+    draw_propeller_features()
+    draw_engine_features()
     aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
@@ -148,6 +150,79 @@ def draw_engine_features():
     output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
     plt.savefig(output_file_path)
     return
+
+# WIP
+def draw_propeller_features():
+    propellers     = []
+    propeller_list = load_propeller_list()
+    for propeller_info in propeller_list:
+        propeller_id = propeller_info['id']
+        propeller    = Propeller(propeller_list, propeller_id)
+        propellers.append(propeller)
+    set_trace()
+    
+    # draw graph
+    title   = "Propeller features".title()
+    x_label = "rpm".upper()
+    y_label = "BHP [kW]"    
+    graphInitializer(title, x_label, y_label)
+    line_colors = ['k', 'r', 'b', 'g']
+    line_styles = ['-', '--', '-.', ':']
+    for index, engine in enumerate(engines):
+        if not engine.base_data['specific_name'] == 'Hiekata':
+            draw_data = engine.generate_modified_bhp()
+            label = "Engine %d (%s)" % (engine.base_data['id'], engine.base_data['specific_name'])
+            plt.plot(draw_data['rpm'], draw_data['modified_bhp'], label=label, color=line_colors[index], linestyle=line_styles[index])
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')
+    output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
+    plt.savefig(output_file_path)
+    return
+
+def draw_hull_features():
+    hulls     = []
+    hull_list = load_hull_list()
+    v_range   = np.linspace(0, 25, 1000)
+    for hull_info in hull_list:
+        hull_id = hull_info['id']
+        hull    = Hull(hull_list, hull_id)
+        hulls.append(hull)
+    
+    # draw graph
+    title       = "Hull features".title()
+    x_label     = "Froude number".upper()
+    y_label     = "Ct"
+    graphInitializer(title, x_label, y_label)
+    line_colors = ['k', 'k', 'r', 'r']
+    line_styles = ['-', '--', '-.', ':']
+    dt          = np.dtype({'names': ('froude', 'ehp'),
+                            'formats': (np.float, np.float)})
+    for load_condition_num, load_condition in LOAD_CONDITION.items():    
+        for index, hull in enumerate(hulls):
+            f_v_dict = {}
+            for _v in v_range:
+                froude = hull.calc_froude(_v)
+                f_v_dict[froude] = _v
+            draw_data = []                
+            for _f, _v in f_v_dict.items():
+                modified_v = hull.consider_bow_for_v(_v, load_condition_num)
+                ehp = hull.calc_raw_EHP(modified_v, load_condition)
+                ct  = hull.calc_ct(ehp, modified_v, load_condition)
+                draw_data.append( (_f, ct))
+            draw_data   = np.array(sorted(draw_data, key=lambda x : x[0]), dtype=dt)
+            sub_label   = "(%s, BOW)" % (load_condition) if hull.bow_exists() else "(%s)" % (load_condition)
+            label       = "Hull %s" % (sub_label)
+            style_index = (index * 2) + load_condition_num
+            plt.plot(draw_data['froude'], draw_data['ehp'], label=label, color=line_colors[style_index], linestyle=line_styles[style_index])
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')
+    plt.xlim(0.05, 0.2)
+    plt.ylim(0, 2)    
+    output_file_path = "%s/hull_features.png" % (GRAPH_DIR_PATH)
+    plt.savefig(output_file_path)
+
+    return
+
 # authorize exeucation as main script
 if __name__ == '__main__':
     parser = OptionParser()
