@@ -29,6 +29,8 @@ from world_scale import WorldScale
 
 def run(options):
     result_dir_path = options.result_dir_path
+    draw_engine_features()
+    sys.exit()
     aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
@@ -121,6 +123,31 @@ def draw_ct_fn(wave=None, beaufort=None):
         plt.clf()
     return
 
+def draw_engine_features():
+    engines = []
+    engine_list   = load_engine_list()
+    for engine_info in engine_list:
+        engine_id = engine_info['id']
+        engine    = Engine(engine_list, engine_id)
+        engines.append(engine)
+
+    # draw graph
+    title   = "Engine features".title()
+    x_label = "rpm".upper()
+    y_label = "BHP [kW]"    
+    graphInitializer(title, x_label, y_label)
+    line_colors = ['k', 'r', 'b', 'g']
+    line_styles = ['-', '--', '-.', ':']
+    for index, engine in enumerate(engines):
+        if not engine.base_data['specific_name'] == 'Hiekata':
+            draw_data = engine.generate_modified_bhp()
+            label = "Engine %d (%s)" % (engine.base_data['id'], engine.base_data['specific_name'])
+            plt.plot(draw_data['rpm'], draw_data['modified_bhp'], label=label, color=line_colors[index], linestyle=line_styles[index])
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')
+    output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
+    plt.savefig(output_file_path)
+    return
 # authorize exeucation as main script
 if __name__ == '__main__':
     parser = OptionParser()
