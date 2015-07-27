@@ -1254,6 +1254,28 @@ def generate_operation_date(start_month, operation_end_date=None):
             break
     return operation_date_array
 
+def display_sorted_result(data, n):
+    dt   = np.dtype({'names': ('c_key','npv','std'),
+                     'formats': ('S10', np.float, np.float)})
+    data = np.array([ (_k, _v['npv'], _v['std'] ) for _k, _v in data.items()], dtype=dt)
+
+    # NPV descending
+    sorted_data = data[data['npv'].argsort()[-n:][::-1]]
+    print "---------- %20s ----------" % ('NPV descending order')
+    print "%20s %10s %10s" % ('combination key', 'NPV', 'STD')
+    for _d in sorted_data:
+        key, npv, std = _d
+        print "%20s %10.2lf %10.2lf" % (key, npv, std)
+    
+    # STD ascending
+    sorted_data = data[data['std'].argsort()[:n]]
+    print "---------- %20s ----------" % ('STD ascending order')
+    print "%20s %10s %10s" % ('combination key', 'NPV', 'STD')
+    for _d in sorted_data:
+        key, npv, std = _d
+        print "%20s %10.2lf %10.2lf" % (key, npv, std)
+    return
+
 def calc_simple_oilprice(length, index, constant, ratio):
     # oilprice = ( c(t-1) / n )*x + c
     if length == 0:
