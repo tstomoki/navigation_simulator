@@ -1,7 +1,7 @@
 # import common modules #
 import sys
 import math
-import pdb
+from pdb import *
 import matplotlib.pyplot as plt
 import numpy as np
 from types import *
@@ -142,7 +142,7 @@ class FlatRate:
     # calc new and sigma from history data
     def calc_params_from_history(self):
         index   = 0
-        delta_t = 1.0 / 365
+        delta_t = 1.0 / 12
         values  = np.array([])
         for date, flat_rate in self.history_data:
             if index == 0:
@@ -157,12 +157,12 @@ class FlatRate:
             index += 1
 
         # substitute inf to nan in values
-        values = inf_to_nan_in_array(values)
-        self.neu    = np.nanmean(values)
-        self.sigma  = np.nanstd(values)
-        self.u      = np.exp(self.sigma * np.sqrt(delta_t))
-        self.d      = np.exp(self.sigma * (-1) * np.sqrt(delta_t))
-        self.p      = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
+        values     = inf_to_nan_in_array(values)
+        self.neu   = np.nanmean(values)
+        self.sigma = np.nanstd(values)
+        self.u     = np.exp(self.sigma * np.sqrt(delta_t))
+        self.d     = np.exp(self.sigma * (-1) * np.sqrt(delta_t))
+        self.p     = 0.5 + 0.5 * (self.neu / self.sigma) * np.sqrt(delta_t)
         return
 
     # multiple oil price drawing part    
@@ -195,5 +195,12 @@ class FlatRate:
             plt.xlim([xlim_date, draw_data.transpose()[0].max()])
         output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
         plt.savefig(output_file_path)
+
+        # display variables
+        print "%10s: %10lf" % ('neu', self.neu)
+        print "%10s: %10lf" % ('sigma', self.neu)
+        print "%10s: %10lf" % ('u', self.u)
+        print "%10s: %10lf" % ('d', self.d)
+        print "%10s: %10lf" % ('p', self.p)
             
         return    

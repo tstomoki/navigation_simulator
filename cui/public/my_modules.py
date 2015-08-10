@@ -1239,6 +1239,28 @@ def output_ratio_dict_sub():
     plt.savefig('../result.png')
     return
 
+def output_ratio_dict_sub_for_sig_kst():
+    sub_ratio_dict = { 1: {'A': 605747467.48,'B': 604835404.62},
+                       2: {'A': 604789731.48,'B': 601112254.09}}
+    data_labels = ['1-1', '1-2']
+    draw_data   = []
+    hull_various = ['A', 'B']    
+    display_range = range(1,3)
+    for case_key in display_range:
+        draw_element = []
+        for hull_key in hull_various:
+            draw_element.append(sub_ratio_dict[case_key][hull_key])
+        draw_data.append(draw_element)
+        df2 = pd.DataFrame(draw_data, columns=hull_various)
+    df2.plot(kind='bar', alpha=0.8, color=['r', 'b'])
+    plt.ylim([0, 700000000])
+    plt.ylabel('Averaged NPV [$]', fontweight="bold")
+    #plt.xticks(np.array(display_range)-0.35, ["Case %d" % (_d) for _d in display_range], rotation=0, fontsize=20)
+    plt.xticks(np.array(display_range)-0.35, ["Case %s" % (_d) for _d in data_labels], rotation=0, fontsize=20)    
+    
+    plt.savefig('../result.png')
+    return
+
 def generate_operation_date(start_month, operation_end_date=None):
     operation_date_array = np.array([])
     input_start_month = str_to_datetime(start_month) if isinstance(start_month, str) else start_month

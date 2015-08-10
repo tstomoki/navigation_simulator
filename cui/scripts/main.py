@@ -57,6 +57,7 @@ def run(options):
     # generate flat rate
     #flat_rate    = FlatRate(flat_rate_history_data)
     flat_rate    = FlatRate(flat_rate_history_data)
+    #flat_rate.draw_multiple_flat_rates()
     
     # draw multiple scenario part #
     # base_sinario.draw_multiple_scenarios(world_scale)
@@ -99,6 +100,9 @@ def run(options):
                 output_result[c_key] = {}
             output_result[c_key]['npv'] = np.average(npv_array)
             output_result[c_key]['std'] = np.std(npv_array)
+
+        display_sorted_result(output_result, 3)
+        sys.exit()
 
         # output result
         output_mode_str  = re.compile(r'(mode.+)').search(result_dir_path).groups()[0]
@@ -167,9 +171,6 @@ def run(options):
                               DERIVE_SINARIO_MODE['maintain'],
                               BF_MODE['calm'])
         initial_design_dir = "%s/initial_design_mode0" % (output_dir_path)
-        set_trace()
-        generate_market_scenarios(base_sinario, world_scale, flat_rate, sinario_mode, vessel_life_time_for_simulation)        
-
         initializeDirHierarchy(initial_design_dir)
         averaged_NPV, initial_hull, initial_engine, initial_propeller, std = agent.get_initial_design_m(initial_design_dir)        
         ## market: binomial, weather: calm
@@ -318,5 +319,7 @@ if __name__ == '__main__':
                       help="ignore propeller and engine retrofit simulation if True", default=False)
 
     (options, args) = parser.parse_args()
+    
+    #output_ratio_dict_sub_for_sig_kst()
     run(options)
 
