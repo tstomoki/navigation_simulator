@@ -53,8 +53,8 @@ RETROFIT_SCENARIO_MODE = {'significant': 0,
                           'binomiial': 1}
 
 # default simulate count for searching initial design
-DEFAULT_SIMULATE_COUNT                        = 30
-SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 5
+DEFAULT_SIMULATE_COUNT                        = 50
+SIMMULATION_DURATION_YEARS_FOR_INITIAL_DESIGN = 15
 # narrowed down design ratio for initial design
 NARROWED_DOWN_DESIGN_RATIO                    = 0.1
 NARROWED_DOWN_DURATION_YEARS                  = 2
