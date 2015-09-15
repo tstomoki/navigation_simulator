@@ -78,7 +78,7 @@ class Hull:
         return (v_ms * self.base_data['Lpp'] * self.base_data[draft_key] * FUILD_DENSITY_SEA * ct) / 2.0
     
     def consider_bow_for_wave(self, delta_v, load_condition):
-        if self.base_data['with_bow'] == 'FALSE':
+        if not self.bow_exists:
             return delta_v
         index = 0.40 if (load_condition == 'ballast') else 0.50        
         return delta_v * index
