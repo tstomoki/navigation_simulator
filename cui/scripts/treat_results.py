@@ -197,30 +197,30 @@ def draw_hull_features():
     line_styles = ['-', '--', '-.', ':']
     dt          = np.dtype({'names': ('froude', 'ehp'),
                             'formats': (np.float, np.float)})
-    for load_condition_num, load_condition in LOAD_CONDITION.items():    
+    for load_condition_num, load_condition in LOAD_CONDITION.items():
         for index, hull in enumerate(hulls):
-            f_v_dict = {}
-            for _v in v_range:
-                froude = hull.calc_froude(_v)
-                f_v_dict[froude] = _v
-            draw_data = []                
-            for _f, _v in f_v_dict.items():
-                modified_v = hull.consider_bow_for_v(_v, load_condition_num)
-                ehp = hull.calc_raw_EHP(modified_v, load_condition)
-                ct  = hull.calc_ct(ehp, modified_v, load_condition)
-                draw_data.append( (_f, ct))
-            draw_data   = np.array(sorted(draw_data, key=lambda x : x[0]), dtype=dt)
+            draw_data = []
+            ## plot style
             sub_label   = "(%s, BOW)" % (load_condition) if hull.bow_exists() else "(%s)" % (load_condition)
             label       = "Hull %s" % (sub_label)
             style_index = (index * 2) + load_condition_num
+            f_v_dict = {}
+            for _v in v_range:
+                modified_v       = hull.consider_bow_for_v(_v, load_condition_num)
+                froude           = hull.calc_froude(modified_v)
+                f_v_dict[froude] = _v
+            for _f, _v in f_v_dict.items():
+                ehp = hull.calc_raw_EHP(_v, load_condition)
+                ct  = hull.calc_ct(ehp, _v, load_condition)
+                draw_data.append( (_f, ct))
+            draw_data   = np.array(sorted(draw_data, key=lambda x : x[0]), dtype=dt)
             plt.plot(draw_data['froude'], draw_data['ehp'], label=label, color=line_colors[style_index], linestyle=line_styles[style_index])
     plt.legend(shadow=True)
     plt.legend(loc='upper left')
-    plt.xlim(0.05, 0.2)
-    plt.ylim(0, 2)    
+    plt.xlim(0.05, 0.25)
+    plt.ylim(0, 4)    
     output_file_path = "%s/hull_features.png" % (GRAPH_DIR_PATH)
     plt.savefig(output_file_path)
-
     return
 
 # authorize exeucation as main script
