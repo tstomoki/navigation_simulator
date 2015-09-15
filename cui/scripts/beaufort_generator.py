@@ -1,5 +1,11 @@
 #!/usr/bin/python
 import matplotlib
+# server configuration #
+import getpass
+current_user = getpass.getuser()
+if current_user == 'tsaito':
+    matplotlib.use('Agg')
+# server configuration #
 import pylab
 import sys
 import numpy as np
@@ -20,7 +26,6 @@ sys.exit()
 def run():
     args = {'Calm': 4, 'Rough': 7}
     designated_kinds(args)
-    sys.exit()
     all_kinds()
 
 def designated_kinds(args):
