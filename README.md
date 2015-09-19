@@ -17,12 +17,12 @@ $ python propeller_generator.py
 ```
 
 ## configure processors num for multiprocessing
-# check processor num for CentOS
+### check processor num for CentOS
 ```
 $ cat /proc/cpuinfo | grep processor
 ```
 
-## search optimal ship design
+# search optimal ship design
 
 ```
 $ python main.py 
@@ -32,3 +32,6 @@ $ python main.py
 (after the script finished, aggregate the results by the command)
 $ python treat_result.py -A True -P ../results/agent_log/#{timestamp}/
 ```
+
+# Simulation considering retrofit
+WIP
