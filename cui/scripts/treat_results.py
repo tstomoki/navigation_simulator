@@ -234,9 +234,16 @@ def aggregate_output(result_dir_path):
     dt   = np.dtype({'names': ('scenario_num','hull_id','engine_id','propeller_id','NPV'),
                      'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float)})
     # for csv
-    column_names = 'scenario_total_num','hull_id','engine_id','propeller_id','average NPV', 'std'
+    column_names = ['scenario_total_num',
+                    'design_key',
+                    'hull_id',
+                    'engine_id',
+                    'propeller_id',
+                    'average NPV',
+                    'std']
     for initial_design_dir in initial_design_dirs:
-        target_dir = "%s/%s" % (result_dir_path, initial_design_dir)
+        target_dir = "%s/%s" % (result_dir_path,
+                                initial_design_dir)
         if os.path.exists(target_dir):
             npv_result = {}
             files = os.listdir(target_dir)
@@ -257,11 +264,13 @@ def aggregate_output(result_dir_path):
             senario_total_num = len(unique(data['scenario_num']))
             output_dir_path = "%s/aggregated_results" % (result_dir_path)
             initializeDirHierarchy(output_dir_path)
-            output_file_path = "%s/%s.csv" % (output_dir_path, initial_design_dir)
+            output_file_path = "%s/%s.csv" % (output_dir_path,
+                                              initial_design_dir)
 
             for design_key, npvs in npv_result.items():
                 hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
                 write_csv(column_names, [senario_total_num,
+                                         design_key,
                                          hull_id,
                                          engine_id,
                                          propeller_id,
