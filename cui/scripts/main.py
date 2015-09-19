@@ -70,25 +70,6 @@ def run(options):
     initializeDirHierarchy(output_dir_path)
 
     if result_visualize_mode:
-        # for narrowed result
-        files = os.listdir(result_dir_path)
-        target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
-        target_files = [ "%s/%s" % (result_dir_path, _f) for _f in target_files]
-
-        dt   = np.dtype({'names': ('scenario_num','hull_id','engine_id','propeller_id','NPV'),
-                         'formats': (np.int64, np.int64, np.int64, np.int64, np.float)})
-        npv_result = {}
-        for _target_file in target_files:
-            data = np.genfromtxt(_target_file,
-                                 delimiter=',',
-                                 dtype=dt,
-                                 skiprows=1)
-            for _d in data:
-                s_num, h_id, e_id, p_id, npv = _d
-                combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
-                if not npv_result.has_key(combination_key):
-                    npv_result[combination_key] = []
-                npv_result[combination_key].append(npv)
         if (initial_engine_id is None) or (initial_propeller_id is None):
             print "Error: please input engine and propeller ids"
         else:

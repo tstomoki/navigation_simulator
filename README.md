@@ -21,3 +21,14 @@ $ python propeller_generator.py
 ```
 $ cat /proc/cpuinfo | grep processor
 ```
+
+## search optimal ship design
+
+```
+$ python main.py 
+.
+. (takes few days)
+.
+(after the script finished, aggregate the results by the command)
+$ python treat_result.py -A True -P ../results/agent_log/#{timestamp}/
+```
