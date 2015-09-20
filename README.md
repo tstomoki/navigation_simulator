@@ -30,8 +30,16 @@ $ python main.py
 . (takes few days)
 .
 (after the script finished, aggregate the results by the command)
-$ python treat_result.py -A True -P ../results/agent_log/#{timestamp}/
+$ python treat_result.py -A True -P ../results/agent_log/#{timestamp}
 ```
 
 # Simulation considering retrofit
+## search designs for significant market price
+```
+$ python main.py -T True
+.
+. (takes few days)
+.
+$ python treat_results.py -P ../results/agent_log/#{timestamp} -S True
+
 WIP
