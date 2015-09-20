@@ -136,6 +136,36 @@ class FlatRate:
             
         return
 
+    # generate predicted sinario
+    def generate_significant_flat_rate(self, sinario_mode, significant_flat_rate=None, predict_years=DEFAULT_PREDICT_YEARS):
+        # default predict_years is 15 years [180 months]
+        self.predict_years  = predict_years
+
+        # predicted data type
+        dt   = np.dtype({'names': ('date', 'fr'),
+                         'formats': ('S10' , np.float)})
+        self.predicted_data = np.array([], dtype=dt)
+
+        # latest date from history_data
+        latest_history_date_str, latest_flatrate = self.history_data[-1]
+        latest_history_date                      = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
+
+        end_date         = add_year(latest_history_date, predict_years)
+        current_date     = latest_history_date
+        current_flatrate = latest_flatrate
+        while end_date > current_date:
+            current_date    += datetime.timedelta(days=1)
+            current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
+
+            # change by mode
+            if sinario_mode == 'medium':
+                current_flatrate = current_flatrate
+            else:
+                current_flatrate = significant_flat_rate
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_flatrate)], dtype=dt))
+        return
+
+
     def calc_flatrate(self, current_flatrate):
         return self.u * current_flatrate if prob(self.p) else self.d * current_flatrate
             

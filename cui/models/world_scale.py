@@ -125,6 +125,39 @@ class WorldScale:
             
         return
 
+    # generate predicted sinario
+    def generate_significant_sinario(self, sinario_mode, significant_world_scale=None, predict_years=DEFAULT_PREDICT_YEARS):
+        # default predict_years is 15 years [180 months]
+        self.predict_years  = predict_years
+
+        # predicted data type
+        dt   = np.dtype({'names': ('date', 'ws'),
+                         'formats': ('S10' , np.float)})
+        self.predicted_data = np.array([], dtype=dt)
+        
+        predict_months_num = self.predict_years * 12
+
+        # latest date from history_data
+        latest_history_date_str, latest_ws = self.history_data[-1]
+        latest_history_date                = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
+
+        current_date = latest_history_date
+        current_ws   = latest_ws
+        for predict_month_num in range(predict_months_num):
+            current_date     = add_month(current_date)
+            current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
+
+            # change ws by mode
+            if sinario_mode == 'medium':
+                current_ws = current_ws
+            else:
+                current_ws = significant_world_scale
+
+            # change ws by mode
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, round(current_ws, 4))], dtype=dt))
+            
+        return
+
     # generate world scale scenario with oil price correlation
     def generate_sinario_with_oil_corr(self, sinario_mode, latest_oilprice_history_data, oilprice_predicted_data):
         if sinario_mode == DERIVE_SINARIO_MODE['maintain']:

@@ -154,6 +154,39 @@ class Sinario:
             self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_oilprice)], dtype=dt))
             
         return
+
+    # generate predicted sinario
+    def generate_significant_sinario(self, oilprice_mode, significant_oilprice=None, predict_years=DEFAULT_PREDICT_YEARS):
+        # default predict_years is 15 years [180 months]
+        self.predict_years  = predict_years
+
+        # predicted data type
+        dt   = np.dtype({'names': ('date', 'price'),
+                         'formats': ('S10' , np.float)})
+        self.predicted_data = np.array([], dtype=dt)
+        
+        predict_months_num = int(self.predict_years * 12)
+
+        # latest date from history_data
+        latest_history_date_str, latest_oilprice = self.history_data[-1]
+        latest_history_date                      = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
+
+        current_date  = latest_history_date
+        current_oilprice = latest_oilprice
+        for predict_month_num in range(predict_months_num):
+            current_date        = add_month(current_date)
+            current_date_str    = datetime.datetime.strftime(current_date, '%Y/%m/%d')
+
+            # change oil_price by mode
+            if oilprice_mode == 'oilprice_medium':
+                current_oilprice = current_oilprice
+            else:
+                current_oilprice = significant_oilprice
+
+            # change oil_price by mode
+            self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_oilprice)], dtype=dt))
+            
+        return
             
     # calc new and sigma from history data
     def calc_params_from_history(self):

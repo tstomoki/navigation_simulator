@@ -18,7 +18,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 8 if current_user == 'tsaito' else 2
+PROC_NUM = 9 if current_user == 'tsaito' else 2
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
@@ -74,8 +74,8 @@ DOCK_IN_PERIOD   = 0.1
 ## dock-in duration [month]
 DOCK_IN_DURATION = 1
 
-# 150 [dollars/barrel]
-HIGH_OIL_PRICE = 150
+# 200 [dollars/barrel]
+HIGH_OIL_PRICE = 200
 # 100 [dollars/barrel]
 LOW_OIL_PRICE = 80
 

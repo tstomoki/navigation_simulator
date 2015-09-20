@@ -170,6 +170,8 @@ class Agent(object):
         self.round_trip_distance   = NAVIGATION_DISTANCE * 2.0
         self.NPV                   = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
                                                            'formats': ('S20' , np.float)}))        
+        self.fuel_cost             = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
+                                                           'formats': ('S20' , np.float)}))        
         self.log                   = init_dict_from_keys_with_array(LOG_COLUMNS,
                                                                     np.dtype({'names': ('rpm', 'velocity'),
                                                                               'formats': (np.float , np.float)}))
@@ -237,9 +239,9 @@ class Agent(object):
             # calculate optimized speed and rps during 
             if (CF_day is None) and (rpm is None) and (v_knot is None):
                 if multi_flag:
-                    CF_day, rpm, v_knot  = self.calc_optimal_velocity_m(hull, engine, propeller)
+                    C_fuel, CF_day, rpm, v_knot  = self.calc_optimal_velocity_m(hull, engine, propeller)
                 else:
-                    CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
+                    C_fuel, CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
             else:
                 # conserve calm sea velocity
                 v_knot = raw_v
@@ -253,6 +255,12 @@ class Agent(object):
             v_knot = self.modify_by_external(v_knot)
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
+
+            ## consider real v_knot for fuel_cost and CF_day
+            delta_distance  = knot2mileday(raw_v) - knot2mileday(v_knot)
+            delta_fuel_cost = self.calc_fuel_cost_with_distance(delta_distance, rpm, v_knot, hull, engine, propeller)
+            C_fuel -= delta_fuel_cost
+            CF_day -= delta_fuel_cost
             
             # update variables
             ## update with the distance on a day
@@ -265,7 +273,9 @@ class Agent(object):
                 navigated_distance = NAVIGATION_DISTANCE - self.current_distance                                
                 # subtract unnavigated cash flow which depends on the distance
                 discounted_distance = updated_distance - NAVIGATION_DISTANCE
-                CF_day -= self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
+                extra_fuel_cost = self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
+                CF_day -= extra_fuel_cost
+                C_fuel -= extra_fuel_cost
                 
                 self.current_distance      = NAVIGATION_DISTANCE
                 self.left_distance_to_port = NAVIGATION_DISTANCE
@@ -279,9 +289,11 @@ class Agent(object):
                 # update cash flow
                 self.cash_flow       += CF_day
                 self.total_cash_flow += CF_day
+
+                self.update_fuel_cost(C_fuel)
                 
                 # initialize the temporal variables
-                CF_day = rpm = v_knot = None
+                C_fuel = CF_day = rpm = v_knot = None
         
             elif updated_distance >= self.round_trip_distance:
                 # full -> ballast
@@ -290,7 +302,9 @@ class Agent(object):
                 navigated_distance = self.round_trip_distance - self.current_distance                
                 # subtract unnavigated cash flow which depends on the distance
                 discounted_distance = updated_distance - self.round_trip_distance
-                CF_day -= self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
+                extra_fuel_cost = self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
+                CF_day -= extra_fuel_cost
+                C_fuel -= extra_fuel_cost
                 # loading flags (unloading)
                 self.initiate_loading()
                 self.change_load_condition()
@@ -300,7 +314,9 @@ class Agent(object):
                 self.current_distance = 0
                 self.left_distance_to_port = NAVIGATION_DISTANCE
 
-                # calc Net Present Value
+                self.update_fuel_cost(C_fuel)
+
+                # calc Net Present Value and fuel_cost
                 self.update_NPV_in_navigation()
                 # NPV
                 self.display_latest_NPV()
@@ -331,7 +347,7 @@ class Agent(object):
                 # consider dock-to-dock deterioration
                 self.update_d2d()
                 # initialize the temporal variables
-                CF_day = rpm = v_knot = None
+                C_fuel = CF_day = rpm = v_knot = None
                 self.ballast_trip_days = 0
                 self.return_trip_days  = 0
                 continue
@@ -342,6 +358,7 @@ class Agent(object):
                 # update cash flow
                 self.cash_flow       += CF_day
                 self.total_cash_flow += CF_day                
+                self.update_fuel_cost(C_fuel)
             
             # update total distance
             self.total_distance += navigated_distance
@@ -368,6 +385,7 @@ class Agent(object):
             print "%25s: %10s [rpm]"      % ('rpm'                  , ("%10.3lf" % rpm)    if not rpm is None else '----')
             print "%25s: %10s [knot]"     % ('velocity'             , ("%10.3lf" % v_knot) if not v_knot is None else '----')
             print "%25s: %10s [$/day]"    % ('Cash flow'            , number_with_delimiter(CF_day) if not CF_day is None else '----')
+            print "%25s: %10s [$/day]"    % ('Fuel Cost'            , number_with_delimiter(C_fuel) if not C_fuel is None else '----')
             print "%25s: %10s [$]"        % ('Total Cash flow'      , number_with_delimiter(self.total_cash_flow))
             print "%25s: %10s"            % ('Retrofit Mode'        , self.retrofit_mode_to_human())
             print "--------------Retire Date: %s--------------" % (self.retire_date)
@@ -375,8 +393,11 @@ class Agent(object):
             if log_mode:
                 self.update_CF_log(CF_day)
             
+
         # update whole NPV in vessel life time
-        return round(self.update_whole_NPV(), 3)
+        whole_NPV       = round(self.update_whole_NPV(), 3)
+        whole_fuel_cost = round(np.sum(self.fuel_cost['fuel_cost_in_navigation']), 3)
+        return whole_NPV, whole_fuel_cost
 
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
@@ -502,18 +523,18 @@ class Agent(object):
                 # decide velocity of full                
                 for rpm_second, velocity_second in target_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
                     ND     = self.calc_ND(velocity_first, velocity_second, hull)
-                    CF_day = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
-                    tmp_combinations = append_for_np_array(tmp_combinations, [CF_day, rpm_second, velocity_second])
-                CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
+                    cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
+                    tmp_combinations = append_for_np_array(tmp_combinations, [C_fuel, cash_flow, rpm_second, velocity_second])
+                C_fuel, CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
             else:
                 ## when the ship is full (return trip)
                 ND     = self.calc_ND(velocity_first, 0, hull)
-                CF_day = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
-            combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
+                cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
+            combinations = append_for_np_array(combinations, [C_fuel, cash_flow, rpm_first, velocity_first])
 
         # decide the velocity
-        CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
-        return CF_day, optimal_rpm, optimal_velocity
+        C_fuel, CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
+        return C_fuel, CF_day, optimal_rpm, optimal_velocity
 
     # multi processing method #
     def calc_optimal_velocity_m(self, hull, engine, propeller):
@@ -533,8 +554,8 @@ class Agent(object):
         # multi processing #
         
         # decide the velocity
-        CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(ret_combinations, axis=0)[0]]
-        return CF_day, optimal_rpm, optimal_velocity    
+        C_fuel, CF_day, optimal_rpm, optimal_velocity = ret_combinations[np.argmax(ret_combinations, axis=0)[0]]
+        return C_fuel, CF_day, optimal_rpm, optimal_velocity    
 
     # return ND [days]
     # ND is whole number of days in navigation
@@ -563,7 +584,7 @@ class Agent(object):
         C_fuel = self.calc_fuel_cost(hull, engine, propeller, ND, rpm_first, velocity_first, rpm_second, velocity_second)
         cash_flow = (1 - self.icr) * I_day - C_fuel - C_fix - C_port
 
-        return cash_flow
+        return cash_flow, C_fuel
 
     # calc fuel cost per day    
     def calc_fuel_cost(self, hull, engine, propeller, ND, rpm_first, velocity_first, rpm_second, velocity_second):
@@ -796,6 +817,12 @@ class Agent(object):
         NPV_in_navigation = numerator / denominator
         self.update_NPV_log(NPV_in_navigation)
         return
+
+    def update_fuel_cost(self, fuel_cost):
+        dtype     = np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),'formats': ('S20' , np.float)})
+        add_array = np.array([(datetime_to_human(self.current_date), fuel_cost)], dtype=dtype)
+        self.fuel_cost = append_for_np_array(self.fuel_cost, add_array)
+        return
                 
     def calc_present_value_in_navigation(self, left_days, CF_day):
         ret_present_value  = 0
@@ -867,14 +894,14 @@ class Agent(object):
                 # decide velocity of full                
                 for rpm_second, velocity_second in self.velocity_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
                     ND     = self.calc_ND(velocity_first, velocity_second, hull)
-                    CF_day = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
-                    tmp_combinations = append_for_np_array(tmp_combinations, [CF_day, rpm_second, velocity_second])
-                CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
+                    cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
+                    tmp_combinations = append_for_np_array(tmp_combinations, [C_fuel, cash_flow, rpm_second, velocity_second])
+                C_fuel, CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
             else:
                 ## when the ship is full (return trip)
                 ND     = self.calc_ND(velocity_first, 0, hull)
-                CF_day = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
-            combinations = append_for_np_array(combinations, [CF_day, rpm_first, velocity_first])
+                cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
+            combinations = append_for_np_array(combinations, [C_fuel, cash_flow, rpm_first, velocity_first])
         return combinations
     
     def calc_initial_design_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, devided_component_ids, result_path):
@@ -928,6 +955,55 @@ class Agent(object):
                                           NPV)],
                                         dtype=dtype)
                 design_array = append_for_np_array(design_array, add_design)                    
+        return design_array        
+
+    def calc_significant_design_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, result_path):
+        column_names    = ['hull_id',
+                           'engine_id',
+                           'propeller_id',
+                           'NPV',
+                           'fuel_cost']
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
+                           'formats': (np.int, np.int , np.int, np.float, np.float)})
+        design_array = np.array([], dtype=dtype)
+
+        result_data  = load_result(result_path)
+
+        start_time   = time.clock()
+        # conduct multiple simmulation for each design
+        result_array = {}
+        for component_ids in devided_component_ids[index]:
+            hull, engine, propeller = get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list)
+            # get existing result file
+            combination_str  = generate_combination_str(hull, engine, propeller)
+            # conduct simulation #
+            agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
+            end_date = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
+            NPV, fuel_cost = agent.simmulate()
+            # write npv and fuel_cost file
+            output_dir_path = "%s/%s" % (result_path, generate_combination_str(hull, engine, propeller))
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(agent.NPV.dtype.names, agent.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(agent.fuel_cost.dtype.names, agent.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+     
+            # conduct simulation #
+            # ignore aborted simmulation
+            if NPV is None:
+                continue
+            # write simmulation result
+            output_file_path = "%s/%s_core%d.csv" % (result_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            write_csv(column_names, [hull.base_data['id'],
+                                     engine.base_data['id'],
+                                     propeller.base_data['id'],
+                                     NPV, fuel_cost, lap_time], output_file_path)
+            add_design   = np.array([(hull.base_data['id'],
+                                      engine.base_data['id'],
+                                      propeller.base_data['id'],
+                                      NPV, fuel_cost)],
+                                    dtype=dtype)
+            design_array = append_for_np_array(design_array, add_design)                    
         return design_array        
 
     ## multi processing method ##

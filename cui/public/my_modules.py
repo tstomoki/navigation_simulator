@@ -1304,3 +1304,46 @@ def calc_simple_oilprice(length, index, constant, ratio):
         return 0
     oilprice = ( constant * (ratio-1) / length ) * index + constant
     return oilprice
+
+def generate_significant_modes(oilprice_mode, 
+                               oil_price_history_data, 
+                               world_scale_history_data, 
+                               flat_rate_history_data):
+    from sinario     import Sinario
+    from world_scale import WorldScale
+    from flat_rate   import FlatRate
+    sinario      = Sinario(oil_price_history_data)
+    world_scale  = WorldScale(world_scale_history_data)
+    flat_rate    = FlatRate(flat_rate_history_data)
+
+    if oilprice_mode == 'oilprice_medium':
+        # set modes
+        world_scale_mode = 'medium'
+        flat_rate_mode   = 'medium'
+        significant_oilprice = significant_world_scale = significant_flat_rate = None
+    elif oilprice_mode == 'oilprice_low':
+        # set modes
+        world_scale_mode = 'high'
+        flat_rate_mode   = 'high'
+        significant_oilprice = np.min(oil_price_history_data['price']) / 2.0
+        # calc rate
+        rate = significant_oilprice / oil_price_history_data['price'][-1]
+        significant_world_scale = min(world_scale_history_data['ws'][-1] + world_scale_history_data['ws'][-1] * rate, world_scale_history_data['ws'][-1] * 3.0)
+        significant_flat_rate = max(flat_rate_history_data['fr'][-1] + flat_rate_history_data['fr'][-1] * rate, flat_rate_history_data['fr'][-1] * 3.0)
+    elif oilprice_mode == 'oilprice_high':
+        # set modes
+        world_scale_mode = 'low'
+        flat_rate_mode   = 'low'
+        significant_oilprice = np.max(oil_price_history_data['price']) * 2.0
+        # calc rate
+        rate = significant_oilprice / oil_price_history_data['price'][-1]
+        significant_world_scale = max(world_scale_history_data['ws'][-1] - world_scale_history_data['ws'][-1] * rate, world_scale_history_data['ws'][-1] / 3.0)
+        significant_flat_rate = max(flat_rate_history_data['fr'][-1] - flat_rate_history_data['fr'][-1] * rate, flat_rate_history_data['fr'][-1] / 3.0)
+
+    # generate sinario
+    sinario.generate_significant_sinario(oilprice_mode, significant_oilprice)
+    world_scale.generate_significant_sinario(world_scale_mode, significant_world_scale)
+    flat_rate.generate_significant_flat_rate(flat_rate_mode, significant_flat_rate)
+
+
+    return sinario, world_scale, flat_rate

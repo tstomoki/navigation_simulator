@@ -9,6 +9,9 @@ if current_user == 'tsaito':
     matplotlib.use('Agg')
 # server configuration #
 from optparse import OptionParser
+# for multi processing
+import multiprocessing as mp
+# for multi processing
 # import common modules #
 
 # import own modules #
@@ -42,6 +45,7 @@ def run(options):
     no_retrofit_ignore                   = options.no_retrofit_ignore
     propeller_retrofit_ignore            = options.propeller_retrofit_ignore
     propeller_and_engine_retrofit_ignore = options.propeller_and_engine_retrofit_ignore
+    retrofit_mode                        = options.retrofit_mode
 
     # load history data
     from_date = '2004/01/01'
@@ -138,6 +142,57 @@ def run(options):
         print_with_notice("Program (calc velocity combinations) finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))
         sys.exit()
     
+    # retrofit mode
+    # load components list
+    hull_list           = load_hull_list()
+    engine_list         = load_engine_list()
+    propeller_list      = load_propeller_list()
+    if retrofit_mode:
+        oilprice_modes = [ 'oilprice_' + s for s in ['high', 'low', 'medium']]
+        
+        # search initial_design
+        for oilprice_mode in oilprice_modes:
+            # generate sinario
+            sinario, world_scale, flat_rate = generate_significant_modes(oilprice_mode, 
+                                                                         oil_price_history_data, 
+                                                                         world_scale_history_data, 
+                                                                         flat_rate_history_data)
+            # initialize
+            retrofit_mode = RETROFIT_MODE['none']
+            agent         = Agent(sinario,
+                                  world_scale,
+                                  flat_rate,
+                                  retrofit_mode,
+                                  'significant',
+                                  BF_MODE['calm'])
+
+            output_path = "%s/%s" % (output_dir_path, oilprice_mode)
+            initializeDirHierarchy(output_path)
+
+            devided_component_ids = []
+            for hull_info in hull_list:
+                for engine_info in engine_list:
+                    for propeller_info in propeller_list:
+                        devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
+            devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
+
+            # debug
+            simulation_duration_years = VESSEL_LIFE_TIME
+            #agent.calc_significant_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)
+
+            # initialize
+            pool                      = mp.Pool(PROC_NUM)
+            # multi processing #
+            callback              = [pool.apply_async(agent.calc_significant_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)) for index in xrange(PROC_NUM)]
+
+            callback_combinations = [p.get() for p in callback]
+            ret_combinations      = flatten_3d_to_2d(callback_combinations)
+            pool.close()
+            pool.join()
+            # multi processing #
+        print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        sys.exit()
+
     if (initial_hull_id is None) or (initial_engine_id is None) or (initial_propeller_id is None):
         # get initial design #
         # initialize
@@ -298,6 +353,8 @@ if __name__ == '__main__':
                       help="ignore propeller retrofit simulation if True", default=False)
     parser.add_option("-D", "--propeller-and-engine-retrofit", dest="propeller_and_engine_retrofit_ignore",
                       help="ignore propeller and engine retrofit simulation if True", default=False)
+    parser.add_option("-T", "--retrofit-mode", dest="retrofit_mode",
+                      help="conduct retrofit case studies if True", default=False)
 
     (options, args) = parser.parse_args()
     

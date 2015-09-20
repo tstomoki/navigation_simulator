@@ -32,6 +32,9 @@ def run(options):
     if options.aggregate:
         aggregate_output(result_dir_path)
         sys.exit()
+    if options.significant:
+        aggregate_significant_output(result_dir_path)
+        sys.exit()
 
     draw_hull_features()
     #draw_propeller_features()
@@ -279,12 +282,77 @@ def aggregate_output(result_dir_path):
                                          ], output_file_path)
     return
 
+def aggregate_significant_output(result_dir_path):
+    target_dirs = os.listdir(result_dir_path)
+    target_dirs = [ d for d in target_dirs if not d == 'aggregated_results']
+
+    # initialize
+    dt   = np.dtype({'names': ('hull_id','engine_id','propeller_id','NPV', 'fuel_cost'),
+                     'formats': (np.int64, np.int64, np.int64, np.float, np.float)})
+    # for csv
+    column_names = ['design_key',
+                    'hull_id',
+                    'engine_id',
+                    'propeller_id',
+                    'average NPV',
+                    'std of npv',
+                    'fuel cost',
+                    'std of fuel_cost']
+
+    for target_dir in target_dirs:
+        desti_dir = "%s/%s" % (result_dir_path,
+                               target_dir)
+        if os.path.exists(desti_dir):
+            npv_result       = {}
+            fuel_cost_result = {}
+            files = os.listdir(desti_dir)
+            target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+            target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+            for _target_file in target_files:
+                data = np.genfromtxt(_target_file,
+                                     delimiter=',',
+                                     dtype=dt,
+                                     skiprows=1)
+                for _d in data:
+                    h_id, e_id, p_id, npv, fuel_cost = _d
+                    combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
+                    if not npv_result.has_key(combination_key):
+                        npv_result[combination_key] = []
+                    if not fuel_cost_result.has_key(combination_key):
+                        fuel_cost_result[combination_key] = []
+                    npv_result[combination_key].append(npv)
+                    fuel_cost_result[combination_key].append(fuel_cost)    
+
+            # output_csv
+            output_dir_path = "%s/%s/aggregated_results" % (result_dir_path, target_dir)
+            initializeDirHierarchy(output_dir_path)
+            output_file_path = "%s/%s.csv" % (output_dir_path,
+                                              target_dir)
+
+            if os.path.exists(output_file_path):
+                os.remove(output_file_path)
+
+            for design_key, npvs in npv_result.items():
+                hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
+                write_csv(column_names, [design_key,
+                                         hull_id,
+                                         engine_id,
+                                         propeller_id,
+                                         np.average(npvs),
+                                         np.std(npvs),
+                                         np.average(fuel_cost_result[design_key]),
+                                         np.std(fuel_cost_result[design_key])
+                                         ], output_file_path)
+    return
+
 # authorize exeucation as main script
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-P", "--result-path", dest="result_dir_path",
                       help="results dir path", default=None)    
     parser.add_option("-A", "--aggregate", dest="aggregate",
-                      help="aggregate mode", default=False)    
+                      help="aggregate mode", default=False)
+    parser.add_option("-S", "--significant", dest="significant",
+                      help="aggregate significant mode", default=False)    
     (options, args) = parser.parse_args()
     run(options)    
