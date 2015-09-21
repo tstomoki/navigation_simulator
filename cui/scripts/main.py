@@ -147,6 +147,60 @@ def run(options):
     hull_list           = load_hull_list()
     engine_list         = load_engine_list()
     propeller_list      = load_propeller_list()
+    if retrofit_mode == '2':
+        high_design_key           = "H1E3P514"
+        low_design_key            = "H2E1P514"
+        case_modes                = ['high', 'low']
+        common_seed_num           = 19901129
+        simulation_duration_years = VESSEL_LIFE_TIME
+        simulation_times          = 30
+        ## DEBUG ##
+        simulation_duration_years = 1
+        simulation_times          = 2
+        ## DEBUG ##
+        devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
+        # initialize
+        pool                      = mp.Pool(PROC_NUM)
+        for case_mode in case_modes:
+            # integrated case
+            base_design_key            = eval(case_mode + "_design_key")
+            retrofit_case_mode         = [_e for _e in case_modes if not _e == case_mode][-1]
+            retrofit_design_key        = eval(retrofit_case_mode + "_design_key")
+            retrofit_mode              = RETROFIT_MODE['significant']
+            output_integrated_dir_path = "%s/%s_design/integrated" % (output_dir_path, case_mode)
+            initializeDirHierarchy(output_integrated_dir_path)
+            agent                      = Agent(base_sinario,
+                                               world_scale,
+                                               flat_rate,
+                                               retrofit_mode,
+                                               DERIVE_SINARIO_MODE['binomial'],
+                                               BF_MODE['calm'])
+            agent.output_dir_path = output_integrated_dir_path
+            agent.calc_integrated_design_m(0, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, output_integrated_dir_path)
+
+            # significant case
+            design_key           = base_design
+            # initialize
+            retrofit_mode        = RETROFIT_MODE['none']
+            # fix seed #
+            agent                = Agent(base_sinario,
+                                         world_scale,
+                                         flat_rate,
+                                         retrofit_mode,
+                                         DERIVE_SINARIO_MODE['binomial'],
+                                         BF_MODE['calm'])
+            output_case_dir_path = "%s/%s_design" % (output_dir_path, case_mode)
+            agent.calc_design_m(0, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, design_key, output_case_dir_path)
+            # multi processing #
+            callback              = [pool.apply_async(agent.calc_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, design_key, output_case_dir_path)) for index in xrange(PROC_NUM)]
+            callback_combinations = [p.get() for p in callback]
+            ret_combinations      = flatten_3d_to_2d(callback_combinations)
+            pool.close()
+            pool.join()
+            # multi processing #
+        print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        sys.exit()
+    
     if retrofit_mode:
         oilprice_modes = [ 'oilprice_' + s for s in ['high', 'low']]
         

@@ -39,7 +39,8 @@ DERIVE_SINARIO_MODE   = {'high': 0,
 RETROFIT_MODE = {'none': 0,
                  'propeller': 1,
                  'propeller_and_engine': 2,
-                 'whole': 3}
+                 'whole': 3,
+                 'significant': 4}
 
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}

@@ -135,7 +135,7 @@ class Agent(object):
         propeller                                           = Propeller(propeller_list, propeller_id)
         return averaged_NPV, hull, engine, propeller, std
 
-    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None, log_mode=None):
+    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None, log_mode=None, retrofit_design_key=None):
         # use instance variables if hull or engine or propeller are not given
         if (hull is None) or (engine is None) or (propeller is None):
             hull      = self.hull
@@ -145,6 +145,7 @@ class Agent(object):
         # initialize retrofit_count
         self.retrofit_count_limit = 0 if self.retrofit_mode == RETROFIT_MODE['none'] else 1
         self.retrofit_count       = 0
+        self.retrofit_design_key  = retrofit_design_key
 
         # define velocity and rps for given [hull, engine, propeller]
         ## load combinations if combination file exists 
@@ -299,10 +300,10 @@ class Agent(object):
                 # full -> ballast
                 print_with_notice("Navigation finished on %s" % (self.current_date))
                 # calc distance to the port
-                navigated_distance = self.round_trip_distance - self.current_distance                
+                navigated_distance  = self.round_trip_distance - self.current_distance                
                 # subtract unnavigated cash flow which depends on the distance
                 discounted_distance = updated_distance - self.round_trip_distance
-                extra_fuel_cost = self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
+                extra_fuel_cost     = self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
                 CF_day -= extra_fuel_cost
                 C_fuel -= extra_fuel_cost
                 # loading flags (unloading)
@@ -333,12 +334,19 @@ class Agent(object):
                     self.clear_d2d()
                     # initiate dock-in
                     self.initiate_dockin()
-                    retrofit_design = self.check_retrofit()
-                    if not retrofit_design is None:
-                        hull, engine, propeller = change_design(retrofit_design)
-                        self.clear_age_effect()
+                    if self.retrofit_mode == RETROFIT_MODE['significant']:
+                        if self.check_significant_retrofit():
+                            self.conduct_retrofit()
+                            self.clear_age_effect()
+                        else:
+                            self.update_age_effect()
                     else:
-                        self.update_age_effect()
+                        retrofit_design = self.check_retrofit()
+                        if not retrofit_design is None:
+                            hull, engine, propeller = change_design(retrofit_design)
+                            self.clear_age_effect()
+                        else:
+                            self.update_age_effect()
                     
                 # update cash flow
                 self.cash_flow       += CF_day
@@ -1004,8 +1012,105 @@ class Agent(object):
                                       NPV, fuel_cost)],
                                     dtype=dtype)
             design_array = append_for_np_array(design_array, add_design)                    
+        return design_array
+
+    def calc_design_m(self, index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, combination_str, result_path):
+        column_names    = ['hull_id',
+                           'engine_id',
+                           'propeller_id',
+                           'NPV',
+                           'fuel_cost']
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
+                           'formats': (np.int, np.int , np.int, np.float, np.float)})
+        design_array = np.array([], dtype=dtype)        
+        simulation_times = devided_simulation_times[index]
+        for simulation_time in simulation_times:
+            start_time                 = time.clock()
+            seed_num                   = common_seed_num * index + simulation_time
+            np.random.seed(common_seed_num)
+            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            component_ids              = get_component_ids_from_design_key(combination_str)
+            hull, engine, propeller    = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation #
+            agent                      = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
+            end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
+            NPV, fuel_cost             = agent.simmulate()
+            # write npv and fuel_cost file
+            output_dir_path            = "%s/%s" % (result_path, combination_str)
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(agent.NPV.dtype.names, agent.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(agent.fuel_cost.dtype.names, agent.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+            # conduct simulation #
+            # ignore aborted simmulation
+            if NPV is None:
+                continue
+            # write simmulation result
+            output_file_path = "%s/%s_core%d.csv" % (result_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            write_csv(column_names, [hull.base_data['id'],
+                                     engine.base_data['id'],
+                                     propeller.base_data['id'],
+                                     NPV, fuel_cost, lap_time], output_file_path)
+            add_design   = np.array([(hull.base_data['id'],
+                                      engine.base_data['id'],
+                                      propeller.base_data['id'],
+                                      NPV, fuel_cost)],
+                                    dtype=dtype)
+            design_array = append_for_np_array(design_array, add_design)                    
         return design_array        
 
+    def calc_integrated_design_m(self, index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, output_integrated_dir_path):
+        column_names     = ['simulation_time',
+                            'hull_id',
+                            'engine_id',
+                            'propeller_id',
+                            'NPV',
+                            'fuel_cost']
+        dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
+                           'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
+        design_array     = np.array([], dtype=dtype)        
+        simulation_times = devided_simulation_times[index]
+
+        for simulation_time in simulation_times:
+            start_time                 = time.clock()
+            seed_num                   = common_seed_num * index + simulation_time
+            np.random.seed(common_seed_num)
+            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            component_ids              = get_component_ids_from_design_key(base_design_key)
+            hull, engine, propeller    = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation #
+            agent                      = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
+            agent.output_dir_path      = self.output_dir_path
+            end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
+            NPV, fuel_cost             = agent.simmulate(hull, engine, propeller, None, None, retrofit_design_key)
+            # write npv and fuel_cost file
+            output_dir_path            = "%s/%s" % (output_integrated_dir_path, base_design_key)
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(agent.NPV.dtype.names, agent.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(agent.fuel_cost.dtype.names, agent.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+            # conduct simulation #
+            # ignore aborted simmulation
+            if NPV is None:
+                continue
+            # write simmulation result
+            output_file_path = "%s/%s_core%d.csv" % (output_integrated_dir_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            write_csv(column_names, [simulation_time,
+                                     hull.base_data['id'],
+                                     engine.base_data['id'],
+                                     propeller.base_data['id'],
+                                     NPV, fuel_cost, lap_time], output_file_path)
+            add_design   = np.array([(simulation_time,
+                                      hull.base_data['id'],
+                                      engine.base_data['id'],
+                                      propeller.base_data['id'],
+                                      NPV, fuel_cost)],
+                                    dtype=dtype)
+            design_array = append_for_np_array(design_array, add_design)                    
+        return design_array        
+    
     ## multi processing method ##
     def only_create_velocity_combinations(self):
         # load components list
@@ -1230,6 +1335,58 @@ class Agent(object):
             return None
         
         return retrofit_design
+
+    def check_significant_retrofit(self):
+        retrofit_flag = False
+        ## DEBUG ##        
+        retrofit_duration_years = 1
+        retrofit_simulate_count = 2
+
+        # get retrofit components
+        retrofit_hull, retrofit_engine, retrofit_propeller = self.get_retrofit_components()
+        npv_for_current_design  = {}
+        npv_for_retrofit_design = {}
+        for scenario_num in range(retrofit_simulate_count):
+            # current design #
+            # fix the random seed #                
+            np.random.seed(retrofit_simulate_count * scenario_num)
+            ## generate scenairo, world scale and flat rate
+            sinario                    = Sinario(self.sinario.history_data)
+            world_scale                = WorldScale(self.world_scale.history_data)
+            flat_rate                  = FlatRate(self.flat_rate.history_data)
+            generate_market_scenarios(sinario, world_scale, flat_rate, self.sinario_mode, retrofit_duration_years)
+            # conduct simulation #
+            agent                                = Agent(sinario, world_scale, flat_rate, RETROFIT_MODE['none'], self.sinario_mode, self.bf_mode, self.hull, self.engine, self.propeller)
+            start_date                           = search_near_index(self.current_date, sinario.predicted_data['date'])
+            end_date                             = add_year(str_to_date(sinario.predicted_data['date'][0]), retrofit_duration_years)
+            agent.operation_date_array           = generate_operation_date(start_date, end_date)
+            # get component
+            NPV, fuel_cost                       = agent.simmulate()
+            npv_for_current_design[scenario_num] = NPV
+            # retrofitted design
+            # conduct simulation #
+            agent                                 = Agent(sinario, world_scale, flat_rate, RETROFIT_MODE['none'], self.sinario_mode, self.bf_mode, retrofit_hull, retrofit_engine, retrofit_propeller)
+            start_date                            = search_near_index(self.current_date, sinario.predicted_data['date'])
+            end_date                              = add_year(str_to_date(sinario.predicted_data['date'][0]), retrofit_duration_years)
+            agent.operation_date_array            = generate_operation_date(start_date, end_date)
+            # get component
+            NPV, fuel_cost                        = agent.simmulate()
+            npv_for_retrofit_design[scenario_num] = NPV
+
+        # output NPV 
+        dockin_date_str = "%s-%s" % (self.current_date, self.latest_dockin_date)
+        output_dir_path = "%s/dock-in-log/%s" % (self.output_dir_path, dockin_date_str)
+        initializeDirHierarchy(output_dir_path)
+        write_file_as_json(npv_for_current_design, "%s/npv_current_design.json" % (output_dir_path))
+        write_file_as_json(npv_for_retrofit_design, "%s/npv_retrofit_design.json" % (output_dir_path))
+        # output NPV
+
+        # update flag
+        # subtract retrofits cost
+        #retrofit_cost = self.check_component_changes(retrofit_hull, retrofit_engine, retrofit_propeller)
+        #NPV           -= retrofit_cost
+        
+        return np.average(npv_for_retrofit_design.values()) > np.average(npv_for_current_design.values())
 
     def get_target_combinations(self):
         dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id'),
@@ -1563,3 +1720,18 @@ class Agent(object):
         flat_rate   = np.array( flat_rate, dtype=self.flat_rate.predicted_data.dtype)
 
         return scenario, world_scale, flat_rate
+
+    # hull, engine, propeller
+    def get_retrofit_components(self):
+        if self.retrofit_design_key is None:
+            return None
+        # load components list
+        hull_list           = load_hull_list()
+        engine_list         = load_engine_list()
+        propeller_list      = load_propeller_list()                
+        retrofit_component_ids = map(int, get_component_ids_from_design_key(self.retrofit_design_key))
+        return get_component_from_id_array(retrofit_component_ids, hull_list, engine_list, propeller_list)
+
+    def conduct_retrofit(self):
+        self.hull, self.engine, self.propeller = self.get_retrofit_components()
+        return
