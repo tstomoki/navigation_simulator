@@ -176,10 +176,18 @@ def run(options):
                                                DERIVE_SINARIO_MODE['binomial'],
                                                BF_MODE['calm'])
             agent.output_dir_path = output_integrated_dir_path
-            agent.calc_integrated_design_m(0, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, output_integrated_dir_path)
+            
+
+            # multi processing #
+            callback              = [pool.apply_async(agent.calc_integrated_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, output_integrated_dir_path)) for index in xrange(PROC_NUM)]
+            callback_combinations = [p.get() for p in callback]
+            ret_combinations      = flatten_3d_to_2d(callback_combinations)
+            pool.close()
+            pool.join()
+            # multi processing #            
 
             # significant case
-            design_key           = base_design
+            design_key           = base_design_key
             # initialize
             retrofit_mode        = RETROFIT_MODE['none']
             # fix seed #
@@ -190,7 +198,6 @@ def run(options):
                                          DERIVE_SINARIO_MODE['binomial'],
                                          BF_MODE['calm'])
             output_case_dir_path = "%s/%s_design" % (output_dir_path, case_mode)
-            agent.calc_design_m(0, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, design_key, output_case_dir_path)
             # multi processing #
             callback              = [pool.apply_async(agent.calc_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, design_key, output_case_dir_path)) for index in xrange(PROC_NUM)]
             callback_combinations = [p.get() for p in callback]
