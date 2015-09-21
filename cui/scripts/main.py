@@ -148,7 +148,7 @@ def run(options):
     engine_list         = load_engine_list()
     propeller_list      = load_propeller_list()
     if retrofit_mode:
-        oilprice_modes = [ 'oilprice_' + s for s in ['high', 'low', 'medium']]
+        oilprice_modes = [ 'oilprice_' + s for s in ['high', 'low']]
         
         # search initial_design
         for oilprice_mode in oilprice_modes:
