@@ -154,13 +154,7 @@ def run(options):
         common_seed_num           = 19901129
         simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = 30
-        ## DEBUG ##
-        simulation_duration_years = 1
-        simulation_times          = 2
-        ## DEBUG ##
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
-        # initialize
-        pool                      = mp.Pool(PROC_NUM)
         for case_mode in case_modes:
             # integrated case
             base_design_key            = eval(case_mode + "_design_key")
@@ -177,8 +171,9 @@ def run(options):
                                                BF_MODE['calm'])
             agent.output_dir_path = output_integrated_dir_path
             
-
             # multi processing #
+            # initialize
+            pool                  = mp.Pool(PROC_NUM)
             callback              = [pool.apply_async(agent.calc_integrated_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, output_integrated_dir_path)) for index in xrange(PROC_NUM)]
             callback_combinations = [p.get() for p in callback]
             ret_combinations      = flatten_3d_to_2d(callback_combinations)
@@ -198,7 +193,10 @@ def run(options):
                                          DERIVE_SINARIO_MODE['binomial'],
                                          BF_MODE['calm'])
             output_case_dir_path = "%s/%s_design" % (output_dir_path, case_mode)
+            
             # multi processing #
+            # initialize
+            pool                  = mp.Pool(PROC_NUM)
             callback              = [pool.apply_async(agent.calc_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, design_key, output_case_dir_path)) for index in xrange(PROC_NUM)]
             callback_combinations = [p.get() for p in callback]
             ret_combinations      = flatten_3d_to_2d(callback_combinations)

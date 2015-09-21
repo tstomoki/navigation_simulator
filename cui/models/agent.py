@@ -1338,9 +1338,8 @@ class Agent(object):
 
     def check_significant_retrofit(self):
         retrofit_flag = False
-        ## DEBUG ##        
-        retrofit_duration_years = 1
-        retrofit_simulate_count = 2
+        retrofit_duration_years = 5
+        retrofit_simulate_count = 10
 
         # get retrofit components
         retrofit_hull, retrofit_engine, retrofit_propeller = self.get_retrofit_components()
