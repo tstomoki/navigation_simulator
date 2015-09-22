@@ -341,14 +341,7 @@ class Agent(object):
                             self.retrofit_count_limit = 0
                         else:
                             self.update_age_effect()
-                    else:
-                        retrofit_design = self.check_retrofit()
-                        if not retrofit_design is None:
-                            hull, engine, propeller = change_design(retrofit_design)
-                            self.clear_age_effect()
-                        else:
-                            self.update_age_effect()
-                    
+                            
                 # update cash flow
                 self.cash_flow       += CF_day
                 self.total_cash_flow += CF_day
