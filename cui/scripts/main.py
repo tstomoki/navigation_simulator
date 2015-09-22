@@ -148,9 +148,9 @@ def run(options):
     engine_list         = load_engine_list()
     propeller_list      = load_propeller_list()
     if retrofit_mode == '2':
-        high_design_key           = "H1E3P514"
-        low_design_key            = "H2E1P514"
-        case_modes                = ['high', 'low']
+        high_design_key           = "H2E3P514"
+        low_design_key            = "H1E1P514"
+        case_modes                = ['low', 'high']
         common_seed_num           = 19901129
         simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = 30
