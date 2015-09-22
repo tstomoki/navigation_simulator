@@ -338,6 +338,7 @@ class Agent(object):
                         if self.check_significant_retrofit():
                             self.conduct_retrofit()
                             self.clear_age_effect()
+                            self.retrofit_count_limit = 0
                         else:
                             self.update_age_effect()
                     else:
@@ -1027,7 +1028,7 @@ class Agent(object):
         for simulation_time in simulation_times:
             start_time                 = time.clock()
             seed_num                   = common_seed_num * index + simulation_time
-            np.random.seed(common_seed_num)
+            np.random.seed(seed_num)
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             component_ids              = get_component_ids_from_design_key(combination_str)
             hull, engine, propeller    = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
@@ -1075,13 +1076,13 @@ class Agent(object):
         for simulation_time in simulation_times:
             start_time                 = time.clock()
             seed_num                   = common_seed_num * index + simulation_time
-            np.random.seed(common_seed_num)
-            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            np.random.seed(seed_num)
             component_ids              = get_component_ids_from_design_key(base_design_key)
             hull, engine, propeller    = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation #
             agent                      = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
             agent.output_dir_path      = self.output_dir_path
+            generate_market_scenarios(agent.sinario, agent.world_scale, agent.flat_rate, self.sinario_mode, simulation_duration_years)
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
             NPV, fuel_cost             = agent.simmulate(hull, engine, propeller, None, None, retrofit_design_key)
@@ -1337,6 +1338,9 @@ class Agent(object):
         return retrofit_design
 
     def check_significant_retrofit(self):
+        if not self.retrofittable():
+            return False
+
         retrofit_flag = False
         retrofit_duration_years = 5
         retrofit_simulate_count = 10
@@ -1734,3 +1738,6 @@ class Agent(object):
     def conduct_retrofit(self):
         self.hull, self.engine, self.propeller = self.get_retrofit_components()
         return
+
+    def retrofittable(self):
+        return (not self.retrofit_count_limit == 0)

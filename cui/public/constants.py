@@ -71,7 +71,7 @@ LOAD_DAYS = 2
 
 # dock-in
 ## dock-in period [years] 
-DOCK_IN_PERIOD   = 0.1
+DOCK_IN_PERIOD   = 2
 ## dock-in duration [month]
 DOCK_IN_DURATION = 1
 
