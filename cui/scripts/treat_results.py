@@ -48,13 +48,14 @@ def run(options):
     return
 
 def draw_fuel_cost(result_dir_path):
-    optimal_design_key_low  = "H1E1P0"
-    optimal_design_key_high = "H2E2P257"
+    optimal_design_key_low  = "H1E1P514"
+    optimal_design_key_high = "H2E3P514"
     if result_dir_path is None:
         print 'No result_dir_path. abort'
         return
-    target_dirs = os.listdir(result_dir_path)
-    target_dirs = [ d for d in target_dirs if not d == 'aggregated_results']
+    target_dirs      = os.listdir(result_dir_path)
+    target_dirs      = [ d for d in target_dirs if (d != 'aggregated_results') and (d[-4:] != 'xlsx')]
+    output_file_path = "%s/fuel_cost_transition.png" % (result_dir_path)
 
     # for csv import
     # initialize
@@ -62,36 +63,55 @@ def draw_fuel_cost(result_dir_path):
                      'formats': ('S10', np.float)})
     # draw graph
     title       = "fuel cost".title()
-    x_label     = "Date".upper()
-    y_label     = "fuel cost".upper()
-    graphInitializer(title, x_label, y_label)
-    line_colors = ['k', 'k', 'r', 'r']
-    line_styles = ['-', '--', '-', '--']
-
+    x_label     = "date".upper()
+    y_label     = "fuel cost [USD]".upper()
+    line_colors = {'low': {'high': 'k', 'low':'r'}, 'high': {'high': 'b', 'low':'g'}}
+    line_styles = {'low': {'high': '-', 'low':'--'}, 'high': {'high': '-.', 'low':':'}}
+    
     for target_dir in target_dirs:
         desti_dir = "%s/%s" % (result_dir_path,
                                target_dir)
         if os.path.exists(desti_dir):
+            oilprice_mode    = re.compile(r'oilprice_(.+)').search(target_dir)
+            if oilprice_mode is None:
+                continue
+            else:
+                oilprice_mode = oilprice_mode.groups()[0]
             npv_result       = {}
             fuel_cost_result = {}
             files            = os.listdir(desti_dir)
-
             # for optimal high and design
-            for mode in ['high', 'low']:
-                optimal_design_dir_path = "%s/%s" % (desti_dir, eval("optimal_design_key_" + mode))
+            for mode in ['low', 'high']:
+                # for low design
+                optimal_design_key      = eval("optimal_design_key_%s" % (mode))
+                optimal_design_dir_path = "%s/%s" % (desti_dir, optimal_design_key)
                 fuel_file_path          = "%s/fuel_cost.csv" % (optimal_design_dir_path)
                 data                    = np.genfromtxt(fuel_file_path,
-                                                             delimiter=',',
-                                                             dtype=dt,
-                                                             skiprows=1)
-                
+                                                        delimiter=',',
+                                                        dtype=dt,
+                                                        skiprows=1)
+                draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['fuel_cost']] for _d in data]
+                draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+                draw_label = "%s(at %s oilprice)" % (optimal_design_key, oilprice_mode)
+                plt.plot(draw_data.transpose()[0],
+                         draw_data.transpose()[1],
+                         label=draw_label,
+                         color=line_colors[oilprice_mode][mode], linestyle=line_styles[oilprice_mode][mode])
+
+    start_date = draw_data.transpose()[0].min()
+    end_date   = start_date + datetime.timedelta(days=365)
+    days_delta = (end_date - start_date).days
+    title = "%s (%d days)\n" % (title, days_delta)
+    plt.title(title,          fontweight="bold")
+    plt.xlabel(x_label,       fontweight="bold")
+    plt.ylabel(y_label,       fontweight="bold")    
     plt.legend(shadow=True)
-    plt.legend(loc='upper left')
-    plt.xlim(0.05, 0.25)
-    plt.ylim(0, 4)    
-    output_file_path = "%s/hull_features.png" % (GRAPH_DIR_PATH)
+    plt.legend(loc='upper right')
+    plt.axhline(linewidth=1.0, color='k')
+    #plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])
+    plt.xlim(start_date, end_date)
+    plt.ylim(0, 170000)
     plt.savefig(output_file_path)
-    set_trace()
     return 
 
 def aggregate_results(result_dir_path):
