@@ -1020,7 +1020,7 @@ class Agent(object):
         simulation_times = devided_simulation_times[index]
         for simulation_time in simulation_times:
             start_time                 = time.clock()
-            seed_num                   = common_seed_num + simulation_time
+            seed_num                   = common_seed_num * simulation_time
             np.random.seed(seed_num)
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             component_ids              = get_component_ids_from_design_key(combination_str)
@@ -1069,7 +1069,7 @@ class Agent(object):
 
         for simulation_time in simulation_times:
             start_time                 = time.clock()
-            seed_num                   = common_seed_num + simulation_time
+            seed_num                   = common_seed_num * simulation_time
             np.random.seed(seed_num)
             component_ids              = get_component_ids_from_design_key(base_design_key)
             hull, engine, propeller    = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
