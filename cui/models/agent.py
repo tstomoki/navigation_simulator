@@ -1347,7 +1347,7 @@ class Agent(object):
         for scenario_num in range(retrofit_simulate_count):
             # current design #
             # fix the random seed #                
-            np.random.seed(retrofit_simulate_count * scenario_num)
+            np.random.seed(retrofit_simulate_count + scenario_num + self.simulate_log_index)
             ## generate scenairo, world scale and flat rate
             sinario                    = Sinario(self.sinario.history_data)
             world_scale                = WorldScale(self.world_scale.history_data)
