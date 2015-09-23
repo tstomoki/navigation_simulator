@@ -1020,7 +1020,7 @@ class Agent(object):
         simulation_times = devided_simulation_times[index]
         for simulation_time in simulation_times:
             start_time                 = time.clock()
-            seed_num                   = common_seed_num * index + simulation_time
+            seed_num                   = common_seed_num + simulation_time
             np.random.seed(seed_num)
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             component_ids              = get_component_ids_from_design_key(combination_str)
@@ -1028,10 +1028,11 @@ class Agent(object):
             # conduct simulation #
             agent                      = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            agent.simulate_log_index   = simulation_time
             agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
             NPV, fuel_cost             = agent.simmulate()
             # write npv and fuel_cost file
-            output_dir_path            = "%s/%s" % (result_path, combination_str)
+            output_dir_path            = "%s/%s/simulate%d" % (result_path, combination_str, agent.simulate_log_index)
             initializeDirHierarchy(output_dir_path)
             write_array_to_csv(agent.NPV.dtype.names, agent.NPV, "%s/npv.csv" % (output_dir_path))
             write_array_to_csv(agent.fuel_cost.dtype.names, agent.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
@@ -1068,19 +1069,20 @@ class Agent(object):
 
         for simulation_time in simulation_times:
             start_time                 = time.clock()
-            seed_num                   = common_seed_num * index + simulation_time
+            seed_num                   = common_seed_num + simulation_time
             np.random.seed(seed_num)
             component_ids              = get_component_ids_from_design_key(base_design_key)
             hull, engine, propeller    = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation #
             agent                      = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
             agent.output_dir_path      = self.output_dir_path
+            agent.simulate_log_index   = simulation_time
             generate_market_scenarios(agent.sinario, agent.world_scale, agent.flat_rate, self.sinario_mode, simulation_duration_years)
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
             NPV, fuel_cost             = agent.simmulate(hull, engine, propeller, None, None, retrofit_design_key)
             # write npv and fuel_cost file
-            output_dir_path            = "%s/%s" % (output_integrated_dir_path, base_design_key)
+            output_dir_path            = "%s/%s/simulate%d" % (output_integrated_dir_path, base_design_key, agent.simulate_log_index)
             initializeDirHierarchy(output_dir_path)
             write_array_to_csv(agent.NPV.dtype.names, agent.NPV, "%s/npv.csv" % (output_dir_path))
             write_array_to_csv(agent.fuel_cost.dtype.names, agent.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
@@ -1371,7 +1373,7 @@ class Agent(object):
 
         # output NPV 
         dockin_date_str = "%s-%s" % (self.current_date, self.latest_dockin_date)
-        output_dir_path = "%s/dock-in-log/%s" % (self.output_dir_path, dockin_date_str)
+        output_dir_path = "%s/dock-in-log/simulate%d/%s" % (self.output_dir_path, self.simulate_log_index, dockin_date_str)
         initializeDirHierarchy(output_dir_path)
         write_file_as_json(npv_for_current_design, "%s/npv_current_design.json" % (output_dir_path))
         write_file_as_json(npv_for_retrofit_design, "%s/npv_retrofit_design.json" % (output_dir_path))
@@ -1381,8 +1383,21 @@ class Agent(object):
         # subtract retrofits cost
         #retrofit_cost = self.check_component_changes(retrofit_hull, retrofit_engine, retrofit_propeller)
         #NPV           -= retrofit_cost
-        
-        return np.average(npv_for_retrofit_design.values()) > np.average(npv_for_current_design.values())
+
+        average_npv_of_rd = np.average(npv_for_retrofit_design.values())
+        average_npv_of_ct = np.average(npv_for_current_design.values())
+
+        retrofit_flag = False
+        if average_npv_of_rd > average_npv_of_ct:
+            retrofit_flag = True
+            # write file
+            output_file_path = "%s/dock-in-log/simulate%d/retrofit_log.txt" % (self.output_dir_path, self.simulate_log_index)
+            f = open(output_file_path, 'w')
+            f.write("retrofit is conducted on %s \n" % (self.current_date))
+            f.write("average NPV of current design: %20lf \n" % (average_npv_of_ct))
+            f.write("average NPV of retrofit design: %20lf \n" % (average_npv_of_rd))
+            f.close()            
+        return retrofit_flag
 
     def get_target_combinations(self):
         dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id'),

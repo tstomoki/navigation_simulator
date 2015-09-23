@@ -170,7 +170,7 @@ def run(options):
                                                DERIVE_SINARIO_MODE['binomial'],
                                                BF_MODE['calm'])
             agent.output_dir_path = output_integrated_dir_path
-            
+
             # multi processing #
             # initialize
             pool                  = mp.Pool(PROC_NUM)
@@ -235,9 +235,7 @@ def run(options):
                         devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
             devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
 
-            # debug
             simulation_duration_years = VESSEL_LIFE_TIME
-            #agent.calc_significant_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)
 
             # initialize
             pool                      = mp.Pool(PROC_NUM)
