@@ -426,14 +426,14 @@ def draw_retrofit_result(result_dir_path):
         dt   = np.dtype({'names': ('date','npv'),
                          'formats': ('S10', np.float)})        
         # npv comparison
-        index_num     = 0
+        index_num     = 11
         retrofit_date = datetime.datetime(2021, 4, 12)
         # draw graph
         title       = "NPV".title()
         x_label     = "date".upper()
         y_label     = "PV [USD]".upper()
-        ## for integrated
-        desti_dir   = "%s/%s/integrated" % (result_dir_path, target_dir)
+        ## for flexible
+        desti_dir   = "%s/%s/flexible" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
             # calc average npv from initial_designs
             files        = os.listdir(desti_dir)
@@ -447,14 +447,15 @@ def draw_retrofit_result(result_dir_path):
                 draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
                 draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
                 #draw_data = np.array([_d for _d in sorted(draw_data, key= lambda x : x[0]) if _d[0] >= retrofit_date])
-                plt.axvline(x=retrofit_date, color='k', linewidth=4, linestyle='--')
+                # for retrofit date
+                plt.axvline(x=retrofit_date, color='k', linewidth=4, linestyle='--')                
                 draw_label = "%s (Flexible)" % (target_file)
                 plt.plot(draw_data.transpose()[0],
                          draw_data.transpose()[1],
                          label=draw_label,
                          color='r', linestyle='-')
         # for no retrofit
-        desti_dir   = "%s/%s" % (result_dir_path, target_dir)
+        desti_dir   = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
             # calc average npv from initial_designs
             files        = os.listdir(desti_dir)
@@ -471,8 +472,14 @@ def draw_retrofit_result(result_dir_path):
                          draw_data.transpose()[1],
                          label=target_file,
                          color='g', linestyle='--')
+
+                # debug
+                # for first dock-in
+                #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')                               
         plt.legend(shadow=True)
         plt.legend(loc='upper left')
+        #debug
+        #plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
         plt.savefig("%s/%s/simulate%d.png" % (result_dir_path, target_dir, index_num))
         plt.close()
 
@@ -485,9 +492,9 @@ def draw_retrofit_result(result_dir_path):
                         "propeller_id",
                         "NPV",
                         "fuel_cost"]
-        
-        # for integrated
-        desti_dir = "%s/%s/integrated" % (result_dir_path, target_dir)
+        combination_key = None
+        # for flexible
+        desti_dir = "%s/%s/flexible" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
             # calc average npv from initial_designs
             files        = os.listdir(desti_dir)
@@ -502,24 +509,16 @@ def draw_retrofit_result(result_dir_path):
                 for _d in data:
                     s_num, h_id, e_id, p_id, npv, fuel_cost = _d
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
-                    if not npv_result.has_key(combination_key):
-                        npv_result[combination_key] = []
-                    npv_result[combination_key].append(npv)
+                    if not npv_result.has_key(s_num):
+                        npv_result[s_num] = []
+                    npv_result[s_num] = npv
             print "%s (%s, flexible): \n %10s: %20lf\n %10s: %20lf" % (combination_key,
-                                                             target_dir,
-                                                             'ave. NPV',
-                                                             np.average(npv_result[combination_key]),
-                                                             'std.', np.std(npv_result[combination_key]))
+                                                                       target_dir,
+                                                                       'ave. NPV',
+                                                                       np.average(npv_result.values()),
+                                                                       'std.', np.std(npv_result.values()))
         # for no retrofit
-        desti_dir = "%s/%s" % (result_dir_path, target_dir)
-        # initialize
-        dt   = np.dtype({'names': ('hull_id','engine_id','propeller_id','NPV', 'fuel_cost'),
-                         'formats': (np.int64, np.int64, np.int64, np.float, np.float)})        
-        column_names = ["hull_id",
-                        "engine_id",
-                        "propeller_id",
-                        "NPV",
-                        "fuel_cost"]        
+        desti_dir = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
             # calc average npv from initial_designs
             files        = os.listdir(desti_dir)
@@ -532,16 +531,16 @@ def draw_retrofit_result(result_dir_path):
                                      dtype=dt,
                                      skiprows=1)
                 for _d in data:
-                    h_id, e_id, p_id, npv, fuel_cost = _d
+                    s_num, h_id, e_id, p_id, npv, fuel_cost = _d                    
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
-                    if not npv_result.has_key(combination_key):
-                        npv_result[combination_key] = []
-                    npv_result[combination_key].append(npv)
+                    if not npv_result.has_key(s_num):
+                        npv_result[s_num] = []
+                    npv_result[s_num] = npv                    
             print "%s (%s): \n %10s: %20lf\n %10s: %20lf" % (combination_key,
                                                              target_dir,
                                                              'ave. NPV',
-                                                             np.average(npv_result[combination_key]),
-                                                             'std.', np.std(npv_result[combination_key]))        
+                                                             np.average(npv_result.values()),
+                                                             'std.', np.std(npv_result.values()))        
     return
 
 # authorize exeucation as main script
