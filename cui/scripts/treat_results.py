@@ -354,7 +354,7 @@ def aggregate_output(result_dir_path):
 
 def aggregate_significant_output(result_dir_path):
     target_dirs = os.listdir(result_dir_path)
-    target_dirs = [ d for d in target_dirs if not d == 'aggregated_results']
+    target_dirs = [ d for d in target_dirs if (d != 'aggregated_results') and ('.' not in d)]
 
     # initialize
     dt   = np.dtype({'names': ('hull_id','engine_id','propeller_id','NPV', 'fuel_cost'),
@@ -368,7 +368,7 @@ def aggregate_significant_output(result_dir_path):
                     'std of npv',
                     'fuel cost',
                     'std of fuel_cost']
-
+    
     for target_dir in target_dirs:
         desti_dir = "%s/%s" % (result_dir_path,
                                target_dir)
@@ -398,10 +398,10 @@ def aggregate_significant_output(result_dir_path):
             initializeDirHierarchy(output_dir_path)
             output_file_path = "%s/%s.csv" % (output_dir_path,
                                               target_dir)
-
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
 
+            draw_npv_histgram(npv_result, target_dir, output_dir_path)
             for design_key, npvs in npv_result.items():
                 hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
                 write_csv(column_names, [design_key,
@@ -541,6 +541,25 @@ def draw_retrofit_result(result_dir_path):
                                                              'ave. NPV',
                                                              np.average(npv_result.values()),
                                                              'std.', np.std(npv_result.values()))        
+    return
+
+def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
+    # draw graph
+    title    = "%s (at %s)" % ("NPV for each design".upper(), "oilprice_low".replace('_', ' '))
+    x_label  = "design id".upper()
+    y_label  = "PV [USD]".upper()
+    filepath = "%s/%s.png" % (output_dir_path, oilprice_mode)
+    dt       = np.dtype({'names': ('design_id','npv'),
+                     'formats': ('S10', np.float)})    
+    graphInitializer(title, x_label, y_label)
+    draw_data = np.array(sorted([(k, v[0]) for k,v in npv_result.items()], key=lambda x : x[1], reverse=True), dtype=dt)
+    ticks     = { i:_d for i, _d in enumerate(draw_data['design_id'])}
+    plt.bar( [ _i + 1 for _i in ticks.keys()], draw_data['npv'])
+    plt.xticks( [_i + 1 for _i in ticks.keys()], ticks.values(), rotation=50, fontsize=12)
+    plt.show()
+    #plt.savefig(filepath)
+    plt.close()    
+    
     return
 
 # authorize exeucation as main script
