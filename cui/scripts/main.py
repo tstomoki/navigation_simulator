@@ -168,7 +168,6 @@ def run(options):
                                         RETROFIT_MODE['significant'],
                                         sinario_mode, bf_mode)
             agent.output_dir_path      = "%s/%s_design" % (output_dir_path, case_mode)
-            
             # multi processing #
             # initialize
             pool                  = mp.Pool(PROC_NUM)

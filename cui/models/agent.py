@@ -378,26 +378,7 @@ class Agent(object):
             self.update_trip_days()
 
             # display current infomation
-            print "--------------Finished Date: %s--------------" % (self.current_date)
-            print "%25s: %10d"            % ('Hull ID'              , hull.base_data['id'])
-            print "%25s: %10d"            % ('Engine ID'            , engine.base_data['id'])
-            print "%25s: %10d"            % ('Propeller ID'         , propeller.base_data['id'])
-            print "%25s: %10d [days]"     % ('ballast trip days'    , self.ballast_trip_days)
-            print "%25s: %10d [days]"     % ('return trip days'     , self.return_trip_days)
-            print "%25s: %10d [days]"     % ('elapsed_days'         , self.elapsed_days)
-            print "%25s: %10d [days]"     % ('total_elapsed_days'   , self.total_elapsed_days)
-            print "%25s: %10s"            % ('load condition'       , self.load_condition_to_human())
-            print "%25s: %10.3lf [mile]"  % ('navigated_distance'   , navigated_distance)
-            print "%25s: %10.3lf [mile]"  % ('current_distance'     , self.current_distance)
-            print "%25s: %10.3lf [mile]"  % ('left_distance_to_port', self.left_distance_to_port)
-            print "%25s: %10.3lf [mile]"  % ('total_distance'       , self.total_distance)
-            print "%25s: %10s [rpm]"      % ('rpm'                  , ("%10.3lf" % rpm)    if not rpm is None else '----')
-            print "%25s: %10s [knot]"     % ('velocity'             , ("%10.3lf" % v_knot) if not v_knot is None else '----')
-            print "%25s: %10s [$/day]"    % ('Cash flow'            , number_with_delimiter(CF_day) if not CF_day is None else '----')
-            print "%25s: %10s [$/day]"    % ('Fuel Cost'            , number_with_delimiter(C_fuel) if not C_fuel is None else '----')
-            print "%25s: %10s [$]"        % ('Total Cash flow'      , number_with_delimiter(self.total_cash_flow))
-            print "%25s: %10s"            % ('Retrofit Mode'        , self.retrofit_mode_to_human())
-            print "--------------Retire Date: %s--------------" % (self.retire_date)
+            self.dispaly_current_infomation(navigated_distance, rpm, v_knot, CF_day, C_fuel)
 
             if log_mode:
                 self.update_CF_log(CF_day)
@@ -407,6 +388,29 @@ class Agent(object):
         whole_fuel_cost = round(np.sum(self.fuel_cost['fuel_cost_in_navigation']), 3)
         return whole_NPV, whole_fuel_cost
 
+    def dispaly_current_infomation(self, navigated_distance, rpm, v_knot, CF_day, C_fuel):
+        print "--------------Finished Date: %s--------------" % (self.current_date)
+        print "%25s: %10d"            % ('Hull ID'              , self.hull.base_data['id'])
+        print "%25s: %10d"            % ('Engine ID'            , self.engine.base_data['id'])
+        print "%25s: %10d"            % ('Propeller ID'         , self.propeller.base_data['id'])
+        print "%25s: %10d [days]"     % ('ballast trip days'    , self.ballast_trip_days)
+        print "%25s: %10d [days]"     % ('return trip days'     , self.return_trip_days)
+        print "%25s: %10d [days]"     % ('elapsed_days'         , self.elapsed_days)
+        print "%25s: %10d [days]"     % ('total_elapsed_days'   , self.total_elapsed_days)
+        print "%25s: %10s"            % ('load condition'       , self.load_condition_to_human())
+        print "%25s: %10.3lf [mile]"  % ('navigated_distance'   , navigated_distance)
+        print "%25s: %10.3lf [mile]"  % ('current_distance'     , self.current_distance)
+        print "%25s: %10.3lf [mile]"  % ('left_distance_to_port', self.left_distance_to_port)
+        print "%25s: %10.3lf [mile]"  % ('total_distance'       , self.total_distance)
+        print "%25s: %10s [rpm]"      % ('rpm'                  , ("%10.3lf" % rpm)    if not rpm is None else '----')
+        print "%25s: %10s [knot]"     % ('velocity'             , ("%10.3lf" % v_knot) if not v_knot is None else '----')
+        print "%25s: %10s [$/day]"    % ('Cash flow'            , number_with_delimiter(CF_day) if not CF_day is None else '----')
+        print "%25s: %10s [$/day]"    % ('Fuel Cost'            , number_with_delimiter(C_fuel) if not C_fuel is None else '----')
+        print "%25s: %10s [$]"        % ('Total Cash flow'      , number_with_delimiter(self.total_cash_flow))
+        print "%25s: %10s"            % ('Retrofit Mode'        , self.retrofit_mode_to_human())
+        print "--------------Retire Date: %s--------------" % (self.retire_date)
+        return
+    
     # define velocity and rps for given [hull, engine, propeller]
     def create_velocity_combination(self, hull, engine, propeller):
         ret_combinations = {}
@@ -1409,7 +1413,7 @@ class Agent(object):
             return False
 
         retrofit_flag = False
-        retrofit_duration_years = 5
+        retrofit_duration_years = self.calc_years_to_retire()
         retrofit_simulate_count = 10
 
         base_seed_num = COMMON_SEED_NUM * 2
@@ -1430,7 +1434,7 @@ class Agent(object):
             # conduct simulation #
             agent                                = Agent(sinario, world_scale, flat_rate, RETROFIT_MODE['none'], self.sinario_mode, self.bf_mode, self.hull, self.engine, self.propeller)
             start_date                           = search_near_index(self.current_date, sinario.predicted_data['date'])
-            end_date                             = add_year(str_to_date(sinario.predicted_data['date'][0]), retrofit_duration_years)
+            end_date                             = add_year(self.current_date, retrofit_duration_years)            
             agent.operation_date_array           = generate_operation_date(start_date, end_date)
             agent.simulate_log_index             = self.simulate_log_index
             # get component
@@ -1439,11 +1443,12 @@ class Agent(object):
             
             # retrofitted design
             # fix the random seed #
-            np.random.seed(base_seed_num + scenario_num + self.simulate_log_index)              generate_market_scenarios(sinario, world_scale, flat_rate, self.sinario_mode, retrofit_duration_years)
+            np.random.seed(base_seed_num + scenario_num + self.simulate_log_index)
+            generate_market_scenarios(sinario, world_scale, flat_rate, self.sinario_mode, retrofit_duration_years)
             # conduct simulation #
             agent                                 = Agent(sinario, world_scale, flat_rate, RETROFIT_MODE['none'], self.sinario_mode, self.bf_mode, retrofit_hull, retrofit_engine, retrofit_propeller)
             start_date                            = search_near_index(self.current_date, sinario.predicted_data['date'])
-            end_date                              = add_year(str_to_date(sinario.predicted_data['date'][0]), retrofit_duration_years)
+            end_date                              = add_year(self.current_date, retrofit_duration_years)                        
             agent.operation_date_array            = generate_operation_date(start_date, end_date)
             agent.simulate_log_index              = self.simulate_log_index            
             # get component
@@ -1828,3 +1833,7 @@ class Agent(object):
 
     def retrofittable(self):
         return (self.retrofit_mode != RETROFIT_MODE['none']) and (self.retrofit_count_limit != 0)
+
+    # calc years to retire with integer
+    def calc_years_to_retire():
+        return (self.retire_date - self.current_date).days / 365
