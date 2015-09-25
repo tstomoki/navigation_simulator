@@ -1412,7 +1412,7 @@ class Agent(object):
         if not self.retrofittable():
             return False
         retrofit_flag = False
-        retrofit_duration_years = self.calc_years_to_retire()
+        retrofit_duration_years = min(self.calc_years_to_retire(), 5)
         retrofit_simulate_count = 10
 
         base_seed_num = COMMON_SEED_NUM * 2
