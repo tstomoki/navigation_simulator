@@ -12,6 +12,9 @@ INITIAL_DESIGN_RESULT   = "%s/initial_design"  % (RESULT_DIR_PATH)
 NARROW_DOWN_RESULT_PATH = "%s/narrow_down_result"  % (INITIAL_DESIGN_RESULT)
 NARROWED_RESULT_PATH    = "%s/narrowed_result"  % (INITIAL_DESIGN_RESULT)
 
+# seed num
+COMMON_SEED_NUM         = 19901129
+
 # dir path from scripts
 NOHUP_LOG_DIR_PATH    = '../nohup'
 

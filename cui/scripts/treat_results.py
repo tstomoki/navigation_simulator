@@ -426,7 +426,7 @@ def draw_retrofit_result(result_dir_path):
         dt   = np.dtype({'names': ('date','npv'),
                          'formats': ('S10', np.float)})        
         # npv comparison
-        index_num     = 11
+        index_num     = 12
         retrofit_date = datetime.datetime(2021, 4, 12)
         # draw graph
         title       = "NPV".title()
@@ -495,28 +495,32 @@ def draw_retrofit_result(result_dir_path):
         combination_key = None
         # for flexible
         desti_dir = "%s/%s/flexible" % (result_dir_path, target_dir)
+        flexible_npv_result = {}
         if os.path.exists(desti_dir):
             # calc average npv from initial_designs
-            files        = os.listdir(desti_dir)
-            target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
-            target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
-            npv_result   = {}
+            files               = os.listdir(desti_dir)
+            target_files        = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+            target_files        = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+            flexible_npv_result = {}
             for target_file in target_files:
                 data = np.genfromtxt(target_file,
                                      delimiter=',',
                                      dtype=dt,
                                      skiprows=1)
+                if data.ndim == 0:
+                    data = np.atleast_1d(data)
                 for _d in data:
                     s_num, h_id, e_id, p_id, npv, fuel_cost = _d
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
-                    if not npv_result.has_key(s_num):
-                        npv_result[s_num] = []
-                    npv_result[s_num] = npv
-            print "%s (%s, flexible): \n %10s: %20lf\n %10s: %20lf" % (combination_key,
-                                                                       target_dir,
-                                                                       'ave. NPV',
-                                                                       np.average(npv_result.values()),
-                                                                       'std.', np.std(npv_result.values()))
+                    if not flexible_npv_result.has_key(s_num):
+                        flexible_npv_result[s_num] = []
+                    flexible_npv_result[s_num] = npv
+            print "%s (%s, flexible): \n %10s: %20lf\n %10s: %20lf (from %d results)" % (combination_key,
+                                                                                         target_dir,
+                                                                                         'ave. NPV',
+                                                                                         np.average(flexible_npv_result.values()),
+                                                                                         'std.', np.std(flexible_npv_result.values()),
+                                                                                         len(flexible_npv_result.values()))
         # for no retrofit
         desti_dir = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
@@ -536,11 +540,24 @@ def draw_retrofit_result(result_dir_path):
                     if not npv_result.has_key(s_num):
                         npv_result[s_num] = []
                     npv_result[s_num] = npv                    
-            print "%s (%s): \n %10s: %20lf\n %10s: %20lf" % (combination_key,
-                                                             target_dir,
-                                                             'ave. NPV',
-                                                             np.average(npv_result.values()),
-                                                             'std.', np.std(npv_result.values()))        
+            print "%s (%s): \n %10s: %20lf\n %10s: %20lf (from %d results)" % (combination_key,
+                                                                               target_dir,
+                                                                               'ave. NPV',
+                                                                               np.average(npv_result.values()),
+                                                                               'std.', np.std(npv_result.values())
+                                                                               , len(npv_result.values()))
+
+        print "\n\n\n\n%40s" % ("details".upper())
+        print "%10s %20s %10s %20s %20s %20s" % ('sim'.upper(), 'flexible'.upper(), 'sim'.upper(), 'no retrofit'.upper(), 'judgement'.upper(), 'delta'.upper())
+        iterate_count = max(len(flexible_npv_result), len(npv_result))
+        flexibles    = [ [_k, _v] for _k, _v in flexible_npv_result.items()]
+        no_retrofits = [ [_k, _v] for _k, _v in npv_result.items()]
+        for index in range(iterate_count):
+            flexible    = flexibles[index] if len(flexibles) > index else ['-', '-']
+            no_retrofit = no_retrofits[index] if len(no_retrofits) > index else ['-', '-']
+            judgement = 'flexible' if flexible[1] > no_retrofit[1] else 'no_retrofit'
+            print "%10s %20s %10s %20s %20s %20s" % (str(flexible[0]), str(flexible[1]),
+                                                     str(no_retrofit[0]), str(no_retrofit[1]), judgement, str(flexible[1]-no_retrofit[1]))
     return
 
 def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):

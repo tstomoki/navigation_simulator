@@ -151,55 +151,28 @@ def run(options):
         high_design_key           = "H2E3P514"
         low_design_key            = "H1E1P514"
         case_modes                = ['low', 'high']
-        common_seed_num           = 19901129
         simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = 30
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
         for case_mode in case_modes:
-            # integrated case
-            base_design_key            = eval(case_mode + "_design_key")
-            retrofit_case_mode         = [_e for _e in case_modes if not _e == case_mode][-1]
-            retrofit_design_key        = eval(retrofit_case_mode + "_design_key")
-            retrofit_mode              = RETROFIT_MODE['significant']
-            output_integrated_dir_path = "%s/%s_design/integrated" % (output_dir_path, case_mode)
-            initializeDirHierarchy(output_integrated_dir_path)
-            agent                      = Agent(base_sinario,
-                                               world_scale,
-                                               flat_rate,
-                                               retrofit_mode,
-                                               DERIVE_SINARIO_MODE['binomial'],
-                                               BF_MODE['calm'])
-            agent.output_dir_path = output_integrated_dir_path
-
-            # multi processing #
-            # initialize
-            pool                  = mp.Pool(PROC_NUM)
-            callback              = [pool.apply_async(agent.calc_integrated_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, output_integrated_dir_path)) for index in xrange(PROC_NUM)]
-            callback_combinations = [p.get() for p in callback]
-            ret_combinations      = flatten_3d_to_2d(callback_combinations)
-            pool.close()
-            pool.join()
-            # multi processing #
-
-            # significant case
-            design_key           = base_design_key
-            # initialize
-            retrofit_mode        = RETROFIT_MODE['none']
-            # fix seed #
-            agent                = Agent(base_sinario,
-                                         world_scale,
-                                         flat_rate,
-                                         retrofit_mode,
-                                         DERIVE_SINARIO_MODE['binomial'],
-                                         BF_MODE['calm'])
-            output_case_dir_path = "%s/%s_design" % (output_dir_path, case_mode)
+            if case_mode == 'high':
+                continue
+            base_design_key     = eval(case_mode + "_design_key")
+            retrofit_case_mode  = [_e for _e in case_modes if not _e == case_mode][-1]
+            retrofit_design_key = eval(retrofit_case_mode + "_design_key")
+            sinario_mode        = DERIVE_SINARIO_MODE['binomial']
+            bf_mode             = BF_MODE['calm']
+            agent               = Agent(base_sinario,
+                                        world_scale,
+                                        flat_rate,
+                                        RETROFIT_MODE['significant'],
+                                        sinario_mode, bf_mode)
+            agent.output_dir_path      = "%s/%s_design" % (output_dir_path, case_mode)
             
             # multi processing #
             # initialize
             pool                  = mp.Pool(PROC_NUM)
-            callback              = [pool.apply_async(agent.calc_design_m, args=(index, common_seed_num, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, design_key, output_case_dir_path)) for index in xrange(PROC_NUM)]
-            callback_combinations = [p.get() for p in callback]
-            ret_combinations      = flatten_3d_to_2d(callback_combinations)
+            callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key)) for index in xrange(PROC_NUM)]
             pool.close()
             pool.join()
             # multi processing #

@@ -166,20 +166,20 @@ class Agent(object):
         # static variables
         if self.operation_date_array is None:
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0])
-        self.origin_date           = self.operation_date_array[0]
-        self.retire_date           = self.operation_date_array[-1]
-        self.round_trip_distance   = NAVIGATION_DISTANCE * 2.0
-        self.NPV                   = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
+        self.origin_date         = self.operation_date_array[0]
+        self.retire_date         = self.operation_date_array[-1]
+        self.round_trip_distance = NAVIGATION_DISTANCE * 2.0
+        self.NPV                 = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
                                                            'formats': ('S20' , np.float)}))        
-        self.fuel_cost             = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
+        self.fuel_cost           = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
                                                            'formats': ('S20' , np.float)}))        
-        self.log                   = init_dict_from_keys_with_array(LOG_COLUMNS,
+        self.log                 = init_dict_from_keys_with_array(LOG_COLUMNS,
                                                                     np.dtype({'names': ('rpm', 'velocity'),
                                                                               'formats': (np.float , np.float)}))
-        self.total_cash_flow       = 0
-        self.total_NPV             = 0
-        self.total_distance        = 0
-        self.total_elapsed_days    = 0
+        self.total_cash_flow     = 0
+        self.total_NPV           = 0
+        self.total_distance      = 0
+        self.total_elapsed_days  = 0
 
         # dynamic variables
         self.current_date          = self.sinario.history_data['date'][-1]
@@ -191,20 +191,21 @@ class Agent(object):
         self.oilprice_full         = self.sinario.history_data[-1]['price']
 
         # market factors
-        self.current_oilprice      = self.oilprice_ballast
-        self.current_flat_rate     = self.flat_rate.history_data[-1]['fr']
-        self.current_world_scale   = self.world_scale.history_data[-1]['ws']
+        self.current_oilprice    = self.oilprice_ballast
+        self.current_flat_rate   = self.flat_rate.history_data[-1]['fr']
+        self.current_world_scale = self.world_scale.history_data[-1]['ws']
         
-        self.current_flat_rate     = self.flat_rate.history_data[-1]['fr']
-        self.current_fare          = self.calc_fare()
-        self.cash_flow             = 0
-        self.loading_flag          = False
-        self.loading_days          = 0
-        self.elapsed_days          = 0
-        self.latest_dockin_date    = self.origin_date
-        self.dockin_flag           = False
-        self.ballast_trip_days     = 0
-        self.return_trip_days      = 0
+        self.current_flat_rate  = self.flat_rate.history_data[-1]['fr']
+        self.current_fare       = self.calc_fare()
+        self.cash_flow          = 0
+        self.loading_flag       = False
+        self.loading_days       = 0
+        self.elapsed_days       = 0
+        self.latest_dockin_date = self.origin_date
+        self.dockin_flag        = False
+        self.dock_in_count      = 0
+        self.ballast_trip_days  = 0
+        self.return_trip_days   = 0
 
         # deteriorate
         self.d2d_det = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
@@ -334,20 +335,26 @@ class Agent(object):
                     self.clear_d2d()
                     # initiate dock-in
                     self.initiate_dockin()
+                    # consider age effect
+                    self.update_age_effect()
                     if self.retrofit_mode == RETROFIT_MODE['significant']:
                         if self.check_significant_retrofit():
                             self.conduct_retrofit()
-                            self.clear_age_effect()
                             self.retrofit_count_limit = 0
+                            self.clear_age_effect()
                         else:
-                            self.update_age_effect()
+                            # consider dock-to-dock deterioration
+                            self.update_d2d()
+                    else:
+                        # consider dock-to-dock deterioration
+                        self.update_d2d()                        
+                    # for the same random seed
+                    np.random.seed(COMMON_SEED_NUM + self.simulate_log_index + self.dock_in_count)
                             
                 # update cash flow
                 self.cash_flow       += CF_day
                 self.total_cash_flow += CF_day
 
-                # consider dock-to-dock deterioration
-                self.update_d2d()
                 # initialize the temporal variables
                 C_fuel = CF_day = rpm = v_knot = None
                 self.ballast_trip_days = 0
@@ -394,7 +401,6 @@ class Agent(object):
 
             if log_mode:
                 self.update_CF_log(CF_day)
-            
 
         # update whole NPV in vessel life time
         whole_NPV       = round(self.update_whole_NPV(), 3)
@@ -866,6 +872,7 @@ class Agent(object):
         import copy
         left_dock_date          = add_month(copy.deepcopy(self.current_date), DOCK_IN_DURATION)
         self.latest_dockin_date = left_dock_date
+        self.dock_in_count      += 1        
         self.dockin_flag = True
         return
 
@@ -1105,7 +1112,72 @@ class Agent(object):
                                       NPV, fuel_cost)],
                                     dtype=dtype)
             design_array = append_for_np_array(design_array, add_design)                    
-        return design_array        
+        return design_array
+
+    def calc_flexible_design_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key):
+        column_names     = ['simulation_time',
+                            'hull_id',
+                            'engine_id',
+                            'propeller_id',
+                            'NPV',
+                            'fuel_cost']
+        dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
+                           'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
+        design_array     = np.array([], dtype=dtype)        
+        simulation_times = devided_simulation_times[index]
+        for simulation_time in simulation_times:
+            # common process
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            self.simulate_log_index                = simulation_time
+
+            # for no retrofit design
+            start_time                 = time.clock()
+            np.random.seed(COMMON_SEED_NUM * simulation_time)
+            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            self.retrofit_mode         = RETROFIT_MODE['none']            
+            end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
+            NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)                        
+            ## write npv and fuel_cost file
+            output_dir_path            = "%s/no_retrofit/%s/simulate%d" % (self.output_dir_path, base_design_key, self.simulate_log_index)
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(self.NPV.dtype.names, self.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(self.fuel_cost.dtype.names, self.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+            # write simmulation result
+            output_dir_path  = "%s/no_retrofit" % (self.output_dir_path)
+            output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            write_csv(column_names, [simulation_time,
+                                     self.hull.base_data['id'],
+                                     self.engine.base_data['id'],
+                                     self.propeller.base_data['id'],
+                                     NPV, fuel_cost, lap_time], output_file_path)            
+            
+            # for flexible design
+            start_time                 = time.clock()
+            np.random.seed(COMMON_SEED_NUM * simulation_time)
+            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            self.retrofit_mode         = RETROFIT_MODE['significant']
+            end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
+            NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)            
+
+            ## write npv and fuel_cost file
+            output_dir_path            = "%s/flexible/%s/simulate%d" % (self.output_dir_path, base_design_key, self.simulate_log_index)
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(self.NPV.dtype.names, self.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(self.fuel_cost.dtype.names, self.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+            # write simmulation result
+            output_dir_path  = "%s/flexible" % (self.output_dir_path)
+            output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            write_csv(column_names, [simulation_time,
+                                     self.hull.base_data['id'],
+                                     self.engine.base_data['id'],
+                                     self.propeller.base_data['id'],
+                                     NPV, fuel_cost, lap_time], output_file_path)
+        return 
     
     ## multi processing method ##
     def only_create_velocity_combinations(self):
@@ -1323,7 +1395,7 @@ class Agent(object):
         retrofit_design =  potential_retrofit_designs[np.argmax(potential_retrofit_designs['NPV'], axis=0)]
         
         # draw NPV graph for retrofit
-        output_dir_path = "%s/dock-in-log" % (self.output_dir_path)
+        output_dir_path = "%s/flexible/dock-in-log" % (self.output_dir_path)
         initializeDirHierarchy(output_dir_path)
         dockin_date_str   = "%s-%s" % (self.current_date, self.latest_dockin_date)
         draw_NPV_for_retrofits(retrofit_design_log, output_dir_path, dockin_date_str, current_combinations)
@@ -1340,14 +1412,16 @@ class Agent(object):
         retrofit_duration_years = 5
         retrofit_simulate_count = 10
 
+        base_seed_num = COMMON_SEED_NUM * 2
+
         # get retrofit components
         retrofit_hull, retrofit_engine, retrofit_propeller = self.get_retrofit_components()
         npv_for_current_design  = {}
         npv_for_retrofit_design = {}
         for scenario_num in range(retrofit_simulate_count):
             # current design #
-            # fix the random seed #                
-            np.random.seed(retrofit_simulate_count + scenario_num + self.simulate_log_index)
+            # fix the random seed #
+            np.random.seed(base_seed_num + scenario_num + self.simulate_log_index)
             ## generate scenairo, world scale and flat rate
             sinario                    = Sinario(self.sinario.history_data)
             world_scale                = WorldScale(self.world_scale.history_data)
@@ -1358,19 +1432,24 @@ class Agent(object):
             start_date                           = search_near_index(self.current_date, sinario.predicted_data['date'])
             end_date                             = add_year(str_to_date(sinario.predicted_data['date'][0]), retrofit_duration_years)
             agent.operation_date_array           = generate_operation_date(start_date, end_date)
+            agent.simulate_log_index             = self.simulate_log_index
             # get component
             NPV, fuel_cost                       = agent.simmulate()
             npv_for_current_design[scenario_num] = NPV
+            
             # retrofitted design
+            # fix the random seed #
+            np.random.seed(base_seed_num + scenario_num + self.simulate_log_index)              generate_market_scenarios(sinario, world_scale, flat_rate, self.sinario_mode, retrofit_duration_years)
             # conduct simulation #
             agent                                 = Agent(sinario, world_scale, flat_rate, RETROFIT_MODE['none'], self.sinario_mode, self.bf_mode, retrofit_hull, retrofit_engine, retrofit_propeller)
             start_date                            = search_near_index(self.current_date, sinario.predicted_data['date'])
             end_date                              = add_year(str_to_date(sinario.predicted_data['date'][0]), retrofit_duration_years)
             agent.operation_date_array            = generate_operation_date(start_date, end_date)
+            agent.simulate_log_index              = self.simulate_log_index            
             # get component
             NPV, fuel_cost                        = agent.simmulate()
             npv_for_retrofit_design[scenario_num] = NPV
-
+       
         # output NPV 
         dockin_date_str = "%s-%s" % (self.current_date, self.latest_dockin_date)
         output_dir_path = "%s/dock-in-log/simulate%d/%s" % (self.output_dir_path, self.simulate_log_index, dockin_date_str)
@@ -1748,4 +1827,4 @@ class Agent(object):
         return
 
     def retrofittable(self):
-        return (not self.retrofit_count_limit == 0)
+        return (self.retrofit_mode != RETROFIT_MODE['none']) and (self.retrofit_count_limit != 0)
