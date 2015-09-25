@@ -1411,7 +1411,6 @@ class Agent(object):
     def check_significant_retrofit(self):
         if not self.retrofittable():
             return False
-
         retrofit_flag = False
         retrofit_duration_years = self.calc_years_to_retire()
         retrofit_simulate_count = 10
@@ -1835,5 +1834,5 @@ class Agent(object):
         return (self.retrofit_mode != RETROFIT_MODE['none']) and (self.retrofit_count_limit != 0)
 
     # calc years to retire with integer
-    def calc_years_to_retire():
+    def calc_years_to_retire(self):
         return (self.retire_date - self.current_date).days / 365

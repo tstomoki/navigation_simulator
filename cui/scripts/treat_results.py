@@ -419,7 +419,8 @@ def draw_retrofit_result(result_dir_path):
     if result_dir_path is None:
         print 'No result_dir_path. abort'
         return
-    target_dirs  = os.listdir(result_dir_path)
+    target_dirs     = os.listdir(result_dir_path)
+    base_design_key = None
 
     for target_dir in target_dirs:
         # initialize
@@ -472,12 +473,12 @@ def draw_retrofit_result(result_dir_path):
                          draw_data.transpose()[1],
                          label=target_file,
                          color='g', linestyle='--')
-
+                base_design_key = target_file
                 # debug
                 # for first dock-in
-                #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')                               
-        plt.legend(shadow=True)
-        plt.legend(loc='upper left')
+                #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')
+                plt.legend(shadow=True)
+                plt.legend(loc='upper left')
         #debug
         #plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
         plt.savefig("%s/%s/simulate%d.png" % (result_dir_path, target_dir, index_num))
@@ -515,12 +516,14 @@ def draw_retrofit_result(result_dir_path):
                     if not flexible_npv_result.has_key(s_num):
                         flexible_npv_result[s_num] = []
                     flexible_npv_result[s_num] = npv
-            print "%s (%s, flexible): \n %10s: %20lf\n %10s: %20lf (from %d results)" % (combination_key,
-                                                                                         target_dir,
-                                                                                         'ave. NPV',
-                                                                                         np.average(flexible_npv_result.values()),
-                                                                                         'std.', np.std(flexible_npv_result.values()),
-                                                                                         len(flexible_npv_result.values()))
+            base_design_key = base_design_key if base_design_key is not None else 'Base'
+            print "%s -> %s (%s, flexible): \n %10s: %20lf\n %10s: %20lf (from %d results)" % (base_design_key,
+                                                                                               combination_key,
+                                                                                               target_dir,
+                                                                                               'ave. NPV',
+                                                                                               np.average(flexible_npv_result.values()),
+                                                                                               'std.', np.std(flexible_npv_result.values()),
+                                                                                               len(flexible_npv_result.values()))
         # for no retrofit
         desti_dir = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
@@ -534,6 +537,8 @@ def draw_retrofit_result(result_dir_path):
                                      delimiter=',',
                                      dtype=dt,
                                      skiprows=1)
+                if data.ndim == 0:
+                    data = np.atleast_1d(data)                
                 for _d in data:
                     s_num, h_id, e_id, p_id, npv, fuel_cost = _d                    
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
@@ -550,14 +555,21 @@ def draw_retrofit_result(result_dir_path):
         print "\n\n\n\n%40s" % ("details".upper())
         print "%10s %20s %10s %20s %20s %20s" % ('sim'.upper(), 'flexible'.upper(), 'sim'.upper(), 'no retrofit'.upper(), 'judgement'.upper(), 'delta'.upper())
         iterate_count = max(len(flexible_npv_result), len(npv_result))
-        flexibles    = [ [_k, _v] for _k, _v in flexible_npv_result.items()]
-        no_retrofits = [ [_k, _v] for _k, _v in npv_result.items()]
+        flexibles     = [ [_k, _v] for _k, _v in flexible_npv_result.items()]
+        no_retrofits  = [ [_k, _v] for _k, _v in npv_result.items()]
         for index in range(iterate_count):
             flexible    = flexibles[index] if len(flexibles) > index else ['-', '-']
             no_retrofit = no_retrofits[index] if len(no_retrofits) > index else ['-', '-']
-            judgement = 'flexible' if flexible[1] > no_retrofit[1] else 'no_retrofit'
+
+            if (flexible[1] != '-' and no_retrofit[1] != '-'):
+                judgement = 'flexible' if flexible[1] > no_retrofit[1] else 'no_retrofit'
+                delta     = str(flexible[1]-no_retrofit[1])
+            else:
+                judgement = '-'
+                delta     = '-'
+                
             print "%10s %20s %10s %20s %20s %20s" % (str(flexible[0]), str(flexible[1]),
-                                                     str(no_retrofit[0]), str(no_retrofit[1]), judgement, str(flexible[1]-no_retrofit[1]))
+                                                     str(no_retrofit[0]), str(no_retrofit[1]), judgement, delta)
     return
 
 def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
