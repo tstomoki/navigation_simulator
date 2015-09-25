@@ -427,7 +427,7 @@ def draw_retrofit_result(result_dir_path):
         dt   = np.dtype({'names': ('date','npv'),
                          'formats': ('S10', np.float)})        
         # npv comparison
-        index_num     = 12
+        index_num     = 18
         retrofit_date = datetime.datetime(2021, 4, 12)
         # draw graph
         title       = "NPV".title()
@@ -455,6 +455,10 @@ def draw_retrofit_result(result_dir_path):
                          draw_data.transpose()[1],
                          label=draw_label,
                          color='r', linestyle='-')
+                '''
+                print 'flexible'
+                print sum(draw_data.transpose()[1])
+                '''
         # for no retrofit
         desti_dir   = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
         if os.path.exists(desti_dir):
@@ -474,6 +478,10 @@ def draw_retrofit_result(result_dir_path):
                          label=target_file,
                          color='g', linestyle='--')
                 base_design_key = target_file
+                '''
+                print 'no_retrofit'
+                print sum(draw_data.transpose()[1])
+                '''
                 # debug
                 # for first dock-in
                 #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')
@@ -557,19 +565,32 @@ def draw_retrofit_result(result_dir_path):
         iterate_count = max(len(flexible_npv_result), len(npv_result))
         flexibles     = [ [_k, _v] for _k, _v in flexible_npv_result.items()]
         no_retrofits  = [ [_k, _v] for _k, _v in npv_result.items()]
+        delta_array   = []
         for index in range(iterate_count):
-            flexible    = flexibles[index] if len(flexibles) > index else ['-', '-']
-            no_retrofit = no_retrofits[index] if len(no_retrofits) > index else ['-', '-']
+            if len(flexibles) > index:
+                flexible    = [ flexibles[index][0], "%17.3lf" % (flexibles[index][1])]
+            else:
+                flexible    = ['-', '-']
+            
+            if len(no_retrofits) > index:
+                no_retrofit = no_retrofits[index]
+                no_retrofit = [ no_retrofits[index][0], "%17.3lf" % (no_retrofits[index][1])]
+            else:
+                no_retrofit = ['-', '-']
 
             if (flexible[1] != '-' and no_retrofit[1] != '-'):
                 judgement = 'flexible' if flexible[1] > no_retrofit[1] else 'no_retrofit'
-                delta     = str(flexible[1]-no_retrofit[1])
+                delta     = "%17.3lf" % (float(flexible[1])-float(no_retrofit[1]))
             else:
                 judgement = '-'
                 delta     = '-'
-                
+            #if judgement == 'flexible':
+            delta_array.append(delta)
             print "%10s %20s %10s %20s %20s %20s" % (str(flexible[0]), str(flexible[1]),
                                                      str(no_retrofit[0]), str(no_retrofit[1]), judgement, delta)
+        delta_array = map(float, [_d for _d in delta_array if _d != '-'])
+        print 'ave. delta %20lf' % (np.average(map(float, delta_array)))
+        print 'ave. std %20lf' % (np.std(map(float, delta_array)))
     return
 
 def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):

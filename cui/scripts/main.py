@@ -65,7 +65,7 @@ def run(options):
     
     # draw multiple scenario part #
     # base_sinario.draw_multiple_scenarios(world_scale)
-    
+
     # correlation analysis #
     analyze_correlation(oil_price_history_data, world_scale_history_data,
                         {'start': datetime.datetime(2009, 1, 1), 'end': datetime.datetime.now()})
@@ -153,6 +153,9 @@ def run(options):
         case_modes                = ['low', 'high']
         simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = 30
+        # debug
+        simulation_duration_years = 10
+        simulation_times          = 20        
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
         for case_mode in case_modes:
             if case_mode == 'high':
