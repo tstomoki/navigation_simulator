@@ -46,6 +46,7 @@ def run(options):
     propeller_retrofit_ignore            = options.propeller_retrofit_ignore
     propeller_and_engine_retrofit_ignore = options.propeller_and_engine_retrofit_ignore
     retrofit_mode                        = options.retrofit_mode
+    final_mode                           = options.final_mode
 
     # load history data
     from_date = '2004/01/01'
@@ -191,6 +192,54 @@ def run(options):
                                                                          oil_price_history_data, 
                                                                          world_scale_history_data, 
                                                                          flat_rate_history_data)
+            # initialize
+            retrofit_mode = RETROFIT_MODE['none']
+            agent         = Agent(sinario,
+                                  world_scale,
+                                  flat_rate,
+                                  retrofit_mode,
+                                  'significant',
+                                  BF_MODE['calm'])
+
+            output_path = "%s/%s" % (output_dir_path, oilprice_mode)
+            initializeDirHierarchy(output_path)
+
+            devided_component_ids = []
+            for hull_info in hull_list:
+                for engine_info in engine_list:
+                    for propeller_info in propeller_list:
+                        devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
+            devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
+
+            simulation_duration_years = VESSEL_LIFE_TIME
+
+            # initialize
+            pool                      = mp.Pool(PROC_NUM)
+            # multi processing #
+            callback              = [pool.apply_async(agent.calc_significant_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)) for index in xrange(PROC_NUM)]
+
+            callback_combinations = [p.get() for p in callback]
+            ret_combinations      = flatten_3d_to_2d(callback_combinations)
+            pool.close()
+            pool.join()
+            # multi processing #
+        print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        sys.exit()
+
+    if final_mode:
+        significant_modes = ['high', 'low', 'dec', 'inc']
+        oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
+        # search initial_design
+        for oilprice_mode in oilprice_modes:
+            # generate sinario
+            sinario, world_scale, flat_rate = generate_final_significant_modes(oilprice_mode, 
+                                                                               oil_price_history_data, 
+                                                                               world_scale_history_data, 
+                                                                               flat_rate_history_data)
+        # visualize for debug
+        #sinario.draw_significant_oilprice_modes(oilprice_modes)
+        #world_scale.draw_significant_oilprice_modes(oilprice_modes, sinario)
+        
             # initialize
             retrofit_mode = RETROFIT_MODE['none']
             agent         = Agent(sinario,
@@ -387,6 +436,8 @@ if __name__ == '__main__':
                       help="ignore propeller and engine retrofit simulation if True", default=False)
     parser.add_option("-T", "--retrofit-mode", dest="retrofit_mode",
                       help="conduct retrofit case studies if True", default=False)
+    parser.add_option("-F", "--final-mode", dest="final_mode",
+                      help="conduct final case studies if True", default=False)    
 
     (options, args) = parser.parse_args()
     

@@ -19,7 +19,7 @@ RESULTSDIR = '../results/'
 class WorldScale:
     def __init__(self, history_data=None, neu=None, sigma=None, u=None, d=None, p=None, alpha=None, beta=None):
         self.default_xlabel = "date".title()
-        self.default_ylabel = "world scale".title()
+        self.default_ylabel = "world scale".title() + " [USD]"
         self.history_data   = load_world_scale_history_data() if history_data is None else history_data
         # initialize parameters
         if (neu is None or sigma is None or u is None or d is None or p is None or alpha is None or beta is None):
@@ -143,6 +143,11 @@ class WorldScale:
 
         current_date = latest_history_date
         current_ws   = latest_ws
+        if isinstance(significant_world_scale, list):
+            xlist = np.array([0, predict_months_num])
+            tlist = np.array(significant_world_scale)
+            wlist = estimate(xlist, tlist, 1)
+            significant_world_scale_array = {index: calc_y(index, wlist, 1) for index in range(predict_months_num)}        
         for predict_month_num in range(predict_months_num):
             current_date     = add_month(current_date)
             current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
@@ -150,6 +155,8 @@ class WorldScale:
             # change ws by mode
             if sinario_mode == 'medium':
                 current_ws = current_ws
+            elif sinario_mode == 'oilprice_dec' or sinario_mode == 'oilprice_inc':
+                current_ws = round(significant_world_scale_array[predict_month_num], 3)
             else:
                 current_ws = significant_world_scale
 
@@ -245,3 +252,51 @@ class WorldScale:
         output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
         plt.savefig(output_file_path)
         return
+    
+    def draw_significant_oilprice_modes(self, sinario_modes, sinario):
+        draw_data = np.array([])
+        title     = "world scale significant scenarios".title()
+        colors    = ['r', 'b', 'g','m', 'y', 'orange', 'aqua', 'brown']                    
+        graphInitializer(title,
+                         self.default_xlabel,
+                         self.default_ylabel)
+        # sinario
+        oil_price_history_data          = sinario.history_data
+        significant_high_oilprice_index = oil_price_history_data[np.argmax(oil_price_history_data['price'])]
+        significant_high_oilprice       = significant_high_oilprice_index['price']
+        significant_low_oilprice_index  = oil_price_history_data[np.argmin(oil_price_history_data['price'])]
+        significant_low_oilprice        = significant_low_oilprice_index['price']
+        
+        # world_scale
+        world_scale_history_data           = self.history_data
+        world_scale                        = WorldScale(oil_price_history_data)
+        significant_high_world_scale_index = search_near_index(str_to_date(significant_high_oilprice_index['date']), world_scale_history_data['date'])
+        significant_high_world_scale       = world_scale_history_data[np.where(world_scale_history_data['date']==significant_high_world_scale_index)[0]]['ws'][0]        
+        significant_low_world_scale_index  = search_near_index(str_to_date(significant_low_oilprice_index['date']), world_scale_history_data['date'])
+        significant_low_world_scale        = world_scale_history_data[np.where(world_scale_history_data['date']==significant_low_world_scale_index)[0]]['ws'][0]
+
+        for index, sinario_mode in enumerate(sinario_modes):
+            if sinario_mode == 'oilprice_low':
+                # set modes
+                significant_world_scale = significant_low_world_scale
+            elif sinario_mode == 'oilprice_high':
+                # set modes
+                significant_world_scale = significant_high_world_scale
+            elif sinario_mode == 'oilprice_dec':
+                # set modes
+                significant_world_scale = [significant_high_world_scale, significant_low_world_scale]
+            elif sinario_mode == 'oilprice_inc':
+                # set modes
+                significant_world_scale = [significant_low_world_scale, significant_high_world_scale]
+            world_scale.generate_significant_sinario(sinario_mode, significant_world_scale)
+            draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in world_scale.predicted_data]
+            draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
+            plt.plot(draw_data.transpose()[0],
+                     draw_data.transpose()[1],
+                     color=colors[index], lw=5, markersize=0, marker='o')
+            xlim_date = draw_data.transpose()[0].min()
+            plt.xlim([xlim_date, draw_data.transpose()[0].max()])
+        output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.savefig(output_file_path)            
+        return
+    

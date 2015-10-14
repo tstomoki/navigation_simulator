@@ -1347,3 +1347,58 @@ def generate_significant_modes(oilprice_mode,
 
 
     return sinario, world_scale, flat_rate
+
+def generate_final_significant_modes(oilprice_mode, 
+                                    oil_price_history_data, 
+                                    world_scale_history_data, 
+                                    flat_rate_history_data):
+    from sinario     import Sinario
+    from world_scale import WorldScale
+    from flat_rate   import FlatRate
+    sinario      = Sinario(oil_price_history_data)
+    world_scale  = WorldScale(world_scale_history_data)
+    flat_rate    = FlatRate(flat_rate_history_data)
+
+    # oilprice
+    significant_high_oilprice_index = oil_price_history_data[np.argmax(oil_price_history_data['price'])]
+    significant_high_oilprice       = significant_high_oilprice_index['price'] * MULTIPLY_INDEX
+    significant_low_oilprice_index  = oil_price_history_data[np.argmin(oil_price_history_data['price'])]
+    significant_low_oilprice        = significant_low_oilprice_index['price']
+    # world_scale
+    significant_high_world_scale_index = search_near_index(str_to_date(significant_high_oilprice_index['date']), world_scale_history_data['date'])
+    significant_high_world_scale       = world_scale_history_data[np.where(world_scale_history_data['date']==significant_high_world_scale_index)[0]]['ws'][0]        
+    significant_low_world_scale_index  = search_near_index(str_to_date(significant_low_oilprice_index['date']), world_scale_history_data['date'])
+    significant_low_world_scale        = world_scale_history_data[np.where(world_scale_history_data['date']==significant_low_world_scale_index)[0]]['ws'][0]
+    # flat_rate
+    significant_high_flat_rate_index = search_near_index(str_to_date(significant_high_oilprice_index['date']), flat_rate_history_data['date'])
+    significant_high_flat_rate       = flat_rate_history_data[np.where(flat_rate_history_data['date']==significant_high_flat_rate_index)[0]]['fr'][0]                
+    significant_low_flat_rate_index  = search_near_index(str_to_date(significant_low_oilprice_index['date']), flat_rate_history_data['date'])
+    significant_low_flat_rate        = flat_rate_history_data[np.where(flat_rate_history_data['date']==significant_low_flat_rate_index)[0]]['fr'][0]            
+
+    if oilprice_mode == 'oilprice_low':
+        # set modes
+        significant_oilprice    = significant_low_oilprice
+        significant_world_scale = significant_low_world_scale
+        significant_flat_rate   = significant_low_flat_rate        
+    elif oilprice_mode == 'oilprice_high':
+        # set modes
+        significant_oilprice    = significant_high_oilprice
+        significant_world_scale = significant_high_world_scale
+        significant_flat_rate   = significant_high_flat_rate
+    elif oilprice_mode == 'oilprice_dec':
+        # set modes
+        significant_oilprice    = [significant_high_oilprice, significant_low_oilprice]
+        significant_world_scale = [significant_high_world_scale, significant_low_world_scale]
+        significant_flat_rate   = [significant_high_flat_rate, significant_low_flat_rate]        
+    elif oilprice_mode == 'oilprice_inc':
+        # set modes
+        significant_oilprice    = [significant_low_oilprice, significant_high_oilprice]
+        significant_world_scale = [significant_low_world_scale, significant_high_world_scale]
+        significant_flat_rate   = [significant_low_flat_rate, significant_high_flat_rate]        
+        
+    # generate sinario
+    sinario.generate_significant_sinario(oilprice_mode, significant_oilprice)
+    world_scale.generate_significant_sinario(oilprice_mode, significant_world_scale)
+    flat_rate.generate_significant_flat_rate(oilprice_mode, significant_flat_rate)
+
+    return sinario, world_scale, flat_rate

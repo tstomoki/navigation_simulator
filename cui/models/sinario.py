@@ -20,7 +20,7 @@ RESULTSDIR = '../results/'
 class Sinario:
     def __init__(self, history_data=None, neu=None, sigma=None, u=None, d=None, p=None):
         self.default_xlabel   = "date".title()
-        self.default_ylabel   = "oil price".title() + " [$/barrel]"
+        self.default_ylabel   = "oil price".title() + " [USD]"
         if history_data is None:
             self.history_data = load_monthly_history_data()
             self.draw_history_data()
@@ -171,8 +171,14 @@ class Sinario:
         latest_history_date_str, latest_oilprice = self.history_data[-1]
         latest_history_date                      = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
 
-        current_date  = latest_history_date
+        current_date     = latest_history_date
         current_oilprice = latest_oilprice
+        if isinstance(significant_oilprice, list):
+            xlist = np.array([0, predict_months_num])
+            tlist = np.array(significant_oilprice)
+            wlist = estimate(xlist, tlist, 1)
+            significant_oilprice_array = {index: calc_y(index, wlist, 1) for index in range(predict_months_num)}
+            
         for predict_month_num in range(predict_months_num):
             current_date        = add_month(current_date)
             current_date_str    = datetime.datetime.strftime(current_date, '%Y/%m/%d')
@@ -180,6 +186,8 @@ class Sinario:
             # change oil_price by mode
             if oilprice_mode == 'oilprice_medium':
                 current_oilprice = current_oilprice
+            elif oilprice_mode == 'oilprice_dec' or oilprice_mode == 'oilprice_inc':                
+                current_oilprice = round(significant_oilprice_array[predict_month_num], 3)
             else:
                 current_oilprice = significant_oilprice
 
@@ -275,4 +283,43 @@ class Sinario:
                 output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
             plt.savefig(output_file_path)            
             
+        return
+
+    def draw_significant_oilprice_modes(self, sinario_modes):
+        draw_data = np.array([])
+        title     = "oil price significant scenarios".title()
+        colors    = ['r', 'b', 'g','m', 'y', 'orange', 'aqua', 'brown']            
+        graphInitializer(title,
+                         self.default_xlabel,
+                         self.default_ylabel)
+        # oilprice
+        oil_price_history_data           = self.history_data
+        sinario                         = Sinario(oil_price_history_data)            
+        significant_high_oilprice_index = oil_price_history_data[np.argmax(oil_price_history_data['price'])]
+        significant_high_oilprice       = significant_high_oilprice_index['price'] * MULTIPLY_INDEX
+        significant_low_oilprice_index  = oil_price_history_data[np.argmin(oil_price_history_data['price'])]
+        significant_low_oilprice        = significant_low_oilprice_index['price']
+        for index, sinario_mode in enumerate(sinario_modes):
+            if sinario_mode == 'oilprice_low':
+                # set modes
+                significant_oilprice    = significant_low_oilprice
+            elif sinario_mode == 'oilprice_high':
+                # set modes
+                significant_oilprice    = significant_high_oilprice
+            elif sinario_mode == 'oilprice_dec':
+                # set modes
+                significant_oilprice    = [significant_high_oilprice, significant_low_oilprice]
+            elif sinario_mode == 'oilprice_inc':
+                # set modes
+                significant_oilprice    = [significant_low_oilprice, significant_high_oilprice]
+            sinario.generate_significant_sinario(sinario_mode, significant_oilprice)
+            draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in sinario.predicted_data]
+            draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
+            plt.plot(draw_data.transpose()[0],
+                     draw_data.transpose()[1],
+                     color=colors[index], lw=5, markersize=0, marker='o')
+            xlim_date = draw_data.transpose()[0].min()
+            plt.xlim([xlim_date, draw_data.transpose()[0].max()])
+        output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.savefig(output_file_path)            
         return

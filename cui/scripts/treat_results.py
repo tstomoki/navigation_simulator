@@ -606,8 +606,7 @@ def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
     ticks     = { i:_d for i, _d in enumerate(draw_data['design_id'])}
     plt.bar( [ _i + 1 for _i in ticks.keys()], draw_data['npv'])
     plt.xticks( [_i + 1 for _i in ticks.keys()], ticks.values(), rotation=50, fontsize=12)
-    plt.show()
-    #plt.savefig(filepath)
+    plt.savefig(filepath)
     plt.close()    
     
     return

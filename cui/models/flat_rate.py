@@ -146,6 +146,7 @@ class FlatRate:
                          'formats': ('S10' , np.float)})
         self.predicted_data = np.array([], dtype=dt)
 
+        predict_days_num = self.predict_years * 365
         # latest date from history_data
         latest_history_date_str, latest_flatrate = self.history_data[-1]
         latest_history_date                      = datetime.datetime.strptime(latest_history_date_str, '%Y/%m/%d')
@@ -153,16 +154,28 @@ class FlatRate:
         end_date         = add_year(latest_history_date, predict_years)
         current_date     = latest_history_date
         current_flatrate = latest_flatrate
+        if isinstance(significant_flat_rate, list):
+            xlist = np.array([0, predict_days_num])
+            tlist = np.array(significant_flat_rate)
+            wlist = estimate(xlist, tlist, 1)
+            significant_flat_rate_array = {index: calc_y(index, wlist, 1) for index in range(predict_days_num)}
+
+        day_index = 0
         while end_date > current_date:
             current_date    += datetime.timedelta(days=1)
             current_date_str = datetime.datetime.strftime(current_date, '%Y/%m/%d')
-
             # change by mode
             if sinario_mode == 'medium':
                 current_flatrate = current_flatrate
+            elif sinario_mode == 'oilprice_dec' or sinario_mode == 'oilprice_inc':
+                if significant_flat_rate[0] == significant_flat_rate[1]:
+                    current_flatrate = significant_flat_rate[1]
+                else:
+                    current_flatrate = round(significant_flat_rate_array[day_index], 3)                
             else:
                 current_flatrate = significant_flat_rate
             self.predicted_data = np.append(self.predicted_data, np.array([(current_date_str, current_flatrate)], dtype=dt))
+            day_index += 1
         return
 
 

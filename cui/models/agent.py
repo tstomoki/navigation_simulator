@@ -349,7 +349,8 @@ class Agent(object):
                         # consider dock-to-dock deterioration
                         self.update_d2d()                        
                     # for the same random seed
-                    np.random.seed(COMMON_SEED_NUM + self.simulate_log_index + self.dock_in_count)
+                    if hasattr(self, 'simulate_log_index'):
+                        np.random.seed(COMMON_SEED_NUM + self.simulate_log_index + self.dock_in_count)
                             
                 # update cash flow
                 self.cash_flow       += CF_day
@@ -990,10 +991,10 @@ class Agent(object):
             # get existing result file
             combination_str  = generate_combination_str(hull, engine, propeller)
             # conduct simulation #
-            agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
-            end_date = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            agent                      = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
+            end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
-            NPV, fuel_cost = agent.simmulate()
+            NPV, fuel_cost             = agent.simmulate()
             # write npv and fuel_cost file
             output_dir_path = "%s/%s" % (result_path, generate_combination_str(hull, engine, propeller))
             initializeDirHierarchy(output_dir_path)
