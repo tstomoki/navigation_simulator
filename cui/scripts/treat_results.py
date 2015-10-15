@@ -1,6 +1,7 @@
 # import common modules #
 import time
 import sys
+from operator import itemgetter
 from pdb import *
 import matplotlib
 # server configuration #
@@ -26,6 +27,7 @@ from propeller   import Propeller
 from flat_rate   import FlatRate
 from world_scale import WorldScale
 # import models #
+
 
 def run(options):
     result_dir_path = options.result_dir_path
@@ -365,10 +367,8 @@ def aggregate_significant_output(result_dir_path):
                     'engine_id',
                     'propeller_id',
                     'average NPV',
-                    'std of npv',
-                    'fuel cost',
-                    'std of fuel_cost']
-    
+                    'fuel cost']
+    result_dict = {}
     for target_dir in target_dirs:
         desti_dir = "%s/%s" % (result_dir_path,
                                target_dir)
@@ -387,12 +387,12 @@ def aggregate_significant_output(result_dir_path):
                     h_id, e_id, p_id, npv, fuel_cost = _d
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
                     if not npv_result.has_key(combination_key):
-                        npv_result[combination_key] = []
+                        npv_result[combination_key] = npv
                     if not fuel_cost_result.has_key(combination_key):
-                        fuel_cost_result[combination_key] = []
-                    npv_result[combination_key].append(npv)
-                    fuel_cost_result[combination_key].append(fuel_cost)    
+                        fuel_cost_result[combination_key] = fuel_cost
 
+            result_dict[target_dir] = max(npv_result.items(), key=itemgetter(1))[0]
+                    
             # output_csv
             output_dir_path = "%s/%s/aggregated_results" % (result_dir_path, target_dir)
             initializeDirHierarchy(output_dir_path)
@@ -401,18 +401,19 @@ def aggregate_significant_output(result_dir_path):
             if os.path.exists(output_file_path):
                 os.remove(output_file_path)
 
-            draw_npv_histgram(npv_result, target_dir, output_dir_path)
+            #draw_npv_histgram(npv_result, target_dir, output_dir_path)
             for design_key, npvs in npv_result.items():
                 hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
                 write_csv(column_names, [design_key,
                                          hull_id,
                                          engine_id,
                                          propeller_id,
-                                         np.average(npvs),
-                                         np.std(npvs),
-                                         np.average(fuel_cost_result[design_key]),
-                                         np.std(fuel_cost_result[design_key])
+                                         npv,
+                                         fuel_cost_result[design_key],
                                          ], output_file_path)
+    print "%20s %20s" % ('scenario_mode', 'design_key')
+    for k,v in result_dict.items():
+        print "%20s %20s" % (k, v)
     return
 
 def draw_retrofit_result(result_dir_path):
