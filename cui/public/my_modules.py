@@ -1366,7 +1366,7 @@ def generate_final_significant_modes(oilprice_mode,
     significant_low_oilprice        = significant_low_oilprice_index['price']
     # world_scale
     significant_high_world_scale_index = search_near_index(str_to_date(significant_high_oilprice_index['date']), world_scale_history_data['date'])
-    significant_high_world_scale       = world_scale_history_data[np.where(world_scale_history_data['date']==significant_high_world_scale_index)[0]]['ws'][0]        
+    significant_high_world_scale       = world_scale_history_data[np.where(world_scale_history_data['date']==significant_high_world_scale_index)[0]]['ws'][0] * DEVIDE_INDEX
     significant_low_world_scale_index  = search_near_index(str_to_date(significant_low_oilprice_index['date']), world_scale_history_data['date'])
     significant_low_world_scale        = world_scale_history_data[np.where(world_scale_history_data['date']==significant_low_world_scale_index)[0]]['ws'][0]
     # flat_rate

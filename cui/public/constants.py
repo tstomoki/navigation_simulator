@@ -43,7 +43,9 @@ RETROFIT_MODE = {'none': 0,
                  'propeller': 1,
                  'propeller_and_engine': 2,
                  'whole': 3,
-                 'significant': 4}
+                 'significant': 4,
+                 'significant_rule': 5}
+
 
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}
@@ -218,6 +220,7 @@ RISE_RATIO = 1.5
 ## DECLINE RATIO
 DECLINE_RATIO = 0.5
 ## multiply index
-MULTIPLY_INDEX = 2.0
+MULTIPLY_INDEX = 2.5
+DEVIDE_INDEX = 0.5
 
 
