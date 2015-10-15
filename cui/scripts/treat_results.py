@@ -390,8 +390,8 @@ def aggregate_significant_output(result_dir_path):
                         npv_result[combination_key] = npv
                     if not fuel_cost_result.has_key(combination_key):
                         fuel_cost_result[combination_key] = fuel_cost
-
-            result_dict[target_dir] = max(npv_result.items(), key=itemgetter(1))[0]
+            maximum_key = max(npv_result.items(), key=itemgetter(1))[0]
+            result_dict[target_dir] = [maximum_key, npv_result[maximum_key]]
                     
             # output_csv
             output_dir_path = "%s/%s/aggregated_results" % (result_dir_path, target_dir)
@@ -408,12 +408,12 @@ def aggregate_significant_output(result_dir_path):
                                          hull_id,
                                          engine_id,
                                          propeller_id,
-                                         npv,
+                                         npvs,
                                          fuel_cost_result[design_key],
                                          ], output_file_path)
-    print "%20s %20s" % ('scenario_mode', 'design_key')
+    print "%20s %20s %10s" % ('scenario_mode', 'design_key', 'NPV')
     for k,v in result_dict.items():
-        print "%20s %20s" % (k, v)
+        print "%20s %20s %17.3lf" % (k, v[0], v[1])
     return
 
 def draw_retrofit_result(result_dir_path):
