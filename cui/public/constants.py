@@ -21,7 +21,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 7 if current_user == 'tsaito' else 3
+PROC_NUM = 15 if current_user == 'tsaito' else 3
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
