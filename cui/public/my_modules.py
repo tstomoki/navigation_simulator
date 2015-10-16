@@ -77,7 +77,7 @@ def load_hull_list(path=None):
 
 def load_engine_list(path=None):
     if path is None:
-        path = '../data/components_lists/engine_list.csv'
+        path = '../data/components_lists/engine_list_As.csv'
         
     # read data
     dt = np.dtype({'names'  : ('id'    , 'name', 'specific_name', 'sfoc0' , 'sfoc1' , 'sfoc2' , 'bhp0'  , 'bhp1'  , 'bhp2'  , 'N_max' , 'max_load', 'sample_rpm0', 'sample_bhp0', 'sample_rpm1', 'sample_bhp1'),
@@ -1414,3 +1414,34 @@ def count_whole_designs():
     engine_list         = load_engine_list()
     propeller_list      = load_propeller_list()
     return hull_list.size * engine_list.size * propeller_list.size
+
+def draw_engine_sfoc():
+    from engine import Engine
+    engine_list = load_engine_list()
+
+    # initialize path
+    output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
+    title   = "SFOC and RPM engines"
+    x_label = "rpm".upper()
+    y_label = "%s %s" % ('sfoc'.upper(), '[g/(kWh)]')
+    graphInitializer(title, x_label, y_label)        
+    plt.title(title)
+    
+    # define rpm
+    rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], DEFAULT_RPM_RANGE['to'], DEFAULT_RPM_RANGE['stride'])
+    for engine_info in engine_list:
+        engine     = Engine(engine_list, engine_info['id'])
+        x_delta    = engine.get_delta_from_name()
+        bhp_array  = [engine.calc_bhp(rpm, x_delta) for rpm in rpm_array]
+        sfoc_array = [engine.calc_sfoc(bhp) for bhp in bhp_array]
+        plt.plot(rpm_array, sfoc_array, label=engine_info['name'])
+
+    plt.ylim(150,200)
+    plt.xlim(0,100)
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')    
+    plt.show()
+    sys.exit()
+    plt.savefig(output_file_path)
+    plt.close()
+    return

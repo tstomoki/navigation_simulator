@@ -44,7 +44,9 @@ class Engine:
     def calc_relative_engine_speed(self, rpm):
         return float(rpm) / self.base_data['N_max']
 
-    def calc_bhp(self, rpm):
+    def calc_bhp(self, rpm, x_delta=None):
+        if x_delta is not None:
+            rpm = max(0, rpm-x_delta)
         rps     = rpm2rps(rpm)
         max_rps = round(rpm2rps(self.base_data['N_max']), 4)
         bhp     = self.base_data['bhp0'] + self.base_data['bhp1'] * (rps / max_rps) + self.base_data['bhp2'] * math.pow(rps / max_rps, 2)
@@ -129,3 +131,8 @@ class Engine:
         index            = np.where(self.modified_bhp_array['rpm']==rpm)
         designated_array = self.modified_bhp_array[index]
         return bhp * designated_array['efficiency'][0]
+
+    def get_delta_from_name(self):
+        engine_name = self.base_data['name']
+        delta       = re.compile(r'.+_(\d+)').search(engine_name).groups()[-1]
+        return float(delta) - BASE_PEAK
