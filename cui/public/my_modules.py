@@ -1403,6 +1403,18 @@ def generate_final_significant_modes(oilprice_mode,
 
     return sinario, world_scale, flat_rate
 
+def count_whole_designs():
+    # import models #
+    from hull        import Hull
+    from engine      import Engine
+    from propeller   import Propeller
+    # import models #
+    # load components list
+    hull_list           = load_hull_list()
+    engine_list         = load_engine_list()
+    propeller_list      = load_propeller_list()
+    return hull_list.size * engine_list.size * propeller_list.size
+
 def draw_engine_sfoc():
     from engine import Engine
     engine_list = load_engine_list()

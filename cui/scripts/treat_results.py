@@ -378,11 +378,14 @@ def aggregate_significant_output(result_dir_path):
             files = os.listdir(desti_dir)
             target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
             target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+            whole_design_nums = count_whole_designs()
             for _target_file in target_files:
                 data = np.genfromtxt(_target_file,
                                      delimiter=',',
                                      dtype=dt,
                                      skiprows=1)
+                if data.ndim == 0:
+                    data = np.atleast_1d(data)
                 for _d in data:
                     h_id, e_id, p_id, npv, fuel_cost = _d
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
@@ -391,7 +394,7 @@ def aggregate_significant_output(result_dir_path):
                     if not fuel_cost_result.has_key(combination_key):
                         fuel_cost_result[combination_key] = fuel_cost
             maximum_key = max(npv_result.items(), key=itemgetter(1))[0]
-            result_dict[target_dir] = [maximum_key, npv_result[maximum_key]]
+            result_dict[target_dir] = [maximum_key, npv_result[maximum_key], len(npv_result.keys()) / float(whole_design_nums)]
                     
             # output_csv
             output_dir_path = "%s/%s/aggregated_results" % (result_dir_path, target_dir)
@@ -411,9 +414,10 @@ def aggregate_significant_output(result_dir_path):
                                          npvs,
                                          fuel_cost_result[design_key],
                                          ], output_file_path)
-    print "%20s %20s %10s" % ('scenario_mode', 'design_key', 'NPV')
+    print "%20s %20s %10s %25s" % ('scenario_mode', 'design_key', 'NPV', 'progress')
+    print "-" * 90
     for k,v in result_dict.items():
-        print "%20s %20s %17.3lf" % (k, v[0], v[1])
+        print "%20s %20s %17.3lf %18.2lf[%%]" % (k, v[0], v[1], v[2]*100)
     return
 
 def draw_retrofit_result(result_dir_path):
