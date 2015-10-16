@@ -1420,7 +1420,7 @@ def draw_engine_sfoc():
     engine_list = load_engine_list()
 
     # initialize path
-    output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
+    output_file_path = "%s/engine_features_with_sfoc.png" % (GRAPH_DIR_PATH)
     title   = "SFOC and RPM engines"
     x_label = "rpm".upper()
     y_label = "%s %s" % ('sfoc'.upper(), '[g/(kWh)]')
@@ -1440,8 +1440,6 @@ def draw_engine_sfoc():
     plt.xlim(0,100)
     plt.legend(shadow=True)
     plt.legend(loc='upper left')    
-    plt.show()
-    sys.exit()
     plt.savefig(output_file_path)
     plt.close()
     return
