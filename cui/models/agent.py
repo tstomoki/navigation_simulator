@@ -174,8 +174,8 @@ class Agent(object):
         self.fuel_cost           = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
                                                            'formats': ('S20' , np.float)}))        
         self.log                 = init_dict_from_keys_with_array(LOG_COLUMNS,
-                                                                    np.dtype({'names': ('rpm', 'velocity'),
-                                                                              'formats': (np.float , np.float)}))
+                                                                    np.dtype({'names': ('date', 'rpm', 'velocity'),
+                                                                              'formats': ('S20', np.float , np.float)}))
         self.total_cash_flow     = 0
         self.total_NPV           = 0
         self.total_distance      = 0
@@ -712,8 +712,7 @@ class Agent(object):
         return load_condition_to_human(self.get_another_load_condition())
 
     def update_velocity_log(self, rpm, v_knot):
-        add_array       = np.array([rpm, v_knot])
-        add_array.dtype = np.dtype({'names': ('rpm', 'velocity'), 'formats': (np.float , np.float)})
+        add_array = np.array((datetime_to_human(self.current_date), rpm, v_knot), dtype=self.log['full'].dtype)
         self.log[self.load_condition_to_human()] = append_for_np_array(self.log[self.load_condition_to_human()], add_array)
         return
 
@@ -995,6 +994,8 @@ class Agent(object):
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)
             NPV, fuel_cost             = agent.simmulate()
+            # draw velocity log
+            agent.draw_velocity_log(result_path)            
             # write npv and fuel_cost file
             output_dir_path = "%s/%s" % (result_path, generate_combination_str(hull, engine, propeller))
             initializeDirHierarchy(output_dir_path)
@@ -1837,3 +1838,28 @@ class Agent(object):
     # calc years to retire with integer
     def calc_years_to_retire(self):
         return (self.retire_date - self.current_date).days / 365
+
+    def draw_velocity_log(self, output_dir_path):
+        colors      = {}
+        temp_colors = ['b', 'r', 'g']
+        for index, key in enumerate(self.log.keys()):
+            colors[key] = temp_colors[index]
+        combination_str = generate_combination_str(self.hull, self.engine, self.propeller)
+        dir_name = "%s/velocity_logs" % (output_dir_path)
+        initializeDirHierarchy(dir_name)        
+        for element in ['rpm', 'velocity']:
+            title   = "%s %s log" % (combination_str, element)
+            x_label = "Date"
+            unit    = '' if element == 'rpm' else 'knot'
+            y_label = "%s %s" % (element, unit)
+            graphInitializer(title,
+                             x_label,
+                             y_label)
+            output_file_path = "%s/%s_%s.png" % (dir_name, combination_str, element)
+            for condition in self.log.keys():
+                draw_data = [ [datetime.datetime.strptime(data['date'][0], '%Y/%m/%d'), data[element][0]] for data in self.log[condition]]
+                draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+                plt.bar(draw_data.transpose()[0], draw_data.transpose()[1], color=colors[condition])
+            plt.xlim(self.origin_date, self.retire_date)
+            plt.savefig(output_file_path)
+        return
