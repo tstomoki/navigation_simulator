@@ -1846,7 +1846,14 @@ class Agent(object):
             colors[key] = temp_colors[index]
         combination_str = generate_combination_str(self.hull, self.engine, self.propeller)
         dir_name = "%s/velocity_logs" % (output_dir_path)
-        initializeDirHierarchy(dir_name)        
+        initializeDirHierarchy(dir_name)
+
+        # generate log as csv file
+        output_csv_path = "%s/%s.csv" % (dir_name, combination_str)
+        output_data = np.array([ (_d[0]['date'], _d[0]['rpm'], _d[0]['velocity'], 'full') for _d in self.log['full']] + [ (_d[0]['date'], _d[0]['rpm'], _d[0]['velocity'], 'ballast') for _d in self.log['ballast']])
+        output_data = sorted(output_data, key=lambda x : x[0])
+        write_simple_array_csv(['date', 'rpm', 'velocity', 'load_condition'], output_data, output_csv_path)
+
         for element in ['rpm', 'velocity']:
             title   = "%s %s log" % (combination_str, element)
             x_label = "Date"

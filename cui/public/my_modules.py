@@ -350,7 +350,7 @@ def write_csv(column_names, write_data, output_file_path):
     write_column_flg = False if os.path.exists(output_file_path) else True
     
     # write file
-    f = open(output_file_path, 'a')
+    f = open(output_file_path, 'w')
     csvWriter = csv.writer(f)
     if write_column_flg:
         csvWriter.writerow(column_names)
@@ -364,7 +364,7 @@ def write_simple_array_csv(column_names, write_data, output_file_path):
     write_column_flg = False if os.path.exists(output_file_path) else True
     
     # write file
-    f = open(output_file_path, 'a')
+    f = open(output_file_path, 'w')
     csvWriter = csv.writer(f)
     if write_column_flg:
         csvWriter.writerow(column_names)
