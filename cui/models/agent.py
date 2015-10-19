@@ -212,7 +212,8 @@ class Agent(object):
         self.age_eff = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
         
         # initialize the temporal variables
-        CF_day = rpm = v_knot = None                        
+        CF_day = rpm = v_knot = None
+        raw_v  = raw_rpm = None
         for current_date in self.operation_date_array:
             # update current_date
             self.current_date = current_date
@@ -247,9 +248,10 @@ class Agent(object):
             else:
                 # conserve calm sea velocity
                 v_knot = raw_v
+                rpm    = raw_rpm
                 
             # modification of the performance #
-            raw_v = v_knot
+            raw_v   = v_knot
             raw_rpm = rpm            
             ## consider deterioration
             rpm, v_knot = self.modify_by_deterioration(rpm, v_knot)
