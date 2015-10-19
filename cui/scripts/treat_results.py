@@ -373,6 +373,11 @@ def aggregate_significant_output(result_dir_path):
         desti_dir = "%s/%s" % (result_dir_path,
                                target_dir)
         if os.path.exists(desti_dir):
+            # draw velocity logs
+            draw_velocity_logs(desti_dir, target_dir)
+            # draw velocity logs
+
+
             npv_result       = {}
             fuel_cost_result = {}
             files = os.listdir(desti_dir)
@@ -615,6 +620,41 @@ def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
     plt.close()    
     
     return
+
+def draw_velocity_logs(result_dir, oilprice_mode):
+    velocity_logs_dir = "%s/velocity_logs" % (result_dir)
+    if os.path.exists(velocity_logs_dir):
+        files        = os.listdir(velocity_logs_dir)
+        target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+        for load_condition in ['full', 'ballast']:
+            # initialize graph
+            title    = "%s (at %s)" % ("rpm and velocity for each design".upper(), oilprice_mode.replace('_', ' '))
+            x_label  = "design id".upper()
+            y0_label = "rpm".upper()
+            y1_label = "velocity".upper() + '[knot]'
+            filepath = "%s/velocity_%s_%s.png" % (velocity_logs_dir, oilprice_mode, load_condition)
+            dt       = np.dtype({'names': ('date','rpm', 'velocity', 'load_condition'),
+                                 'formats': ('S20', np.float, np.float, 'S10')})
+            draw_data = []
+            for target_file in target_files:
+                design_str       = re.compile(r'(.+).csv').search(target_file).groups()[0]
+                target_file_path = "%s/%s" % (velocity_logs_dir, target_file)
+                data = np.genfromtxt(target_file_path,
+                                     delimiter=',',
+                                     dtype=dt,
+                                     skiprows=1)
+                target_data = data[np.where(data['load_condition']==load_condition)]
+                average_rpm      = np.average(target_data['rpm'])
+                average_velocity = np.average(target_data['velocity'])
+                draw_data.append([design_str, average_rpm, average_velocity])
+            draw_data = np.array(sorted(draw_data, key=lambda x : x[0]))
+            draw_twin_graph(draw_data, title, x_label, y0_label, y1_label)
+            set_trace()
+            plt.savefig(filepath)
+            sys.exit()
+
+    return
+    
 
 # authorize exeucation as main script
 if __name__ == '__main__':

@@ -1445,3 +1445,27 @@ def draw_engine_sfoc():
     plt.savefig(output_file_path)
     plt.close()
     return
+
+# draw twin graph
+def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twinx()
+    
+    # font 
+    font_size = 16
+    y0_data = np.array([[_d[0], _d[1]] for _d in draw_data])
+    y1_data = np.array([[_d[0], _d[2]] for _d in draw_data])
+    x_data = y0_data.transpose()[0]
+    x_data_induces = range(len(x_data))
+    ax1.bar(x_data_induces, [ float(_d[1]) for _d in y0_data], color='r')
+    plt.setp(ax1.get_xticklabels(), fontsize=font_size, visible=True)
+    ax2.bar(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
+    plt.setp(ax2.get_yticklabels(), fontsize=font_size, visible=True)
+    
+    fs_label = 20
+    ax1.set_xlabel(x_label, fontsize = font_size)
+    ax1.set_ylabel(y0_label, fontsize = font_size)
+    ax2.set_ylabel(y1_label, fontsize = font_size)
+    ax1.grid(True)
+    return
