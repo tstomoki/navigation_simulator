@@ -1451,19 +1451,24 @@ def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label):
     ax2 = ax1.twinx()
     
     # font 
-    font_size = 16
     y0_data = np.array([[_d[0], _d[1]] for _d in draw_data])
     y1_data = np.array([[_d[0], _d[2]] for _d in draw_data])
-    x_data = y0_data.transpose()[0]
+    x_data  = y0_data.transpose()[0]
     x_data_induces = range(len(x_data))
-    ax1.bar(x_data_induces, [ float(_d[1]) for _d in y0_data], color='r')
-    plt.setp(ax1.get_xticklabels(), fontsize=font_size, visible=True)
-    ax2.bar(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
-    plt.setp(ax2.get_yticklabels(), fontsize=font_size, visible=True)
-    
-    fs_label = 20
-    ax1.set_xlabel(x_label, fontsize = font_size)
-    ax1.set_ylabel(y0_label, fontsize = font_size)
-    ax2.set_ylabel(y1_label, fontsize = font_size)
+    #ax1.bar(x_data_induces, [ float(_d[1]) for _d in y0_data], color='r')
+    p1 = ax1.plot(x_data_induces, [ float(_d[1]) for _d in y0_data], color='r')
+    p2 = ax2.plot(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
+    #ax2.bar(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
+    plt.legend([p1[0], p2[0]], [y0_label, y1_label], loc='upper right')
+    #plt.xticks(x_data_induces, x_data, fontsize=font_size, rotation='vertical')
+    ax1.xaxis.set_ticks(x_data_induces)
+    ax1.xaxis.set_ticklabels(x_data, rotation=80, fontsize=8)
+
+    # draw origin line
+    plt.title(title)    
+    ax1.axhline(linewidth=1.5, color='k')    
+    ax1.set_xlabel(x_label)
+    ax1.set_ylabel(y0_label)
+    ax2.set_ylabel(y1_label)
     ax1.grid(True)
     return

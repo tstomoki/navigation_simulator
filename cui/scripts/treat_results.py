@@ -377,7 +377,6 @@ def aggregate_significant_output(result_dir_path):
             draw_velocity_logs(desti_dir, target_dir)
             # draw velocity logs
 
-
             npv_result       = {}
             fuel_cost_result = {}
             files = os.listdir(desti_dir)
@@ -388,7 +387,7 @@ def aggregate_significant_output(result_dir_path):
                 data = np.genfromtxt(_target_file,
                                      delimiter=',',
                                      dtype=dt,
-                                     skiprows=1)
+                                     skiprows=0)
                 if data.ndim == 0:
                     data = np.atleast_1d(data)
                 for _d in data:
@@ -649,10 +648,7 @@ def draw_velocity_logs(result_dir, oilprice_mode):
                 draw_data.append([design_str, average_rpm, average_velocity])
             draw_data = np.array(sorted(draw_data, key=lambda x : x[0]))
             draw_twin_graph(draw_data, title, x_label, y0_label, y1_label)
-            set_trace()
             plt.savefig(filepath)
-            sys.exit()
-
     return
     
 
