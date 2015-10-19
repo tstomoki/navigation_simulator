@@ -1440,8 +1440,6 @@ def draw_engine_sfoc():
     plt.xlim(0,100)
     plt.legend(shadow=True)
     plt.legend(loc='upper left')    
-    plt.show()
-    sys.exit()
     plt.savefig(output_file_path)
     plt.close()
     return
