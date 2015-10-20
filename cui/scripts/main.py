@@ -230,6 +230,9 @@ def run(options):
         sys.exit()
 
     if final_mode:
+        # draw engine features
+        draw_engine_sfoc()
+        
         significant_modes = ['high', 'low', 'dec', 'inc']
         oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
         # search initial_design
