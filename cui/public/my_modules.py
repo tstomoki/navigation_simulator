@@ -350,7 +350,7 @@ def write_csv(column_names, write_data, output_file_path):
     write_column_flg = False if os.path.exists(output_file_path) else True
     
     # write file
-    f = open(output_file_path, 'w')
+    f = open(output_file_path, 'a')
     csvWriter = csv.writer(f)
     if write_column_flg:
         csvWriter.writerow(column_names)
@@ -364,7 +364,7 @@ def write_simple_array_csv(column_names, write_data, output_file_path):
     write_column_flg = False if os.path.exists(output_file_path) else True
     
     # write file
-    f = open(output_file_path, 'w')
+    f = open(output_file_path, 'a')
     csvWriter = csv.writer(f)
     if write_column_flg:
         csvWriter.writerow(column_names)
@@ -375,7 +375,7 @@ def write_simple_array_csv(column_names, write_data, output_file_path):
 
 def write_array_to_csv(column_names, write_array, output_file_path):
     # write file
-    f = open(output_file_path, 'w')
+    f = open(output_file_path, 'a')
     csvWriter = csv.writer(f)
     # write row
     csvWriter.writerow(column_names)
@@ -1459,7 +1459,7 @@ def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label):
     p1 = ax1.plot(x_data_induces, [ float(_d[1]) for _d in y0_data], color='r')
     p2 = ax2.plot(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
     #ax2.bar(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
-    plt.legend([p1[0], p2[0]], [y0_label, y1_label], loc='upper right')
+    plt.legend([p1[0], p2[0]], [y0_label, y1_label], loc='lower left')
     #plt.xticks(x_data_induces, x_data, fontsize=font_size, rotation='vertical')
     ax1.xaxis.set_ticks(x_data_induces)
     ax1.xaxis.set_ticklabels(x_data, rotation=80, fontsize=8)
