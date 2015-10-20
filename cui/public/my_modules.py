@@ -1431,8 +1431,7 @@ def draw_engine_sfoc():
     rpm_array = np.arange(DEFAULT_RPM_RANGE['from'], DEFAULT_RPM_RANGE['to'], DEFAULT_RPM_RANGE['stride'])
     for engine_info in engine_list:
         engine     = Engine(engine_list, engine_info['id'])
-        x_delta    = engine.get_delta_from_name()
-        bhp_array  = [engine.calc_bhp(rpm, x_delta) for rpm in rpm_array]
+        bhp_array  = [engine.calc_bhp(rpm) for rpm in rpm_array]
         sfoc_array = [engine.calc_sfoc(bhp) for bhp in bhp_array]
         plt.plot(rpm_array, sfoc_array, label=engine_info['name'])
 
