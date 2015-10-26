@@ -1421,7 +1421,7 @@ def draw_engine_sfoc():
 
     # initialize path
     output_file_path = "%s/engine_features_with_sfoc.png" % (GRAPH_DIR_PATH)
-    title   = "SFOC and RPM engines"
+    title   = "SFOC and RPM engines\n"
     x_label = "rpm".upper()
     y_label = "%s %s" % ('sfoc'.upper(), '[g/(kWh)]')
     graphInitializer(title, x_label, y_label)        
