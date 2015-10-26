@@ -1433,7 +1433,8 @@ def draw_engine_sfoc():
         engine     = Engine(engine_list, engine_info['id'])
         bhp_array  = [engine.calc_bhp(rpm) for rpm in rpm_array]
         sfoc_array = [engine.calc_sfoc(bhp) for bhp in bhp_array]
-        plt.plot(rpm_array, sfoc_array, label=engine_info['name'])
+        label      = "Engine %s (%s)" % (engine_info['id'], engine_info['name'])
+        plt.plot(rpm_array, sfoc_array, label=label)
 
     plt.ylim(100,250)
     plt.xlim(0, 100)

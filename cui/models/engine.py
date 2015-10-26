@@ -33,10 +33,8 @@ class Engine:
         return 
         
     def calc_sfoc(self, bhp):
-        y_delta = self.get_delta_from_name()
         load    = self.calc_load(bhp)
         ret_val = self.base_data['sfoc0'] + self.base_data['sfoc1'] * load + self.base_data['sfoc2'] * math.pow(load, 2)
-        ret_val += y_delta
         return ret_val
 
     # return bhp / max_load  
