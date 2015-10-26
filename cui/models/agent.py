@@ -527,28 +527,36 @@ class Agent(object):
         return engine.consider_efficiency(rpm, bhp)
     
     def calc_optimal_velocity(self, hull, engine, propeller):
-        combinations        = np.array([])
+        combinations       = []
         # cull the combination for the fast cunduct #
         target_combination = self.cull_combination()
+        dt                 = np.dtype({'names': ('fuel_cost', 'cash_flow', 'rpm', 'velocity'),
+                                       'formats': (np.float, np.float, np.float, np.float)})
         for rpm_first, velocity_first in target_combination[load_condition_to_human(self.load_condition)]:
             # ignore second parameter when the navigation is return trip
             if self.is_ballast():
                 ## when the ship is ballast
-                tmp_combinations = np.array([])
+                tmp_combinations = []
                 # decide velocity of full                
                 for rpm_second, velocity_second in target_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
-                    ND     = self.calc_ND(velocity_first, velocity_second, hull)
-                    cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
-                    tmp_combinations = append_for_np_array(tmp_combinations, [C_fuel, cash_flow, rpm_second, velocity_second])
-                C_fuel, CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
+                    ND                        = self.calc_ND(velocity_first, velocity_second)
+                    tmp_cash_flow, tmp_C_fuel = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
+                    tmp_combinations.append((tmp_C_fuel, tmp_cash_flow, rpm_second, velocity_second))
+                tmp_combinations                                           = np.array(tmp_combinations, dtype=dt)
+                C_fuel, cash_flow, optimal_rpm_full, optimal_velocity_full = sorted(tmp_combinations, key=lambda x : x['cash_flow'], reverse=True)[0]
             else:
                 ## when the ship is full (return trip)
-                ND     = self.calc_ND(velocity_first, 0, hull)
+                ND                = self.calc_ND(velocity_first, 0)
                 cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
-            combinations = append_for_np_array(combinations, [C_fuel, cash_flow, rpm_first, velocity_first])
-
+            combinations.append((C_fuel, cash_flow, rpm_first, velocity_first))
         # decide the velocity
-        C_fuel, CF_day, optimal_rpm, optimal_velocity = combinations[np.argmax(combinations, axis=0)[0]]
+        combinations = np.array(combinations, dtype=dt)
+        C_fuel, CF_day, optimal_rpm, optimal_velocity = sorted(combinations, key=lambda x : x['cash_flow'], reverse=True)[0]
+        '''debug
+        print self.load_condition_to_human()
+        print "%20s %20s %20s %20s" % ('C_fuel', 'CF_day', 'optimal_rpm', 'optimal_velocity')
+        print "%20lf %20lf %20lf %20lf" % (C_fuel, CF_day, optimal_rpm, optimal_velocity)
+        '''
         return C_fuel, CF_day, optimal_rpm, optimal_velocity
 
     # multi processing method #
@@ -574,7 +582,7 @@ class Agent(object):
 
     # return ND [days]
     # ND is whole number of days in navigation
-    def calc_ND(self, velocity_first, velocity_second, hull):
+    def calc_ND(self, velocity_first, velocity_second):
         # ignore second clause when 'full'
         if self.is_full():
             first_clause  = self.calc_left_distance() / knot2mileday(velocity_first)
@@ -908,13 +916,13 @@ class Agent(object):
                 tmp_combinations = np.array([])
                 # decide velocity of full                
                 for rpm_second, velocity_second in self.velocity_combination[load_condition_to_human(get_another_condition(self.load_condition))]:
-                    ND     = self.calc_ND(velocity_first, velocity_second, hull)
+                    ND     = self.calc_ND(velocity_first, velocity_second)
                     cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND)
                     tmp_combinations = append_for_np_array(tmp_combinations, [C_fuel, cash_flow, rpm_second, velocity_second])
                 C_fuel, CF_day, optimal_rpm_full, optimal_velocity_full = tmp_combinations[np.argmax(tmp_combinations, axis=0)[0]]
             else:
                 ## when the ship is full (return trip)
-                ND     = self.calc_ND(velocity_first, 0, hull)
+                ND     = self.calc_ND(velocity_first, 0)
                 cash_flow, C_fuel = self.calc_cash_flow(rpm_first, velocity_first, 0, 0, hull, engine, propeller, ND)
             combinations = append_for_np_array(combinations, [C_fuel, cash_flow, rpm_first, velocity_first])
         return combinations
