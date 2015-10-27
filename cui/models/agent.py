@@ -170,12 +170,13 @@ class Agent(object):
         self.retire_date         = self.operation_date_array[-1]
         self.round_trip_distance = NAVIGATION_DISTANCE * 2.0
         self.NPV                 = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
-                                                           'formats': ('S20' , np.float)}))        
+                                                         'formats': ('S20' , np.float)}))        
         self.fuel_cost           = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
-                                                           'formats': ('S20' , np.float)}))        
+                                                           'formats': ('S20' , np.float)}))
         self.log                 = init_dict_from_keys_with_array(LOG_COLUMNS,
-                                                                    np.dtype({'names': ('date', 'rpm', 'velocity'),
-                                                                              'formats': ('S20', np.float , np.float)}))
+                                                                  np.dtype({'names': ('date', 'rpm', 'velocity'),
+                                                                            'formats': ('S20', np.float , np.float)}))
+        self.elapsed_days_log    = []
         self.total_cash_flow     = 0
         self.total_NPV           = 0
         self.total_distance      = 0
@@ -295,6 +296,9 @@ class Agent(object):
                 self.total_cash_flow += CF_day
 
                 self.update_fuel_cost(C_fuel)
+
+                # log elapsed days
+                self.elapsed_days_log.append(self.elapsed_days)
                 
                 # initialize the temporal variables
                 C_fuel = CF_day = rpm = v_knot = None
@@ -985,9 +989,9 @@ class Agent(object):
                            'engine_id',
                            'propeller_id',
                            'NPV',
-                           'fuel_cost']
-        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
-                           'formats': (np.int, np.int , np.int, np.float, np.float)})
+                           'fuel_cost', 'avg_round_num', 'round_num']
+        dtype  = np.dtype({'names': ('hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost', 'avg_round_num', 'round_num'),
+                           'formats': (np.int, np.int , np.int, np.float, np.float, np.float, np.float)})
         design_array = np.array([], dtype=dtype)
 
         result_data  = load_result(result_path)
@@ -1022,7 +1026,7 @@ class Agent(object):
             write_csv(column_names, [hull.base_data['id'],
                                      engine.base_data['id'],
                                      propeller.base_data['id'],
-                                     NPV, fuel_cost, lap_time], output_file_path)
+                                     NPV, fuel_cost, np.average(agent.elapsed_days_log), len(agent.elapsed_days_log), lap_time], output_file_path)
             add_design   = np.array([(hull.base_data['id'],
                                       engine.base_data['id'],
                                       propeller.base_data['id'],
