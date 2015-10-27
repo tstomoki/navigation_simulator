@@ -150,7 +150,7 @@ class Agent(object):
         # define velocity and rps for given [hull, engine, propeller]
         ## load combinations if combination file exists 
         self.velocity_combination = check_combinations_exists(hull, engine, propeller)
-        if self.velocity_combination is None:
+        if (not hasattr(self, 'velocity_combination')) or self.velocity_combination is None:
             self.velocity_combination = self.create_velocity_combination(hull, engine, propeller)
 
         # abort if proper velocity combination is calculated #
@@ -1886,3 +1886,11 @@ class Agent(object):
             plt.xlim(self.origin_date, self.retire_date)
             plt.savefig(output_file_path)
         return
+
+    def origin_debug(self):
+        ret_flag = False
+        if self.current_date == self.origin_date:
+            if (self.hull is not None) and (self.engine is not None) and (self.propeller is not None):
+                print generate_combination_str(self.hull, self.engine, self.propeller)
+            ret_flag = True
+        return ret_flag

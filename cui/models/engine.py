@@ -8,6 +8,7 @@ sys.path.append('../public')
 from my_modules import *
 from constants  import *
 # import own modules #
+from types import *
 
 class Engine:
     def __init__(self, engine_list, engine_id):
@@ -127,6 +128,22 @@ class Engine:
         plt.plot(x_data, y_data)
         plt.savefig(output_file_path)
         plt.close()
+        return
+
+    # display base data
+    def display_variables(self):
+        for variable_key in self.__dict__.keys():
+            instance_variable_key = "self.%s" % (variable_key)
+            instance_variable     = eval(instance_variable_key)
+            if isinstance(instance_variable, NoneType):
+                print "%25s: %20s" % (instance_variable_key, 'NoneType')
+            elif isinstance(instance_variable, np.ndarray):
+                print "%25s: %20s" % (instance_variable_key, 'Numpy with length (%d)' % (len(instance_variable)))                
+            elif isinstance(instance_variable, DictType):
+                key_str = ', '.join([_k for _k in instance_variable.keys()])
+                print "%25s: %20s" % (instance_variable_key, 'DictType with keys % 10s' % (key_str))
+            else:
+                print "%25s: %20s" % (instance_variable_key, str(instance_variable))                
         return
     
     def consider_efficiency(self, rpm, bhp):

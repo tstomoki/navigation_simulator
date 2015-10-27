@@ -41,5 +41,10 @@ $ python main.py -T True
 . (takes few days)
 .
 $ python treat_results.py -P ../results/agent_log/#{timestamp} -S True
+```
+
+## cautions
+ - Please do not forget deletion of `results/combinations/designs` directory for component changes
+ 
 
 WIP
