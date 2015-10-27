@@ -1030,8 +1030,8 @@ class Agent(object):
             add_design   = np.array([(hull.base_data['id'],
                                       engine.base_data['id'],
                                       propeller.base_data['id'],
-                                      NPV, fuel_cost)],
-                                    dtype=dtype)
+                                      NPV, fuel_cost, np.average(agent.elapsed_days_log), len(agent.elapsed_days_log))],
+                                     dtype=dtype)
             design_array = append_for_np_array(design_array, add_design)                    
         return design_array
 
