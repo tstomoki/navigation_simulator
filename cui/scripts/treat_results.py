@@ -398,8 +398,11 @@ def aggregate_significant_output(result_dir_path):
                     if not fuel_cost_result.has_key(combination_key):
                         fuel_cost_result[combination_key] = fuel_cost
             try:
-                maximum_key = max(npv_result.items(), key=itemgetter(1))[0]
-                result_dict[target_dir] = [maximum_key, npv_result[maximum_key], len(npv_result.keys()) / float(whole_design_nums)]
+                maximum_key             = max(npv_result.items(), key=itemgetter(1))[0]
+                maximum_val             = npv_result[maximum_key]
+                maximum_elements        = dict(sorted(npv_result.iteritems(), key=operator.itemgetter(1), reverse=True)[:5])
+                delta_array             = sorted([ (k, maximum_val - v) for k,v in maximum_elements.items() if not (maximum_val - v) == 0 ], key=lambda x : x[1])
+                result_dict[target_dir] = [maximum_key, maximum_val, len(npv_result.keys()) / float(whole_design_nums), [': '.join([v[0], str(v[1])]) for v in delta_array]]
             except:
                 result_dict[target_dir] = ['--------', 0, 0.0]
                     
@@ -421,10 +424,10 @@ def aggregate_significant_output(result_dir_path):
                                          npvs,
                                          fuel_cost_result[design_key],
                                          ], output_file_path)
-    print "%20s %20s %10s %25s" % ('scenario_mode', 'design_key', 'NPV', 'progress')
+    print "%20s %20s %10s %25s %40s" % ('scenario_mode', 'design_key', 'NPV', 'progress', 'delta')
     print "-" * 90
     for k,v in result_dict.items():
-        print "%20s %20s %17.3lf %18.2lf[%%]" % (k, v[0], v[1], v[2]*100)
+        print "%20s %20s %17.3lf %18.2lf[%%] (%40s)" % (k, v[0], v[1], v[2]*100, ','.join(v[3]))
     return
 
 def draw_retrofit_result(result_dir_path):
@@ -651,7 +654,9 @@ def draw_velocity_logs(result_dir, oilprice_mode):
                 draw_data.append([design_str, average_rpm, average_velocity])
             draw_data = np.array(sorted(draw_data, key=lambda x : x[0]))
             draw_twin_graph(draw_data, title, x_label, y0_label, y1_label)
+            plt.ylim(0, 100)
             plt.savefig(filepath)
+            plt.close()
     return
     
 

@@ -1436,8 +1436,8 @@ def draw_engine_sfoc():
         label      = "Engine %s (%s)" % (engine_info['id'], engine_info['name'])
         plt.plot(rpm_array, sfoc_array, label=label)
 
-    plt.ylim(160,180)
-    plt.xlim(20, 80)
+    plt.ylim(162.5,165)
+    plt.xlim(45, 70)
     plt.legend(shadow=True)
     plt.legend(loc='upper left')
     plt.savefig(output_file_path)
