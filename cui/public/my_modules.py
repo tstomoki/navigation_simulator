@@ -1445,7 +1445,7 @@ def draw_engine_sfoc():
     return
 
 # draw twin graph
-def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label):
+def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, y0_lim, y1_lim):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax2 = ax1.twinx()
@@ -1466,7 +1466,9 @@ def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label):
 
     # draw origin line
     plt.title(title)    
-    ax1.axhline(linewidth=1.5, color='k')    
+    ax1.axhline(linewidth=1.5, color='k')
+    ax1.set_ylim(y0_lim)
+    ax2.set_ylim(y1_lim)
     ax1.set_xlabel(x_label)
     ax1.set_ylabel(y0_label)
     ax2.set_ylabel(y1_label)
