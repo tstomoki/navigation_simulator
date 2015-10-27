@@ -404,7 +404,7 @@ def aggregate_significant_output(result_dir_path):
                 delta_array             = sorted([ (k, maximum_val - v) for k,v in maximum_elements.items() if not (maximum_val - v) == 0 ], key=lambda x : x[1])
                 result_dict[target_dir] = [maximum_key, maximum_val, len(npv_result.keys()) / float(whole_design_nums), [': '.join([v[0], str(v[1])]) for v in delta_array]]
             except:
-                result_dict[target_dir] = ['--------', 0, 0.0]
+                result_dict[target_dir] = ['--------', 0, 0.0, ['-'*40]]
                     
             # output_csv
             output_dir_path = "%s/%s/aggregated_results" % (result_dir_path, target_dir)
@@ -427,7 +427,10 @@ def aggregate_significant_output(result_dir_path):
     print "%20s %20s %10s %25s %40s" % ('scenario_mode', 'design_key', 'NPV', 'progress', 'delta')
     print "-" * 90
     for k,v in result_dict.items():
-        print "%20s %20s %17.3lf %18.2lf[%%] (%40s)" % (k, v[0], v[1], v[2]*100, ','.join(v[3]))
+        try:
+            print "%20s %20s %17.3lf %18.2lf[%%] (%40s)" % (k, v[0], v[1], v[2]*100, ','.join(v[3]))
+        except:
+            set_trace()
     return
 
 def draw_retrofit_result(result_dir_path):
