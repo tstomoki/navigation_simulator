@@ -674,7 +674,7 @@ def draw_velocity_logs(result_dir, oilprice_mode):
                 average_velocity = np.average(target_data['velocity'])
                 draw_data.append([design_str, average_rpm, average_velocity])
             draw_data = np.array(sorted(draw_data, key=lambda x : x[0]))
-            draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [0, 90], [10, 18])
+            draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [0, 100], [10, 20])
             plt.savefig(filepath)
             plt.close()
     return

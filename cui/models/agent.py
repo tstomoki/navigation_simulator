@@ -1000,6 +1000,8 @@ class Agent(object):
         # conduct multiple simmulation for each design
         result_array = {}
         for component_ids in devided_component_ids[index]:
+            # fix random seed
+            np.random.seed(COMMON_SEED_NUM)
             hull, engine, propeller = get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list)
             # get existing result file
             combination_str  = generate_combination_str(hull, engine, propeller)
