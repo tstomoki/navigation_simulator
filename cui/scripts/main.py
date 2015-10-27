@@ -263,6 +263,12 @@ def run(options):
             devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
 
             simulation_duration_years = VESSEL_LIFE_TIME
+            '''
+            simulation_duration_years = 1
+            devided_component_ids[0] = np.array([[1, 1, 0], [1, 2, 0]], dtype=np.int16)
+            agent.calc_significant_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)
+            sys.exit()
+            '''
 
             # initialize
             pool                      = mp.Pool(PROC_NUM)
