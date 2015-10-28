@@ -631,7 +631,7 @@ def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
     draw_data = np.array(sorted([(k, v) for k,v in npv_result.items()], key=lambda x : x[1], reverse=True), dtype=dt)
     ticks     = { i:_d for i, _d in enumerate(draw_data['design_id'])}
     plt.bar( [ _i + 1 for _i in ticks.keys()], draw_data['npv'])
-    plt.xticks( [_i + 1 for _i in ticks.keys()], ticks.values(), rotation=40, fontsize=8)
+    plt.xticks( [_i + 1 for _i in ticks.keys()], ticks.values(), rotation=60, fontsize=7)
     plt.savefig(filepath)
     plt.close()    
     
@@ -649,7 +649,7 @@ def draw_fuel_cost_histgram(fuel_cost_result, oilprice_mode, output_dir_path):
     draw_data = np.array(sorted([(k, v) for k,v in fuel_cost_result.items()], key=lambda x : x[1], reverse=True), dtype=dt)
     ticks     = { i:_d for i, _d in enumerate(draw_data['design_id'])}
     plt.bar( [ _i + 1 for _i in ticks.keys()], draw_data['fuel_cost'])
-    plt.xticks( [_i + 1 for _i in ticks.keys()], ticks.values(), rotation=40, fontsize=8)
+    plt.xticks( [_i + 1 for _i in ticks.keys()], ticks.values(), rotation=60, fontsize=7)
     plt.savefig(filepath)
     plt.close()    
     
@@ -665,7 +665,7 @@ def draw_npv_fuel_twingraph(npv_result, fuel_cost_result, oilprice_mode, output_
     dt       = np.dtype({'names': ('design_id','npv', 'fuel_cost'),
                          'formats': ('S10', np.float, np.float)})
     draw_data = np.array(sorted([(k, v, fuel_cost_result[k]) for k,v in npv_result.items()], key=lambda x : x[1], reverse=True), dtype=dt)
-    draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [2.7e9, 3.2e9], None, 'upper left')
+    draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [2.7e9, 3.5e9], [0.6e8, 2.4e8], 'lower left')
     plt.savefig(filepath)
     plt.close()    
     return
@@ -677,7 +677,7 @@ def draw_velocity_logs(result_dir, oilprice_mode):
         target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
         for load_condition in ['full', 'ballast']:
             # initialize graph
-            title    = "%s (at %s)" % ("rpm and velocity for each design".upper(), oilprice_mode.replace('_', ' '))
+            title    = "%s (at %s)\n" % ("rpm and velocity for each design".upper(), oilprice_mode.replace('_', ' '))
             x_label  = "design id".upper()
             y0_label = "rpm".upper()
             y1_label = "velocity".upper() + '[knot]'
