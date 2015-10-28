@@ -229,6 +229,48 @@ def run(options):
         print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         sys.exit()
 
+    if final_mode == '2':
+        # init retrofit designs
+        retrofit_designs         = {'calm': {}, 'rough': {}}
+        retrofit_designs['calm'] = {'low': 'H2E1P514',
+                                    'high': 'H2E4P257',
+                                    'dec': 'H2E1P514',
+                                    'inc': 'H1E4P514'}
+        retrofit_designs['rough'] = {'low': 'H2E2P1285',
+                                     'high': 'H2E4P257',
+                                     'dec': 'H2E2P1285',
+                                     'inc': 'H2E1P514'}
+
+        # initialize parameters
+        simulation_duration_years = VESSEL_LIFE_TIME
+        simulation_times          = 100
+        devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
+        sinario_mode              = DERIVE_SINARIO_MODE['binomial']
+        retrofit_mode             = RETROFIT_MODE['significant_rule']
+
+        for bf_mode in BF_MODE.keys():
+            designs    = retrofit_designs[bf_mode]
+            case_modes = designs.keys()
+            for case_mode in case_modes:
+                base_design_key      = designs[case_mode]
+                retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}
+                agent                = Agent(base_sinario,
+                                             world_scale,
+                                             flat_rate,
+                                             retrofit_mode,
+                                             sinario_mode, BF_MODE[bf_mode])
+                agent.output_dir_path  = "%s/%s_design" % (output_dir_path, case_mode)
+
+                # multi processing #
+                # initialize
+                pool                  = mp.Pool(PROC_NUM)
+                callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)) for index in xrange(PROC_NUM)]
+                pool.close()
+                pool.join()
+                # multi processing #
+        print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
+        sys.exit()
+
     if final_mode:
         significant_modes = ['high', 'low', 'dec', 'inc']
         oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
