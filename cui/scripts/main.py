@@ -250,7 +250,7 @@ def run(options):
                                   flat_rate,
                                   retrofit_mode,
                                   'significant',
-                                  BF_MODE['calm'])
+                                  BF_MODE['rough'])
 
             output_path = "%s/%s" % (output_dir_path, oilprice_mode)
             initializeDirHierarchy(output_path)

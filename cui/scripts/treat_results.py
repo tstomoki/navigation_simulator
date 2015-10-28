@@ -359,15 +359,17 @@ def aggregate_significant_output(result_dir_path):
     target_dirs = [ d for d in target_dirs if (d != 'aggregated_results') and ('.' not in d)]
 
     # initialize
-    dt   = np.dtype({'names': ('hull_id','engine_id','propeller_id','NPV', 'fuel_cost'),
-                     'formats': (np.int64, np.int64, np.int64, np.float, np.float)})
+    dt   = np.dtype({'names': ('hull_id','engine_id','propeller_id','NPV', 'fuel_cost','avg_round_num','round_num'),
+                     'formats': (np.int64, np.int64, np.int64, np.float, np.float, np.float, np.float)})
     # for csv
     column_names = ['design_key',
                     'hull_id',
                     'engine_id',
                     'propeller_id',
                     'average NPV',
-                    'fuel cost']
+                    'fuel cost',
+                    'avg_round_num',
+                    'round_num']
     result_dict = {}
     for target_dir in target_dirs:
         desti_dir = "%s/%s" % (result_dir_path,
@@ -379,6 +381,7 @@ def aggregate_significant_output(result_dir_path):
 
             npv_result       = {}
             fuel_cost_result = {}
+            round_result     = {}
             files = os.listdir(desti_dir)
             target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
             target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
@@ -391,20 +394,22 @@ def aggregate_significant_output(result_dir_path):
                 if data.ndim == 0:
                     data = np.atleast_1d(data)
                 for _d in data:
-                    h_id, e_id, p_id, npv, fuel_cost = _d
+                    h_id, e_id, p_id, npv, fuel_cost, avg_round_num, round_num = _d
                     combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
                     if not npv_result.has_key(combination_key):
                         npv_result[combination_key] = npv
                     if not fuel_cost_result.has_key(combination_key):
                         fuel_cost_result[combination_key] = fuel_cost
+                    if not round_result.has_key(combination_key):
+                        round_result[combination_key] = round_num
             try:
                 maximum_key             = max(npv_result.items(), key=itemgetter(1))[0]
                 maximum_val             = npv_result[maximum_key]
                 maximum_elements        = dict(sorted(npv_result.iteritems(), key=operator.itemgetter(1), reverse=True)[:5])
                 delta_array             = sorted([ (k, maximum_val - v) for k,v in maximum_elements.items() if not (maximum_val - v) == 0 ], key=lambda x : x[1])
-                result_dict[target_dir] = [maximum_key, maximum_val, len(npv_result.keys()) / float(whole_design_nums), [': '.join([v[0], str(v[1])]) for v in delta_array]]
+                result_dict[target_dir] = [maximum_key, maximum_val, fuel_cost_result[maximum_key], round_result[maximum_key], len(npv_result.keys()) / float(whole_design_nums), [': '.join([v[0], str(v[1])]) for v in delta_array]]
             except:
-                result_dict[target_dir] = ['--------', 0, 0.0, ['-'*40]]
+                result_dict[target_dir] = ['--------', 0, 0, 0.0, 0.0, ['-'*40]]
                     
             # output_csv
             output_dir_path = "%s/%s/aggregated_results" % (result_dir_path, target_dir)
@@ -422,14 +427,16 @@ def aggregate_significant_output(result_dir_path):
                                          engine_id,
                                          propeller_id,
                                          npvs,
+                                         round_result[design_key],
                                          fuel_cost_result[design_key],
                                          ], output_file_path)
-    print "%20s %20s %10s %25s %40s" % ('scenario_mode', 'design_key', 'NPV', 'progress', 'delta')
+    print "%20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
     print "-" * 90
     for k,v in result_dict.items():
         try:
-            print "%20s %20s %17.3lf %18.2lf[%%] (%40s)" % (k, v[0], v[1], v[2]*100, ','.join(v[3]))
+            print "%20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
         except:
+            raise
             set_trace()
     return
 
