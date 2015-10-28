@@ -1445,7 +1445,7 @@ def draw_engine_sfoc():
     return
 
 # draw twin graph
-def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, y0_lim, y1_lim):
+def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, y0_lim, y1_lim, legend_loc=None):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax2 = ax1.twinx()
@@ -1459,10 +1459,13 @@ def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, y0_lim, y1_li
     p1 = ax1.plot(x_data_induces, [ float(_d[1]) for _d in y0_data], color='r')
     p2 = ax2.plot(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
     #ax2.bar(x_data_induces, [ float(_d[1]) for _d in y1_data], color='b')
-    plt.legend([p1[0], p2[0]], [y0_label, y1_label], loc='lower left')
+    if legend_loc is None:
+        plt.legend([p1[0], p2[0]], [y0_label, y1_label], loc='lower left')
+    else:
+        plt.legend([p1[0], p2[0]], [y0_label, y1_label], loc=legend_loc)
     #plt.xticks(x_data_induces, x_data, fontsize=font_size, rotation='vertical')
     ax1.xaxis.set_ticks(x_data_induces)
-    ax1.xaxis.set_ticklabels(x_data, rotation=80, fontsize=8)
+    ax1.xaxis.set_ticklabels(x_data, rotation=60, fontsize=7)
 
     # draw origin line
     plt.title(title)    

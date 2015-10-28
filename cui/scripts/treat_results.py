@@ -420,6 +420,7 @@ def aggregate_significant_output(result_dir_path):
                 os.remove(output_file_path)
             draw_npv_histgram(npv_result, target_dir, output_dir_path)
             draw_fuel_cost_histgram(fuel_cost_result, target_dir, output_dir_path)
+            draw_npv_fuel_twingraph(npv_result, fuel_cost_result, target_dir, output_dir_path)
             for design_key, npvs in npv_result.items():
                 hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
                 write_csv(column_names, [design_key,
@@ -654,6 +655,21 @@ def draw_fuel_cost_histgram(fuel_cost_result, oilprice_mode, output_dir_path):
     
     return
 
+def draw_npv_fuel_twingraph(npv_result, fuel_cost_result, oilprice_mode, output_dir_path):
+    # initialize graph
+    title    = "%s (at %s)\n" % ("npv and fuel cost for each design".upper(), oilprice_mode.replace('_', ' '))
+    x_label  = "design id".upper()
+    y0_label = "npv".upper() + '[USD]'
+    y1_label = "fuel cost".upper() + '[USD]'
+    filepath = "%s/npv_fuel_twin_%s.png" % (output_dir_path, oilprice_mode)
+    dt       = np.dtype({'names': ('design_id','npv', 'fuel_cost'),
+                         'formats': ('S10', np.float, np.float)})
+    draw_data = np.array(sorted([(k, v, fuel_cost_result[k]) for k,v in npv_result.items()], key=lambda x : x[1], reverse=True), dtype=dt)
+    draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [2.7e9, 3.2e9], None, 'upper left')
+    plt.savefig(filepath)
+    plt.close()    
+    return
+
 def draw_velocity_logs(result_dir, oilprice_mode):
     velocity_logs_dir = "%s/velocity_logs" % (result_dir)
     if os.path.exists(velocity_logs_dir):
@@ -681,7 +697,7 @@ def draw_velocity_logs(result_dir, oilprice_mode):
                 average_velocity = np.average(target_data['velocity'])
                 draw_data.append([design_str, average_rpm, average_velocity])
             draw_data = np.array(sorted(draw_data, key=lambda x : x[0]))
-            draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [0, 100], [10, 20])
+            draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, [40, 100], [12, 20])
             plt.savefig(filepath)
             plt.close()
     return
