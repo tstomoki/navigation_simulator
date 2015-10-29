@@ -231,15 +231,7 @@ def run(options):
 
     if final_mode == '2':
         # init retrofit designs
-        retrofit_designs         = {'calm': {}, 'rough': {}}
-        retrofit_designs['calm'] = {'low': 'H2E1P514',
-                                    'high': 'H2E4P257',
-                                    'dec': 'H2E1P514',
-                                    'inc': 'H1E4P514'}
-        retrofit_designs['rough'] = {'low': 'H2E2P1285',
-                                     'high': 'H2E4P257',
-                                     'dec': 'H2E2P1285',
-                                     'inc': 'H2E1P514'}
+        retrofit_designs          = RETROFIT_DESIGNS
 
         # initialize parameters
         simulation_duration_years = VESSEL_LIFE_TIME

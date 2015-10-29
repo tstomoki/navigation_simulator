@@ -226,3 +226,7 @@ DEVIDE_INDEX = 0.8
 
 # ENGINE SFOC BASE
 BASE_PEAK = 60
+
+# RETROFIT DESIGNS
+RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H2E4P257', 'dec': 'H2E1P514', 'inc': 'H1E4P514'},
+                     'rough': {'low': 'H2E2P1285','high': 'H2E4P257', 'dec': 'H2E2P1285', 'inc': 'H2E1P514'}}
