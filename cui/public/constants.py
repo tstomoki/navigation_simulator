@@ -230,3 +230,8 @@ BASE_PEAK = 60
 # RETROFIT DESIGNS
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H2E4P257', 'dec': 'H2E1P514', 'inc': 'H1E4P514'},
                      'rough': {'low': 'H2E2P1285','high': 'H2E4P257', 'dec': 'H2E2P1285', 'inc': 'H2E1P514'}}
+# RETROFIT RULES
+HIGH_TREND          = 3.0
+HIGH_MULTIPLE_INDEX = 1.5
+LOW_TREND           = -3.0
+LOW_MULTIPLE_INDEX  = 0.5
