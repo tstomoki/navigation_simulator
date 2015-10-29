@@ -259,8 +259,7 @@ def run(options):
                                              flat_rate,
                                              retrofit_mode,
                                              sinario_mode, BF_MODE[bf_mode])
-                agent.output_dir_path  = "%s/%s_design" % (output_dir_path, case_mode)
-
+                agent.output_dir_path  = "%s/%s/%s_design" % (output_dir_path, bf_mode, case_mode)
                 # multi processing #
                 # initialize
                 pool                  = mp.Pool(PROC_NUM)
