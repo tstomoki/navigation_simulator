@@ -1126,6 +1126,20 @@ def generate_market_scenarios(scenario, world_scale, flat_rate, sinario_mode, si
     flat_rate.generate_flat_rate(sinario_mode, simulation_duration_years)
     return
 
+def generate_sinario_with_seed(random_seed, simulation_duration_years):
+    from sinario import Sinario
+    # load history data
+    from_date              = '2004/01/01'
+    to_date                = '2015/01/01'
+    oil_price_history_data = load_monthly_history_data(from_date, to_date)
+    # generate sinario
+    scenario = Sinario(oil_price_history_data)
+    sinario_mode  = DERIVE_SINARIO_MODE['binomial']
+    # fix seed
+    np.random.seed(random_seed)
+    scenario.generate_sinario(sinario_mode, simulation_duration_years)
+    return scenario
+
 def separate_list(raw_list, num):
     ret_data = []
     delta = round( len(raw_list) / float(num) )

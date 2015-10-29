@@ -455,7 +455,6 @@ def draw_retrofit_result(result_dir_path):
         base_design_key = None
         print "%30s %s %30s\n" % ('-'*30, ("%s sea condition" % bf_mode).upper(), '-'*30)
         for target_dir in target_dirs:
-            draw_comparison_graph(30, datetime.datetime(2017, 1, 22), target_dir, target_dir_path)
             # initialize
             dt   = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
                              'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
@@ -558,6 +557,9 @@ def draw_retrofit_result(result_dir_path):
                     retrofit_design_mode = [key for key, value in RETROFIT_DESIGNS[bf_mode].iteritems() if value == f_result['retrofit_design']][0]
                     transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
                     retrofit_date   = f_result['retrofit_date'][0]
+                    if not retrofit_date == '--':
+                        draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
+                        
                 else:
                     no_retrofit_npv = ("%17.3lf" % nr_result['NPV']) if len(nr_result) == 1 else '--------'
                     if len(f_result) == 1:
@@ -585,13 +587,17 @@ def draw_retrofit_result(result_dir_path):
 
 def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path):
     # initialize
-    dt   = np.dtype({'names': ('date','npv'),
-                     'formats': ('S10', np.float)})        
+    dt               = np.dtype({'names': ('date','npv'),
+                     'formats': ('S10', np.float)})
+    output_dir       = "%s/%s/comparison_graphs" % (target_dir_path, target_dir)
+    initializeDirHierarchy(output_dir)
+    output_file_path = "%s/%d_comparison.png" % (output_dir, index_num)
 
     # draw graph
-    title       = "NPV".title()
-    x_label     = "date".upper()
-    y_label     = "PV [USD]".upper()
+    title    = "NPV and oilprice\n".upper()
+    x_label  = "date".upper()
+    y0_label = "PV [USD]".upper()
+    y1_label = "oil price [USD/barrel]".upper()
     
     ## for flexible
     desti_dir   = "%s/%s/flexible" % (target_dir_path, target_dir)
@@ -605,16 +611,9 @@ def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path)
                                  delimiter=',',
                                  dtype=dt,
                                  skiprows=1)
-            draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
-            draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-            # for retrofit date
-            plt.axvline(x=retrofit_date, color='k', linewidth=4, linestyle='--')                
-            draw_label = "%s (Flexible)" % (target_file)
-            plt.plot(draw_data.transpose()[0],
-                     draw_data.transpose()[1],
-                     label=draw_label,
-                     color='r', linestyle='-')
-            set_trace()
+            flexible_draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
+            flexible_draw_data = np.array(sorted(flexible_draw_data, key= lambda x : x[0]))
+            flexible_draw_label = "%s (Flexible)" % (target_file)
             # for no retrofit
             desti_dir   = "%s/%s/no_retrofit" % (target_dir_path, target_dir)
             if os.path.exists(desti_dir):
@@ -627,21 +626,51 @@ def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path)
                                                             delimiter=',',
                                                             dtype=dt,
                                                             skiprows=1)
-                    draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
-                    draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-                    plt.plot(draw_data.transpose()[0],
-                             draw_data.transpose()[1],
+                    nr_draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
+                    nr_draw_data = np.array(sorted(nr_draw_data, key= lambda x : x[0]))
+                    '''
+                    plt.plot(nr_draw_data.transpose()[0],
+                             nr_draw_data.transpose()[1],
                              label=target_file,
                              color='g', linestyle='--')
-                    base_design_key = target_file
+                    '''
                     # debug
                     # for first dock-in
-                    #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')
-                    plt.legend(shadow=True)
-                    plt.legend(loc='upper left')
-                    plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
-        plt.savefig("%s/%s/simulate%d.png" % (target_dir_path, target_dir, index_num))
-        plt.close()
+                    #plt.axvline(x=nr_draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')
+                    simulation_duration_years = max(nr_draw_data.transpose()[0]).year - min(nr_draw_data.transpose()[0]).year
+                    scenario = generate_sinario_with_seed(COMMON_SEED_NUM * index_num, simulation_duration_years)
+
+                    # draw twin graphs
+                    fig = plt.figure()
+                    ax1 = fig.add_subplot(111)
+                    ax2 = ax1.twinx()
+                    
+                    # no_retrofit
+                    y0_data   = np.array([[_d[0], _d[1]] for _d in nr_draw_data])
+                    y0_x_data = y0_data.transpose()[0]
+                    p1        = ax1.plot(y0_x_data, [ float(_d[1]) for _d in y0_data], color='r')
+                    # flexible
+                    y0_data   = np.array([[_d[0], _d[1]] for _d in flexible_draw_data])
+                    y0_x_data = y0_data.transpose()[0]
+                    p3        = ax1.plot(y0_x_data, [ float(_d[1]) for _d in y0_data], color='g')
+                    ax1.set_ylabel(y0_label)
+                    # oil price                    
+                    y1_data   = scenario.predicted_data['price']
+                    y1_x_data = [str_to_date(_d) for _d in scenario.predicted_data['date']]
+                    p2        = ax2.plot(y1_x_data, [ float(_d) for _d in y1_data], color='b', linestyle='--')
+                    ax2.set_ylabel(y1_label)
+                    plt.legend([p1[0], p3[0], p2[0]], [target_file, flexible_draw_label, 'oil price'], loc='lower left')
+
+                    # draw origin line
+                    plt.title(title)    
+                    ax1.axhline(linewidth=1.5, color='k')
+                    # for retrofit date
+                    ax1.axvline(x=str_to_datetime(retrofit_date), color='k', linewidth=4, linestyle='--')                
+
+                    ax1.set_xlabel(x_label)
+                    ax1.grid(True)
+                    plt.savefig(output_file_path)
+                    plt.close()
     return
 
 def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
