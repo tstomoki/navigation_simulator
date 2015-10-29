@@ -445,178 +445,201 @@ def draw_retrofit_result(result_dir_path):
     if result_dir_path is None:
         print 'No result_dir_path. abort'
         return
-    target_dirs     = os.listdir(result_dir_path)
-    base_design_key = None
 
-    for target_dir in target_dirs:
-        # initialize
-        dt   = np.dtype({'names': ('date','npv'),
-                         'formats': ('S10', np.float)})        
-        # npv comparison
-        index_num     = 18
-        retrofit_date = datetime.datetime(2021, 4, 12)
-        # draw graph
-        title       = "NPV".title()
-        x_label     = "date".upper()
-        y_label     = "PV [USD]".upper()
-        ## for flexible
-        desti_dir   = "%s/%s/flexible" % (result_dir_path, target_dir)
-        if os.path.exists(desti_dir):
-            # calc average npv from initial_designs
-            files        = os.listdir(desti_dir)
-            target_file = [_f for _f in files if _f[:1] == 'H'][-1]
-            target_file_path = "%s/%s/simulate%d/npv.csv" % (desti_dir, target_file, index_num)
-            if os.path.exists(target_file_path):
-                data                    = np.genfromtxt(target_file_path,
-                                                        delimiter=',',
-                                                        dtype=dt,
-                                                        skiprows=1)
-                draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
-                draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-                #draw_data = np.array([_d for _d in sorted(draw_data, key= lambda x : x[0]) if _d[0] >= retrofit_date])
-                # for retrofit date
-                plt.axvline(x=retrofit_date, color='k', linewidth=4, linestyle='--')                
-                draw_label = "%s (Flexible)" % (target_file)
-                plt.plot(draw_data.transpose()[0],
-                         draw_data.transpose()[1],
-                         label=draw_label,
-                         color='r', linestyle='-')
-                '''
-                print 'flexible'
-                print sum(draw_data.transpose()[1])
-                '''
-        # for no retrofit
-        desti_dir   = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
-        if os.path.exists(desti_dir):
-            # calc average npv from initial_designs
-            files        = os.listdir(desti_dir)
-            target_file = [_f for _f in files if _f[:1] == 'H'][-1]
-            target_file_path = "%s/%s/simulate%d/npv.csv" % (desti_dir, target_file, index_num)
-            if os.path.exists(target_file_path):
-                data                    = np.genfromtxt(target_file_path,
-                                                        delimiter=',',
-                                                        dtype=dt,
-                                                        skiprows=1)
-                draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
-                draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
-                plt.plot(draw_data.transpose()[0],
-                         draw_data.transpose()[1],
-                         label=target_file,
-                         color='g', linestyle='--')
-                base_design_key = target_file
-                '''
-                print 'no_retrofit'
-                print sum(draw_data.transpose()[1])
-                '''
-                # debug
-                # for first dock-in
-                #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')
-                plt.legend(shadow=True)
-                plt.legend(loc='upper left')
-        #debug
-        #plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
-        plt.savefig("%s/%s/simulate%d.png" % (result_dir_path, target_dir, index_num))
-        plt.close()
+    # get bf_mode
+    bf_modes = os.listdir(result_dir_path)
 
-        # initialize
-        dt   = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost'),
-                         'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float)})        
-        column_names = ["simulation_time",
-                        "hull_id",
-                        "engine_id",
-                        "propeller_id",
-                        "NPV",
-                        "fuel_cost"]
-        combination_key = None
-        # for flexible
-        desti_dir = "%s/%s/flexible" % (result_dir_path, target_dir)
-        flexible_npv_result = {}
-        if os.path.exists(desti_dir):
-            # calc average npv from initial_designs
-            files               = os.listdir(desti_dir)
-            target_files        = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
-            target_files        = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
-            flexible_npv_result = {}
-            for target_file in target_files:
-                data = np.genfromtxt(target_file,
-                                     delimiter=',',
-                                     dtype=dt,
-                                     skiprows=1)
-                if data.ndim == 0:
-                    data = np.atleast_1d(data)
-                for _d in data:
-                    s_num, h_id, e_id, p_id, npv, fuel_cost = _d
-                    combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
-                    if not flexible_npv_result.has_key(s_num):
-                        flexible_npv_result[s_num] = []
-                    flexible_npv_result[s_num] = npv
-            base_design_key = base_design_key if base_design_key is not None else 'Base'
-            print "%s -> %s (%s, flexible): \n %10s: %20lf\n %10s: %20lf (from %d results)" % (base_design_key,
-                                                                                               combination_key,
-                                                                                               target_dir,
-                                                                                               'ave. NPV',
-                                                                                               np.average(flexible_npv_result.values()),
-                                                                                               'std.', np.std(flexible_npv_result.values()),
-                                                                                               len(flexible_npv_result.values()))
-        # for no retrofit
-        desti_dir = "%s/%s/no_retrofit" % (result_dir_path, target_dir)
-        if os.path.exists(desti_dir):
-            # calc average npv from initial_designs
-            files        = os.listdir(desti_dir)
-            target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
-            target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
-            npv_result   = {}
-            for target_file in target_files:
-                data = np.genfromtxt(target_file,
-                                     delimiter=',',
-                                     dtype=dt,
-                                     skiprows=1)
-                if data.ndim == 0:
-                    data = np.atleast_1d(data)                
-                for _d in data:
-                    s_num, h_id, e_id, p_id, npv, fuel_cost = _d                    
-                    combination_key = generate_combination_str_with_id(h_id, e_id, p_id)
-                    if not npv_result.has_key(s_num):
-                        npv_result[s_num] = []
-                    npv_result[s_num] = npv                    
-            print "%s (%s): \n %10s: %20lf\n %10s: %20lf (from %d results)" % (combination_key,
-                                                                               target_dir,
-                                                                               'ave. NPV',
-                                                                               np.average(npv_result.values()),
-                                                                               'std.', np.std(npv_result.values())
-                                                                               , len(npv_result.values()))
+    for bf_mode in bf_modes:
+        target_dir_path = "%s/%s" % (result_dir_path, bf_mode)
+        target_dirs     = os.listdir(target_dir_path)
+        base_design_key = None
+        print "%30s %s %30s\n" % ('-'*30, ("%s sea condition" % bf_mode).upper(), '-'*30)
+        for target_dir in target_dirs:
+            # initialize
+            dt   = np.dtype({'names': ('date','npv'),
+                             'formats': ('S10', np.float)})        
+            # npv comparison (manual)
+            index_num     = 18
+            retrofit_date = datetime.datetime(2021, 4, 12)
+            # draw graph
+            title       = "NPV".title()
+            x_label     = "date".upper()
+            y_label     = "PV [USD]".upper()
+            # npv comparison (manual)
 
-        print "\n\n\n\n%40s" % ("details".upper())
-        print "%10s %20s %10s %20s %20s %20s" % ('sim'.upper(), 'flexible'.upper(), 'sim'.upper(), 'no retrofit'.upper(), 'judgement'.upper(), 'delta'.upper())
-        iterate_count = max(len(flexible_npv_result), len(npv_result))
-        flexibles     = [ [_k, _v] for _k, _v in flexible_npv_result.items()]
-        no_retrofits  = [ [_k, _v] for _k, _v in npv_result.items()]
-        delta_array   = []
-        for index in range(iterate_count):
-            if len(flexibles) > index:
-                flexible    = [ flexibles[index][0], "%17.3lf" % (flexibles[index][1])]
-            else:
-                flexible    = ['-', '-']
+            ## for flexible
+            desti_dir   = "%s/%s/flexible" % (target_dir_path, target_dir)
+            if os.path.exists(desti_dir):
+                # calc average npv from initial_designs
+                files        = os.listdir(desti_dir)
+                target_file = [_f for _f in files if _f[:1] == 'H'][-1]
+                target_file_path = "%s/%s/simulate%d/npv.csv" % (desti_dir, target_file, index_num)
+                if os.path.exists(target_file_path):
+                    data                    = np.genfromtxt(target_file_path,
+                                                            delimiter=',',
+                                                            dtype=dt,
+                                                            skiprows=1)
+                    draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
+                    draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+                    #draw_data = np.array([_d for _d in sorted(draw_data, key= lambda x : x[0]) if _d[0] >= retrofit_date])
+                    # for retrofit date
+                    plt.axvline(x=retrofit_date, color='k', linewidth=4, linestyle='--')                
+                    draw_label = "%s (Flexible)" % (target_file)
+                    plt.plot(draw_data.transpose()[0],
+                             draw_data.transpose()[1],
+                             label=draw_label,
+                             color='r', linestyle='-')
+            # for no retrofit
+            desti_dir   = "%s/%s/no_retrofit" % (target_dir_path, target_dir)
+            if os.path.exists(desti_dir):
+                # calc average npv from initial_designs
+                files        = os.listdir(desti_dir)
+                target_file = [_f for _f in files if _f[:1] == 'H'][-1]
+                target_file_path = "%s/%s/simulate%d/npv.csv" % (desti_dir, target_file, index_num)
+                if os.path.exists(target_file_path):
+                    data                    = np.genfromtxt(target_file_path,
+                                                            delimiter=',',
+                                                            dtype=dt,
+                                                            skiprows=1)
+                    draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
+                    draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+                    plt.plot(draw_data.transpose()[0],
+                             draw_data.transpose()[1],
+                             label=target_file,
+                             color='g', linestyle='--')
+                    base_design_key = target_file
+                    # debug
+                    # for first dock-in
+                    #plt.axvline(x=draw_data.transpose()[0][0] + datetime.timedelta(days=365*DOCK_IN_PERIOD), color='r', linewidth=4, linestyle='--')
+                    plt.legend(shadow=True)
+                    plt.legend(loc='upper left')
+             #debug
+             #plt.xlim([draw_data.transpose()[0].min(), draw_data.transpose()[0].max()])        
+             #plt.savefig("%s/%s/simulate%d.png" % (result_dir_path, target_dir, index_num))
+             #plt.close()
+
+            # initialize
+            dt   = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
+                             'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
+            column_names = ["simulation_time",
+                            "hull_id",
+                            "engine_id",
+                            "propeller_id",
+                            "NPV",
+                            "fuel_cost",
+                            "retrofit_date"]
+            print "%20s\n%15s\n%20s" % ('*'*20, target_dir.upper(), '*'*20)
+            print "%20s" % ('-^-'*50)
+            print "%20s\n%15s\n%20s" % ('-'*20, "statistical result".upper(), '-'*20)
+            print "%15s %20s %20s %10s %21s %20s %20s" % ('design_type'.upper(), 
+                                                               'avg. npv'.upper(),
+                                                               'avg. npv (sig)'.upper(),
+                                                               'std'.upper(),
+                                                               'std (sig)'.upper(),
+                                                               'simulation count'.upper(),
+                                                               'retrofit occurs'.upper())
+            combination_key = None
+            # for flexible
+            desti_dir = "%s/%s/flexible" % (target_dir_path, target_dir)
+            flexible_result = []
+            if os.path.exists(desti_dir):
+                # calc average npv from initial_designs
+                files               = os.listdir(desti_dir)
+                target_files        = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+                target_files        = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+                flexible_npv_result = {}
+                for target_file in target_files:
+                    data = np.genfromtxt(target_file,
+                                         delimiter=',',
+                                         dtype=dt,
+                                         skiprows=1)
+                    if data.ndim == 0:
+                        data = np.atleast_1d(data)
+                    for _d in data:
+                        flexible_result.append(_d)
+                flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
+                retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
+                print "%15s %24.3lf %13.3e %20.3lf %14.3e %15d %15d" % ('flexible', 
+                                                                        np.average(flexible_result['NPV']),
+                                                                        np.average(flexible_result['NPV']),
+                                                                        np.std(flexible_result['NPV']),
+                                                                        np.std(flexible_result['NPV']),
+                                                                        len(flexible_result), retrofit_count)
+            # for no retrofit
+            desti_dir = "%s/%s/no_retrofit" % (target_dir_path, target_dir)
+            if os.path.exists(desti_dir):
+                # calc average npv from initial_designs
+                files        = os.listdir(desti_dir)
+                target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+                target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+                result       = []
+                for target_file in target_files:
+                    data = np.genfromtxt(target_file,
+                                         delimiter=',',
+                                         dtype=dt,
+                                         skiprows=1)
+                    if data.ndim == 0:
+                        data = np.atleast_1d(data)                
+                    for _d in data:
+                        result.append(_d)
+                result = np.array(sorted(result, key=lambda x : x[0]))
+                print "%15s %24.3lf %13.3e %20.3lf %14.3e %15d %15d" % ('no_retrofit', 
+                                                                   np.average(result['NPV']),
+                                                                   np.average(result['NPV']),
+                                                                   np.std(result['NPV']),
+                                                                   np.std(result['NPV']),
+                                                                   len(result), 0)
+            print "%20s" % ('-^-'*50)
+            print "%20s" % ('-#-'*50)
+            print "%20s\n%15s\n%20s" % ('-'*20, "simulation details".upper(), '-'*20)
+            print "%10s %17s %20s %23s %18s %30s %23s" % ('sim'.upper(),
+                                                          'flexible'.upper(), 
+                                                          'no retrofit'.upper(), 
+                                                          'judgement'.upper(),
+                                                          'delta'.upper(),
+                                                          'design transition'.upper(),
+                                                          'retrofit date'.upper() )
             
-            if len(no_retrofits) > index:
-                no_retrofit = no_retrofits[index]
-                no_retrofit = [ no_retrofits[index][0], "%17.3lf" % (no_retrofits[index][1])]
-            else:
-                no_retrofit = ['-', '-']
+            simulate_induces = np.unique(np.r_[result['simulation_time'],flexible_result['simulation_time']])
+            effective_count  = 0
+            delta_array      = []
+            for simulate_index in simulate_induces:
+                nr_result = result[np.where(result['simulation_time']==simulate_index)]
+                f_result  = flexible_result[np.where(flexible_result['simulation_time']==simulate_index)]
+                if len(nr_result) == 1 and len(f_result) == 1:
+                    no_retrofit_npv = ("%17.3lf" % nr_result['NPV'])
+                    flexible_npv    = ("%17.3lf" % f_result['NPV'])
+                    if (flexible_npv > no_retrofit_npv):
+                        judgement = 'flexible'
+                        effective_count += 1
+                    else:
+                        judgement = 'no_retrofit'
+                    
+                    delta           = "%17.3lf" % (float(flexible_npv)-float(no_retrofit_npv))
+                    delta_array.append(float(flexible_npv)-float(no_retrofit_npv))
+                    transition_str  = "%s -> %s" % (nr_result['base_design'][0], f_result['retrofit_design'][0])
+                    retrofit_date   = f_result['retrofit_date'][0]
+                else:
+                    no_retrofit_npv = ("%17.3lf" % nr_result['NPV']) if len(nr_result) == 1 else '--------'
+                    if len(f_result) == 1:
+                        flexible_npv    = f_result['NPV']
+                        retrofit_date   = f_result['retrofit_date'][0] 
+                    else:
+                        flexible_npv = retrofit_date = '--------'                 
+                    transition_str  = "%s -> --" % (nr_result['base_design'][0])
+                    judgement = delta = '--------'
 
-            if (flexible[1] != '-' and no_retrofit[1] != '-'):
-                judgement = 'flexible' if flexible[1] > no_retrofit[1] else 'no_retrofit'
-                delta     = "%17.3lf" % (float(flexible[1])-float(no_retrofit[1]))
-            else:
-                judgement = '-'
-                delta     = '-'
-            #if judgement == 'flexible':
-            delta_array.append(delta)
-            print "%10s %20s %10s %20s %20s %20s" % (str(flexible[0]), str(flexible[1]),
-                                                     str(no_retrofit[0]), str(no_retrofit[1]), judgement, delta)
-        delta_array = map(float, [_d for _d in delta_array if _d != '-'])
-        print 'ave. delta %20lf' % (np.average(map(float, delta_array)))
-        print 'ave. std %20lf' % (np.std(map(float, delta_array)))
+                print "%10s %20s %20s %20s %20s %30s %20s" % (simulate_index, 
+                                                              flexible_npv,
+                                                              no_retrofit_npv,
+                                                              judgement.upper(),
+                                                              delta,
+                                                              transition_str,
+                                                              retrofit_date)
+            print "%20s" % ('-^-'*50)
+            print "%20s: %10d\n%20s: %17.3lf" % ('effective count'.upper(), effective_count,
+                                                 'average delta'.upper(), np.average(delta_array))
+            print "%20s" % ('-^-'*50)
     return
 
 def draw_npv_histgram(npv_result, oilprice_mode, output_dir_path):
