@@ -1548,8 +1548,6 @@ class Agent(object):
             elif avg_oilprice < origin_oilprice * 0.5:
                 mode = 'low'
                 retrofit_flag = True
-        retrofit_flag = True
-        mode = 'low'
 
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):

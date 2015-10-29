@@ -554,7 +554,8 @@ def draw_retrofit_result(result_dir_path):
                     delta           = "%17.3lf" % (float(flexible_npv)-float(no_retrofit_npv))
                     delta_dict[simulate_index] = float(flexible_npv)-float(no_retrofit_npv)
                     base_design_mode     = [key for key, value in RETROFIT_DESIGNS[bf_mode].iteritems() if value == nr_result['base_design']][0]
-                    retrofit_design_mode = [key for key, value in RETROFIT_DESIGNS[bf_mode].iteritems() if value == f_result['retrofit_design']][0]
+                    retrofit_design_mode = [key for key, value in RETROFIT_DESIGNS[bf_mode].iteritems() if value == f_result['retrofit_design'][0]]
+                    retrofit_design_mode = retrofit_design_mode[0] if len(retrofit_design_mode) > 0 else '--'
                     transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
                     retrofit_date   = f_result['retrofit_date'][0]
                     if not retrofit_date == '--':
