@@ -176,6 +176,9 @@ class Agent(object):
         self.log                 = init_dict_from_keys_with_array(LOG_COLUMNS,
                                                                   np.dtype({'names': ('date', 'rpm', 'velocity'),
                                                                             'formats': ('S20', np.float , np.float)}))
+        self.retrofit_date       = None
+        self.base_design         = generate_combination_str(self.hull, self.engine, self.propeller)
+        self.retrofit_design     = None
         self.elapsed_days_log    = []
         self.total_cash_flow     = 0
         self.total_NPV           = 0
@@ -1151,7 +1154,10 @@ class Agent(object):
                             'engine_id',
                             'propeller_id',
                             'NPV',
-                            'fuel_cost']
+                            'fuel_cost',
+                            'base_design',
+                            'retrofit_design',
+                            'retrofit_date']
         dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
                            'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
         design_array     = np.array([], dtype=dtype)        
@@ -1183,7 +1189,7 @@ class Agent(object):
                                      self.hull.base_data['id'],
                                      self.engine.base_data['id'],
                                      self.propeller.base_data['id'],
-                                     NPV, fuel_cost, lap_time], output_file_path)            
+                                     NPV, fuel_cost, self.base_design, '--', '--', lap_time], output_file_path)            
             
             # for flexible design
             start_time                 = time.clock()
@@ -1203,11 +1209,12 @@ class Agent(object):
             output_dir_path  = "%s/flexible" % (self.output_dir_path)
             output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
             lap_time         = convert_second(time.clock() - start_time)
+            retrofit_design  = self.retrofit_design_human
             write_csv(column_names, [simulation_time,
                                      self.hull.base_data['id'],
                                      self.engine.base_data['id'],
                                      self.propeller.base_data['id'],
-                                     NPV, fuel_cost, lap_time], output_file_path)
+                                     NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), lap_time], output_file_path)            
         return 
     
     ## multi processing method ##
@@ -1904,6 +1911,8 @@ class Agent(object):
             propeller_list                         = load_propeller_list()                
             retrofit_component_ids                 = map(int, get_component_ids_from_design_key(retrofit_design))
             self.hull, self.engine, self.propeller = get_component_from_id_array(retrofit_component_ids, hull_list, engine_list, propeller_list)
+            self.retrofit_date                     = self.current_date
+            self.retrofit_design                   = retrofit_design
         return
 
     def retrofittable(self):
@@ -1952,3 +1961,9 @@ class Agent(object):
                 print generate_combination_str(self.hull, self.engine, self.propeller)
             ret_flag = True
         return ret_flag
+
+    def retrofit_date_human(self):
+        return datetime_to_human(self.retrofit_date) if self.retrofit_date is not None else '--'
+
+    def retrofit_design_human(self):
+        return self.retrofit_design if self.retrofit_date is not None else '--'
