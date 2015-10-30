@@ -176,7 +176,7 @@ AGENT_VARIABLES = ['dockin_flag',
                    'oilprice_full',
                    'elapsed_days',
                    'sinario_mode',
-                   'oilpr<<ice_ballast',
+                   'oilprice_ballast',
                    'NPV',
                    'velocity_array']
 
@@ -222,7 +222,6 @@ DECLINE_RATIO = 0.5
 ## multiply index
 MULTIPLY_INDEX = 2.0
 DEVIDE_INDEX = 0.8
-
 
 # ENGINE SFOC BASE
 BASE_PEAK = 60
