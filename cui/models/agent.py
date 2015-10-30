@@ -1535,18 +1535,18 @@ class Agent(object):
 
         # change flag
         ## High
-        if trend > 3.0:
+        if trend > HIGH_TREND:
             mode = 'inc'
             retrofit_flag = True
-        elif trend < -3.0:
+        elif trend < LOW_TREND:
             mode = 'dec'
             retrofit_flag = True
         else:
-            if (avg_oilprice > origin_oilprice * 1.5):
-                mode = 'high'
+            if (avg_oilprice > origin_oilprice * HIGH_MULTIPLE_INDEX):
+                mode          = 'high'
                 retrofit_flag = True
-            elif avg_oilprice < origin_oilprice * 0.5:
-                mode = 'low'
+            elif avg_oilprice < origin_oilprice * LOW_MULTIPLE_INDEX:
+                mode          = 'low'
                 retrofit_flag = True
 
         # remove current mode
