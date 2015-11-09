@@ -240,25 +240,37 @@ def run(options):
         sinario_mode              = DERIVE_SINARIO_MODE['binomial']
         retrofit_mode             = RETROFIT_MODE['significant_rule']
 
-        for bf_mode in BF_MODE.keys():
-            designs    = retrofit_designs[bf_mode]
-            case_modes = designs.keys()
-            for case_mode in case_modes:
-                base_design_key      = designs[case_mode]
-                retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}
-                agent                = Agent(base_sinario,
-                                             world_scale,
-                                             flat_rate,
-                                             retrofit_mode,
-                                             sinario_mode, BF_MODE[bf_mode])
-                agent.output_dir_path  = "%s/%s/%s_design" % (output_dir_path, bf_mode, case_mode)
-                # multi processing #
-                # initialize
-                pool                  = mp.Pool(PROC_NUM)
-                callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)) for index in xrange(PROC_NUM)]
-                pool.close()
-                pool.join()
-                # multi processing #
+        # create variables
+        ## 10 cases
+        case_num = 10
+        trends   = np.linspace(BASE_TREND['origin'], BASE_TREND['end'], case_num)
+        ## 10 cases
+        deltas   = np.linspace(BASE_DELTA['origin'], BASE_DELTA['end'], case_num)
+
+        for trend in trends:
+            for delta in deltas:
+                dir_name = "trend_%0.2lf_delta%0.2lf" % (trend, delta)
+                for bf_mode in BF_MODE.keys():
+                    designs    = retrofit_designs[bf_mode]
+                    case_modes = designs.keys()
+                    for case_mode in case_modes:
+                        base_design_key      = designs[case_mode]
+                        retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}
+                        agent                = Agent(base_sinario,
+                                                     world_scale,
+                                                     flat_rate,
+                                                     retrofit_mode,
+                                                     sinario_mode, BF_MODE[bf_mode])
+                        agent.rules          = {'trend': trend, 'delta': delta}
+                        agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
+                        # multi processing #
+                        # initialize
+                        pool                  = mp.Pool(PROC_NUM)
+                        callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)) for index in xrange(PROC_NUM)]
+                        pool.close()
+                        pool.join()
+                        # multi processing #
+
         print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         sys.exit()
 

@@ -230,7 +230,11 @@ BASE_PEAK = 60
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H2E4P257', 'dec': 'H2E1P514', 'inc': 'H1E4P514'},
                      'rough': {'low': 'H2E2P1285','high': 'H2E4P257', 'dec': 'H2E2P1285', 'inc': 'H2E1P514'}}
 # RETROFIT RULES
-HIGH_TREND          = 1.5
-HIGH_MULTIPLE_INDEX = 1.3
-LOW_TREND           = -1.5
-LOW_MULTIPLE_INDEX  = 0.7
+'''
+HIGH_TREND          = 1.0
+HIGH_MULTIPLE_INDEX = 2.0
+LOW_TREND           = -1.0
+LOW_MULTIPLE_INDEX  = 0.5
+'''
+BASE_TREND = {'origin': 0.0, 'end': 2.0}
+BASE_DELTA = {'origin': 0.0, 'end': 0.5}
