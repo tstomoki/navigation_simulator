@@ -431,11 +431,11 @@ def aggregate_significant_output(result_dir_path):
                                          round_result[design_key],
                                          fuel_cost_result[design_key],
                                          ], output_file_path)
-    print "%20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
+    print "%20s %20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'design_key(norm)', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
     print "-" * 90
     for k,v in result_dict.items():
         try:
-            print "%20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
+            print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
         except:
             raise
             set_trace()

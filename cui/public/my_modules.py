@@ -1491,3 +1491,7 @@ def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, y0_lim, y1_li
     ax2.set_ylabel(y1_label)
     ax1.grid(True)
     return
+
+def normalize_design_key(design_key):
+    hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
+    return generate_combination_str_with_id(hull_id, engine_id, PROPELLERS[propeller_id])
