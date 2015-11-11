@@ -11,6 +11,7 @@ BEAUFORT_RESULT_PATH    = "%s/beauforts"  % (RESULT_DIR_PATH)
 INITIAL_DESIGN_RESULT   = "%s/initial_design"  % (RESULT_DIR_PATH)
 NARROW_DOWN_RESULT_PATH = "%s/narrow_down_result"  % (INITIAL_DESIGN_RESULT)
 NARROWED_RESULT_PATH    = "%s/narrowed_result"  % (INITIAL_DESIGN_RESULT)
+SENSITIVITY_DIR_PATH    = "%s/sensitivity" % (RESULT_DIR_PATH)
 
 # seed num
 COMMON_SEED_NUM         = 19901129

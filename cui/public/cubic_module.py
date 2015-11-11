@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pdb
 from scipy import stats
+from pdb import *
 
 def draw_3d_scatter(xlist, ylist, zlist, x_label, y_label, z_label, column_names, row_names, ylim=None, zlim=None, alpha=None):
 	fig   = plt.figure()
@@ -31,7 +32,6 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
 	
 	lx= len(column_names)            # Work out matrix dimensions
 	ly= len(row_names)
-
 	xpos = np.arange(0,lx,1)    # Set up a mesh of positions
 	ypos = np.arange(0,ly,1)
 	xpos, ypos = np.meshgrid(xpos+0.25, ypos+0.25)
@@ -43,7 +43,6 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
 	dx = 0.5 * np.ones_like(zpos)
 	dy = dx.copy()
         dz = zlist.astype(float).flatten()
-
         # set ylim if defined
         if not ylim is None:
                 ax.set_ylim(ylim)
@@ -56,12 +55,12 @@ def draw_3d_bar(xlist, ylist, zlist, x_label, y_label, z_label, column_names, ro
                 
 	ax.bar3d(xpos,ypos,zpos, dx, dy, dz, color='b', alpha=alpha)
 	
-	#ax.w_xaxis.set_ticklabels(column_names)
-	#ax.w_yaxis.set_ticklabels(row_names, rotation=20)
+	ax.w_xaxis.set_ticklabels(column_names)
+	ax.w_yaxis.set_ticklabels(row_names)
 	ax.set_xlabel(x_label, fontsize='small')
 	ax.set_ylabel(y_label, fontsize='small')
 	ax.set_zlabel(z_label, fontsize='small')
-	return 
+	return ax
 
 # 時間(X)ごとのラインを表示するメソッド(X:時間(unitTime), Y:LogSpeed, Z:馬力)
 def showLineFrame3DGraph(title, output_path, coefficientList, yList = [10,11,12,13,14,15,16,17,18,19,20], yMesh = False):

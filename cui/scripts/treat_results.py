@@ -4,6 +4,7 @@ import sys
 from operator import itemgetter
 from pdb import *
 import matplotlib
+from collections import Counter
 # server configuration #
 import getpass
 current_user = getpass.getuser()
@@ -31,6 +32,7 @@ from world_scale import WorldScale
 
 def run(options):
     result_dir_path = options.result_dir_path
+    json_file_path  = options.json_file_path
     if options.aggregate:
         aggregate_output(result_dir_path)
     if options.significant:
@@ -39,6 +41,8 @@ def run(options):
         draw_fuel_cost(result_dir_path)
     if options.retrofit:
         draw_retrofit_result(result_dir_path)
+    if options.sensitivity:
+        draw_sensitivity_result(result_dir_path, json_file_path)
     sys.exit()        
 
     draw_hull_features()
@@ -434,12 +438,8 @@ def aggregate_significant_output(result_dir_path):
     print "%20s %20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'design_key(norm)', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
     print "-" * 90
     for k,v in result_dict.items():
-        try:
-            print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
-        except:
-            raise
-            set_trace()
-    return
+        print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
+    return result
 
 def draw_retrofit_result(result_dir_path):
     if result_dir_path is None:
@@ -447,14 +447,16 @@ def draw_retrofit_result(result_dir_path):
         return
 
     # get bf_mode
-    bf_modes = os.listdir(result_dir_path)
-
+    bf_modes   = os.listdir(result_dir_path)
+    ret_result = {}
     for bf_mode in bf_modes:
-        target_dir_path = "%s/%s" % (result_dir_path, bf_mode)
-        target_dirs     = os.listdir(target_dir_path)
-        base_design_key = None
+        ret_result[bf_mode] = {}
+        target_dir_path     = "%s/%s" % (result_dir_path, bf_mode)
+        target_dirs         = [_d for _d in os.listdir(target_dir_path) if _d[-6:] == 'design']
+        base_design_key     = None
         print "%30s %s %30s\n" % ('-'*30, ("%s sea condition" % bf_mode).upper(), '-'*30)
         for target_dir in target_dirs:
+            ret_result[bf_mode][target_dir] = {}
             # initialize
             dt   = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
                              'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
@@ -584,7 +586,10 @@ def draw_retrofit_result(result_dir_path):
                                                                         'average delta'.upper(), np.average(delta_dict.values()),
                                                                         'maximum delta'.upper(), maximum_delta_index, delta_dict[maximum_delta_index])
             print "%20s" % ('-^-'*50)
-    return
+            ret_result[bf_mode][target_dir] = {'retrofit_count': retrofit_count,
+                                               'effective_count': effective_count, 
+                                               'average_delta': np.average(delta_dict.values())}
+    return ret_result
 
 def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path):
     # initialize
@@ -756,7 +761,104 @@ def draw_velocity_logs(result_dir, oilprice_mode):
             plt.savefig(filepath)
             plt.close()
     return
-    
+
+def draw_sensitivity_result(result_dir_path, json_file_path):
+    if json_file_path is not None:
+        result = load_json_file(json_file_path)
+    else:
+        files  = os.listdir(result_dir_path)
+        result = {}
+        name_pattern = re.compile(r'trend_(.+)_delta(.+)')
+        for each_file in files:
+            re_search       = name_pattern.search(each_file)
+            trend           = re_search.groups()[0]
+            delta           = re_search.groups()[1]
+            target_dir_path = "%s/%s" % (result_dir_path, each_file)
+            print "%30s Trend: %10s Delata: %10s %30s\n" % ('-'*30, trend, delta, '-'*30)
+            if not result.has_key(trend):
+                result[trend] = {}
+            result[trend][delta] = draw_retrofit_result(target_dir_path)
+
+        # output as json
+        initializeDirHierarchy(SENSITIVITY_DIR_PATH)
+        json_filename = "%s/%s.json" % (SENSITIVITY_DIR_PATH, generate_timestamp())
+        write_file_as_json(result, json_filename)
+        sys.exit()
+
+    bf_modes             = ['calm', 'rough']
+    design_modes         = [_d + "_design" for _d in ['high', 'low', 'inc', 'dec']]
+    #KPIs                 = ['retrofit_count', 'effective_count', 'average_delta']
+    KPIs                 = ['effective_rate', 'average_delta']
+    output_dir_base_path = "%s/sensitivity" % (result_dir_path)
+    for bf_mode in bf_modes:
+        output_dir_path = "%s/%s" % (output_dir_base_path, bf_mode)
+        initializeDirHierarchy(output_dir_path)
+        for KPI in KPIs:
+            for design_mode in design_modes:
+                trends    = result.keys()
+                draw_data = []
+                for trend in trends:
+                    deltas = result[trend].keys()
+                    for delta in deltas:
+                        
+                        try:
+                            _data = result[trend][delta][bf_mode][design_mode]
+                            if KPI == 'effective_rate':
+                                add_data = (trend, delta, _data['effective_count'] / float(_data['retrofit_count']) * 100)
+                            else:
+                                add_data = (trend, delta, result[trend][delta][bf_mode][design_mode][KPI])
+                        except:
+                            continue
+                        draw_data.append(add_data)
+                # draw 3d graph
+                title   = "%s(%s, %s)\n" % ('3d analysis'.upper(), design_mode, KPI)
+                x_label = 'trend'.upper()
+                y_label = 'delta'.upper()
+                ylim    = None
+                #z_unit  = '[USD]' if (KPI == 'average_delta') else '[times]'
+                z_unit  = '[USD]' if (KPI == 'average_delta') else '[%]'
+                z_label = "%s %s" % (KPI, z_unit)
+                zlim    = None if (KPI == 'average_delta') else [0, 100]
+                dt       = np.dtype({'names': ('trend','delta', KPI),
+                                     'formats': (np.float, np.float, np.float)})
+                draw_data = np.array(draw_data, dtype=dt)
+                
+                ax = draw_3d_bar(draw_data['trend'], draw_data['delta'],
+                                 draw_data[KPI], x_label, y_label, z_label,
+                                 trends, sorted(deltas),
+                                 ylim, zlim, 0.4)
+                '''
+                ax = draw_3d_scatter(draw_data['trend'], draw_data['delta'],
+                                     draw_data[KPI], x_label, y_label, z_label,
+                                     trends, sorted(deltas),
+                                     ylim, zlim, 0.4)
+                '''
+                
+                plt.title(title, fontweight="bold")
+                output_filepath = "%s/%s_%s.png" % (output_dir_path, design_mode, KPI)
+                unique_counts   = Counter(draw_data['trend'])
+                '''
+                # get position
+                position = []
+                for k, v in unique_counts.items():
+                    rel_position = round(v/2.0)
+                    if len(position) == 0:
+                        position.append(rel_position)
+                    else:
+                        position.append(rel_position + sum(position))
+                '''
+                xticks    = np.unique(draw_data['trend']).astype(np.float)
+                xtick_pos = range(len(xticks)) + ( sum(range(len(xticks))) / float(len(xticks)))
+                '''
+                yticks    = np.unique(draw_data['delta']).astype(np.float)
+                ytick_pos = yticks + np.array(range(len(yticks))) / 1.5 + 0.5
+                '''
+                
+                plt.xticks(xtick_pos, xticks)
+                plt.savefig(output_filepath)
+                write_array_to_csv(draw_data.dtype.names, draw_data, "%s/%s_%s.csv" % (output_dir_path, design_mode, KPI))
+                print "%s generated" % (output_filepath)
+    return
 
 # authorize exeucation as main script
 if __name__ == '__main__':
@@ -771,5 +873,9 @@ if __name__ == '__main__':
                       help="draw fuel cost mode", default=False)
     parser.add_option("-T", "--retrofit", dest="retrofit",
                       help="draw retrofit result", default=False)        
+    parser.add_option("-M", "--sensitivity", dest="sensitivity",
+                      help="sensitivitiy analysis with multiple result", default=False)        
+    parser.add_option("-J", "--json-file-path", dest="json_file_path",
+                      help="json file path", default=None)    
     (options, args) = parser.parse_args()
     run(options)    
