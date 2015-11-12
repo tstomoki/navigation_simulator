@@ -264,11 +264,13 @@ class Agent(object):
             ## update velocity log
             self.update_velocity_log(rpm, v_knot)
 
+            '''
             ## consider real v_knot for fuel_cost and CF_day
             delta_distance  = knot2mileday(raw_v) - knot2mileday(v_knot)
             delta_fuel_cost = self.calc_fuel_cost_with_distance(delta_distance, rpm, v_knot, hull, engine, propeller)
             C_fuel -= delta_fuel_cost
             CF_day -= delta_fuel_cost
+            '''
             
             # update variables
             ## update with the distance on a day
