@@ -1552,6 +1552,10 @@ class Agent(object):
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
             retrofit_flag = False
+            
+        # remove the same design
+        if not (retrofit_flag and self.current_design_key() != self.retrofit_design_keys[mode]):
+            retrofit_flag = False
 
         return retrofit_flag, mode
 
@@ -1853,6 +1857,9 @@ class Agent(object):
     def display_current_design(self):
         print "Hull: %s, Engine: %s, Propeller: %s" % (self.hull.base_data['id'], self.engine.base_data['id'], self.propeller.base_data['id'])
         return
+
+    def current_design_key(self):
+        return generate_combination_str(self.hull, self.engine, self.propeller)
 
     def display_market_factors(self):
         print "market factors on %s" % str(self.current_date)
