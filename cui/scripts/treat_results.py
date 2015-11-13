@@ -495,6 +495,11 @@ def draw_retrofit_result(result_dir_path):
                     if data.ndim == 0:
                         data = np.atleast_1d(data)
                     for _d in data:
+                        # consider option price
+                        if _d['retrofit_date'] == '--':
+                            _d['NPV'] -= UPFRONT_COST
+                        else:
+                            _d['NPV'] -= (UPFRONT_COST + PRACTICE_PRICE )
                         flexible_result.append(_d)
                 flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
                 retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
@@ -520,6 +525,8 @@ def draw_retrofit_result(result_dir_path):
                     if data.ndim == 0:
                         data = np.atleast_1d(data)                
                     for _d in data:
+                        # consider option price
+                        _d['NPV'] -= UPFRONT_COST
                         result.append(_d)
                 result = np.array(sorted(result, key=lambda x : x[0]))
                 print "%15s %24.3lf %13.3e %20.3lf %14.3e %15d %15d" % ('no_retrofit', 
