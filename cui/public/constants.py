@@ -239,3 +239,6 @@ LOW_MULTIPLE_INDEX  = 0.5
 '''
 BASE_TREND = {'origin': 0.0, 'end': 2.0}
 BASE_DELTA = {'origin': 0.0, 'end': 0.5}
+
+# NORMALIZE COMPONENTS
+PROPELLERS = {'0': 0, '257': 1, '514': 2, '771': 3, '1028': 4, '1285': 5}

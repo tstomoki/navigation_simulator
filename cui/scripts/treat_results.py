@@ -4,6 +4,7 @@ import sys
 from operator import itemgetter
 from pdb import *
 import matplotlib
+from collections import Counter
 # server configuration #
 import getpass
 current_user = getpass.getuser()
@@ -434,10 +435,10 @@ def aggregate_significant_output(result_dir_path):
                                          round_result[design_key],
                                          fuel_cost_result[design_key],
                                          ], output_file_path)
-    print "%20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
+    print "%20s %20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'design_key(norm)', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
     print "-" * 90
     for k,v in result_dict.items():
-        print "%20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
+        print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
     return result
 
 def draw_retrofit_result(result_dir_path):
@@ -786,7 +787,8 @@ def draw_sensitivity_result(result_dir_path, json_file_path):
 
     bf_modes             = ['calm', 'rough']
     design_modes         = [_d + "_design" for _d in ['high', 'low', 'inc', 'dec']]
-    KPIs                 = ['retrofit_count', 'effective_count', 'average_delta']
+    #KPIs                 = ['retrofit_count', 'effective_count', 'average_delta']
+    KPIs                 = ['effective_rate', 'average_delta']
     output_dir_base_path = "%s/sensitivity" % (result_dir_path)
     for bf_mode in bf_modes:
         output_dir_path = "%s/%s" % (output_dir_base_path, bf_mode)
@@ -798,25 +800,64 @@ def draw_sensitivity_result(result_dir_path, json_file_path):
                 for trend in trends:
                     deltas = result[trend].keys()
                     for delta in deltas:
-                        add_data = (trend, delta, result[trend][delta][bf_mode][KPI])
+                        
+                        try:
+                            _data = result[trend][delta][bf_mode][design_mode]
+                            if KPI == 'effective_rate':
+                                add_data = (trend, delta, _data['effective_count'] / float(_data['retrofit_count']) * 100)
+                            else:
+                                add_data = (trend, delta, result[trend][delta][bf_mode][design_mode][KPI])
+                        except:
+                            continue
                         draw_data.append(add_data)
                 # draw 3d graph
-                title   = "%s(%s)\n" % ('3d analysis'.upper(), KPI)
+                title   = "%s(%s, %s)\n" % ('3d analysis'.upper(), design_mode, KPI)
                 x_label = 'trend'.upper()
                 y_label = 'delta'.upper()
-                z_unit  = '[USD]' if (KPI == 'average_delta') else '[times]'
+                ylim    = None
+                #z_unit  = '[USD]' if (KPI == 'average_delta') else '[times]'
+                z_unit  = '[USD]' if (KPI == 'average_delta') else '[%]'
                 z_label = "%s %s" % (KPI, z_unit)
-
-                xlist     = draw_data.transpose()[1]
-                ylist     = draw_data.transpose()[2]
-                zlist     = draw_data.transpose()[3]
-
-                ylim = None
-                zlim = None
-                draw_3d_bar(xlist.astype(np.float), ylist.astype(np.float), zlist.astype(np.float), x_label, y_label, z_label, trends, deltas, ylim, zlim, 0.4)
+                zlim    = None if (KPI == 'average_delta') else [0, 100]
+                dt       = np.dtype({'names': ('trend','delta', KPI),
+                                     'formats': (np.float, np.float, np.float)})
+                draw_data = np.array(draw_data, dtype=dt)
+                
+                ax = draw_3d_bar(draw_data['trend'], draw_data['delta'],
+                                 draw_data[KPI], x_label, y_label, z_label,
+                                 trends, sorted(deltas),
+                                 ylim, zlim, 0.4)
+                '''
+                ax = draw_3d_scatter(draw_data['trend'], draw_data['delta'],
+                                     draw_data[KPI], x_label, y_label, z_label,
+                                     trends, sorted(deltas),
+                                     ylim, zlim, 0.4)
+                '''
+                
                 plt.title(title, fontweight="bold")
-                output_filepath = "%s/%s.png" % (output_dir_path, design_mode)
+                output_filepath = "%s/%s_%s.png" % (output_dir_path, design_mode, KPI)
+                unique_counts   = Counter(draw_data['trend'])
+                '''
+                # get position
+                position = []
+                for k, v in unique_counts.items():
+                    rel_position = round(v/2.0)
+                    if len(position) == 0:
+                        position.append(rel_position)
+                    else:
+                        position.append(rel_position + sum(position))
+                '''
+                xticks    = np.unique(draw_data['trend']).astype(np.float)
+                xtick_pos = range(len(xticks)) + ( sum(range(len(xticks))) / float(len(xticks)))
+                '''
+                yticks    = np.unique(draw_data['delta']).astype(np.float)
+                ytick_pos = yticks + np.array(range(len(yticks))) / 1.5 + 0.5
+                '''
+                
+                plt.xticks(xtick_pos, xticks)
                 plt.savefig(output_filepath)
+                write_array_to_csv(draw_data.dtype.names, draw_data, "%s/%s_%s.csv" % (output_dir_path, design_mode, KPI))
+                print "%s generated" % (output_filepath)
     return
 
 # authorize exeucation as main script
