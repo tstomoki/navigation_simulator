@@ -1554,6 +1554,10 @@ class Agent(object):
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
             retrofit_flag = False
+            
+        # remove the same design
+        if not (retrofit_flag and self.current_design_key() != self.retrofit_design_keys[mode]):
+            retrofit_flag = False
 
         return retrofit_flag, mode
 
@@ -1768,19 +1772,20 @@ class Agent(object):
             alpha = 7
             beta  = 3
         elif self.bf_mode == BF_MODE['calm']:
+            return None
+            '''
             alpha = 4
             beta  = 6
-        else:
-            # none
-            ## WIP
-            return 
-
+            '''
         bf_key = "a_%d_b_%d" % (alpha, beta)
         bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}        
         return bf_prob
 
     # consider beaufort for velocity
     def modify_by_external(self, v_knot):
+        # for no external modification
+        if self.bf_mode is None:
+            return v_knot
         current_bf          = prob_with_weight(self.bf_prob)
         current_wave_height = get_wave_height(current_bf)
         delta_v = calc_y(current_wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
@@ -1854,6 +1859,9 @@ class Agent(object):
     def display_current_design(self):
         print "Hull: %s, Engine: %s, Propeller: %s" % (self.hull.base_data['id'], self.engine.base_data['id'], self.propeller.base_data['id'])
         return
+
+    def current_design_key(self):
+        return generate_combination_str(self.hull, self.engine, self.propeller)
 
     def display_market_factors(self):
         print "market factors on %s" % str(self.current_date)
