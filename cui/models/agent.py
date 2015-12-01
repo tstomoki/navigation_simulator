@@ -1777,7 +1777,7 @@ class Agent(object):
             alpha = 4
             beta  = 6
             '''
-        bf_key = "a_%d_b_%d" % (alpha, beta)
+        bf_key = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
         bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}        
         return bf_prob
 
