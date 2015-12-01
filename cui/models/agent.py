@@ -1769,8 +1769,8 @@ class Agent(object):
         beaufort_data     = load_json_file(whole_reslut_path)
 
         if self.bf_mode == BF_MODE['rough']:
-            alpha = 7
-            beta  = 3
+            alpha = 5.5
+            beta  = 4.5
         elif self.bf_mode == BF_MODE['calm']:
             return None
             '''
