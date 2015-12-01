@@ -1495,3 +1495,15 @@ def draw_twin_graph(draw_data, title, x_label, y0_label, y1_label, y0_lim, y1_li
 def normalize_design_key(design_key):
     hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
     return generate_combination_str_with_id(hull_id, engine_id, PROPELLERS[propeller_id])
+
+def calc_BF_from_wspd(wspd):
+    wspd_BF = {'BF3': 4.4,
+               'BF4': 6.9,
+               'BF5': 9.8,
+               'BF6': 12.6,
+               'BF7': 15.7}
+
+    comp_dict = {}
+    for _bf, _wspd in wspd_BF.items():
+        comp_dict[_bf] = abs(_wspd - wspd)
+    return min(comp_dict, key=comp_dict.get)

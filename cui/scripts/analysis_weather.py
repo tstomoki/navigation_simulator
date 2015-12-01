@@ -7,6 +7,7 @@ import sys
 import os
 from pdb import *
 import datetime
+import pandas as pd
 # import own modules #
 sys.path.append('../public')
 sys.path.append('../models')
@@ -110,13 +111,15 @@ def analyze():
                 x,y = m(ln, lt)
                 m.plot(x, y, 'ro', markersize=5)
                 target_points.append((ln, lt))
+    # Add a colorbar and title, and then show the plot.
+    plt.title('observed points\n'.title())
+    plt.savefig('../results/weather_observed_points.png')
 
     # analyze wind speed
     result_dict = {}
     for current_time in time:
-        tmp_result = []
+        tmp_result = np.array([])
         date_str   = calc_date(current_time).strftime("%Y/%m")
-        print "analyzing ... %s" % (date_str)
         length = len(target_points)
         for index, target_point in enumerate(target_points):
             target_lon = target_point[0]
@@ -126,17 +129,56 @@ def analyze():
             lon_index  = np.where(lon==target_lon)[0][0]
             lat_index  = np.where(lat==target_lat)[0][0]
             wind_speed = wspd[time_index][lat_index][lon_index]
-            tmp_result.append(tmp_result)
-            sys.stdout.write("\r%3.0lf %%" % (float(index) / len(target_points)) )
+            tmp_result = np.append(tmp_result, wind_speed)
         result_dict[date_str] = np.average(tmp_result)
-        sys.stdout.write("\r%s done" % date_str)
+        sys.stdout.write("\r %s done" % date_str)
     output_json_path = '../results/weather_analysis_data.json'
     write_file_as_json(result_dict, output_json_path)
     
-    # Add a colorbar and title, and then show the plot.
-    plt.title('observed points\n'.title())
-    plt.savefig('../results/weather_observed_points.png')
-    print_with_notice("wave map on %s has been generated" % (target_date.strftime('%Y/%m/%d')))
+def draw_incident_rate():
+    # load json
+    json_file_path = '../results/weather_analysis_data.json'
+    data           = load_json_file(json_file_path)
+
+    bf_data = {}
+    for date, wspd in data.items():
+        bf = calc_BF_from_wspd(wspd)
+        if not bf_data.has_key(bf):
+            bf_data[bf] = 0
+        bf_data[bf] += 1
+    data_num = sum(bf_data.values())
+        
+    # draw incident rate
+    panda_frame = pd.DataFrame({'date': [datetime.datetime.strptime(_str, "%Y/%m") for _str in data.keys()],
+                                'wspd': data.values()})
+    # hist
+    filepath = "./wspd.png"
+    plt.figure()
+    graphInitializer('wind speed'.upper(), 'wind speed'.upper() + ' [m/s]', 'probability'.upper())
+    panda_frame['wspd'].hist(color="#5F9BFF", alpha=.5)
+    plt.legend(shadow=True)
+    plt.legend(loc='upper right')        
+    plt.savefig(filepath)
+    plt.clf()
+    plt.close()
+
+    '''
+    bf_frame    = pd.DataFrame({'BF': bf_data.keys(),
+                                'probability': num in bf_data.values()})
+    filepath = "./incident.png"
+    plt.figure()
+    graphInitializer('incident'.upper(), 'beaufort scale'.upper(), 'probability'.upper())
+    bf_frame['probability'].hist(color="#5F9BFF", alpha=.5)
+    plt.legend(shadow=True)
+    plt.legend(loc='upper right')        
+    plt.savefig(filepath)
+    plt.clf()
+    plt.close()    
+    '''
+
+    return 
     
 if __name__ == '__main__':
     analyze()
+    sys.exit()
+    draw_incident_rate()
