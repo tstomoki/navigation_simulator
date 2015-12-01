@@ -116,7 +116,7 @@ def analyze():
     for current_time in time:
         tmp_result = []
         date_str   = calc_date(current_time).strftime("%Y/%m")
-        print "analyzing ..."
+        print "analyzing ... %s" % (date_str)
         length = len(target_points)
         for index, target_point in enumerate(target_points):
             target_lon = target_point[0]
@@ -127,8 +127,9 @@ def analyze():
             lat_index  = np.where(lat==target_lat)[0][0]
             wind_speed = wspd[time_index][lat_index][lon_index]
             tmp_result.append(tmp_result)
+            sys.stdout.write("\r%3.0lf %%" % (float(index) / len(target_points)) )
         result_dict[date_str] = np.average(tmp_result)
-        print "%s done" % date_str
+        sys.stdout.write("\r%s done" % date_str)
     output_json_path = '../results/weather_analysis_data.json'
     write_file_as_json(result_dict, output_json_path)
     
