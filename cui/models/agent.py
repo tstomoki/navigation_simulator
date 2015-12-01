@@ -1784,7 +1784,7 @@ class Agent(object):
     # consider beaufort for velocity
     def modify_by_external(self, v_knot):
         # for no external modification
-        if self.bf_mode is None:
+        if self.bf_mode is None or self.bf_prob is None:
             return v_knot
         current_bf          = prob_with_weight(self.bf_prob)
         current_wave_height = get_wave_height(current_bf)

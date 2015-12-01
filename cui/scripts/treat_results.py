@@ -439,7 +439,7 @@ def aggregate_significant_output(result_dir_path):
     print "-" * 90
     for k,v in result_dict.items():
         print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
-    return result
+    return result_dict
 
 def draw_retrofit_result(result_dir_path):
     if result_dir_path is None:
