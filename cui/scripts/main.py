@@ -247,6 +247,9 @@ def run(options):
         ## 10 cases
         deltas   = np.linspace(BASE_DELTA['origin'], BASE_DELTA['end'], case_num)
 
+        # for single case
+        trends = [0.05]
+        deltas = [0.30]
         for trend in trends:
             for delta in deltas:
                 dir_name = "trend_%0.2lf_delta%0.2lf" % (trend, delta)
@@ -263,6 +266,7 @@ def run(options):
                                                      sinario_mode, BF_MODE[bf_mode])
                         agent.rules          = {'trend': trend, 'delta': delta}
                         agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
+
                         # multi processing #
                         # initialize
                         pool                  = mp.Pool(PROC_NUM)
@@ -278,53 +282,54 @@ def run(options):
         significant_modes = ['high', 'low', 'dec', 'inc']
         oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
         # search initial_design
-        for oilprice_mode in oilprice_modes:
-            # generate sinario
-            sinario, world_scale, flat_rate = generate_final_significant_modes(oilprice_mode, 
-                                                                               oil_price_history_data, 
-                                                                               world_scale_history_data, 
-                                                                               flat_rate_history_data)
-        # visualize for debug
-        #sinario.draw_significant_oilprice_modes(oilprice_modes)
-        #world_scale.draw_significant_oilprice_modes(oilprice_modes, sinario)
+        for bf_mode in BF_MODE.keys():
+            for oilprice_mode in oilprice_modes:
+                # generate sinario
+                sinario, world_scale, flat_rate = generate_final_significant_modes(oilprice_mode, 
+                                                                                   oil_price_history_data, 
+                                                                                   world_scale_history_data, 
+                                                                                   flat_rate_history_data)
+                # visualize for debug
+                #sinario.draw_significant_oilprice_modes(oilprice_modes)
+                #world_scale.draw_significant_oilprice_modes(oilprice_modes, sinario)
         
-            # initialize
-            retrofit_mode = RETROFIT_MODE['none']
-            agent         = Agent(sinario,
-                                  world_scale,
-                                  flat_rate,
-                                  retrofit_mode,
-                                  'significant',
-                                  BF_MODE['rough'])
+                # initialize
+                retrofit_mode = RETROFIT_MODE['none']
+                agent         = Agent(sinario,
+                                      world_scale,
+                                      flat_rate,
+                                      retrofit_mode,
+                                      'significant',
+                                      BF_MODE[bf_mode])
 
-            output_path = "%s/%s" % (output_dir_path, oilprice_mode)
-            initializeDirHierarchy(output_path)
-
-            devided_component_ids = []
-            for hull_info in hull_list:
-                for engine_info in engine_list:
-                    for propeller_info in propeller_list:
-                        devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
-            devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
-
-            simulation_duration_years = VESSEL_LIFE_TIME
-            '''
-            simulation_duration_years = 1
-            devided_component_ids[0] = np.array([[1, 1, 0], [1, 2, 0]], dtype=np.int16)
-            agent.calc_significant_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)
-            sys.exit()
-            '''
-
-            # initialize
-            pool                      = mp.Pool(PROC_NUM)
-            # multi processing #
-            callback              = [pool.apply_async(agent.calc_significant_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)) for index in xrange(PROC_NUM)]
-
-            callback_combinations = [p.get() for p in callback]
-            ret_combinations      = flatten_3d_to_2d(callback_combinations)
-            pool.close()
-            pool.join()
-            # multi processing #
+                output_path = "%s/%s/%s" % (output_dir_path, bf_mode, oilprice_mode)
+                initializeDirHierarchy(output_path)
+                
+                devided_component_ids = []
+                for hull_info in hull_list:
+                    for engine_info in engine_list:
+                        for propeller_info in propeller_list:
+                            devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
+                devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
+                            
+                simulation_duration_years = VESSEL_LIFE_TIME
+                '''
+                simulation_duration_years = 1
+                devided_component_ids[0] = np.array([[1, 1, 0], [1, 2, 0]], dtype=np.int16)
+                agent.calc_significant_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)
+                sys.exit()
+                '''
+                
+                # initialize
+                pool                      = mp.Pool(PROC_NUM)
+                # multi processing #
+                callback              = [pool.apply_async(agent.calc_significant_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, output_path)) for index in xrange(PROC_NUM)]
+                
+                callback_combinations = [p.get() for p in callback]
+                ret_combinations      = flatten_3d_to_2d(callback_combinations)
+                pool.close()
+                pool.join()
+        # multi processing #
         print_with_notice("Program finished at %s" % (detailed_datetime_to_human(datetime.datetime.now())))        
         sys.exit()
 
