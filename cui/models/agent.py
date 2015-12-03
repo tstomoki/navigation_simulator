@@ -179,7 +179,7 @@ class Agent(object):
         self.retrofit_date       = None
         self.base_design         = generate_combination_str(self.hull, self.engine, self.propeller)
         self.retrofit_design     = None
-        self.elapsed_days_log    = []
+        self.elapsed_days_log    = np.array([])
         self.total_cash_flow     = 0
         self.total_NPV           = 0
         self.total_distance      = 0
@@ -303,7 +303,7 @@ class Agent(object):
                 self.update_fuel_cost(C_fuel)
 
                 # log elapsed days
-                self.elapsed_days_log.append(self.elapsed_days)
+                self.elapsed_days_log = np.append(self.elapsed_days_log, self.elapsed_days)
                 
                 # initialize the temporal variables
                 C_fuel = CF_day = rpm = v_knot = None
@@ -400,7 +400,7 @@ class Agent(object):
             self.update_trip_days()
 
             # display current infomation
-            self.dispaly_current_infomation(navigated_distance, rpm, v_knot, CF_day, C_fuel)
+            # self.dispaly_current_infomation(navigated_distance, rpm, v_knot, CF_day, C_fuel)
 
             if log_mode:
                 self.update_CF_log(CF_day)
