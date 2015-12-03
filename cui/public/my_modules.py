@@ -304,7 +304,7 @@ def append_for_np_array(base_array, add_array):
 def print_with_notice(display_str):
     notice_str = '*' * 80
     print "%80s" % (notice_str)
-    print "%10s %s %10s" % ('*' * 10, display_str, '*' * 10)
+    print "%30s %s %30s" % ('*' * 30, display_str, '*' * 30)
     print "%80s" % (notice_str)
     return 
 
