@@ -39,9 +39,6 @@ from flat_rate   import FlatRate
 from world_scale import WorldScale
 # import models #
 
-# numba
-from numba import jit
-
 class Agent(object):
     def __init__(self, sinario, world_scale, flat_rate, retrofit_mode, sinario_mode, bf_mode, hull=None, engine=None, propeller=None, rpm_array=None, velocity_array=None):
         self.sinario       = sinario

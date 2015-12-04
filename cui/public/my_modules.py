@@ -27,18 +27,13 @@ from constants  import *
 from cubic_module import *
 # import own modules #
 
-# numba
-from numba import jit
-
 #initialize dir_name
-@jit
 def initializeDir(dir_name):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     return
 
 #initialize dir_name
-@jit
 def initializeDirHierarchy(dir_name):
     split_dir_names = dir_name.split('/')
     if len(split_dir_names) == 0:
@@ -50,7 +45,6 @@ def initializeDirHierarchy(dir_name):
         initializeDir(initialize_dir)
     return
 
-@jit
 def graphInitializer(title, x_label, y_label):
     # clear graph
     plt.clf()
@@ -240,7 +234,6 @@ def add_year(start_date, year_num=1):
     return current_date
 
 # return true with a prob_value [%] possibility
-@jit('b1(f8)')
 def prob(prob_value):
     N = 10000
     nonzero_num = np.count_nonzero(np.random.binomial(1, prob_value, N))
@@ -260,36 +253,28 @@ def get_another_condition(load_condition):
 def load_condition_to_human(load_condition):
     return LOAD_CONDITION[load_condition]
 
-@jit('b1(u1)')
 def is_ballast(load_condition):
     return LOAD_CONDITION[load_condition] == 'ballast'
 
-@jit('b1(u1)')
 def is_full(load_condition):
     return not is_ballast(load_condition)
 
-@jit('f8(f8)')
 def km2mile(km):
     return km * 0.62137
 
-@jit('f8(f8)')
 def mile2km(mile):
     return mile * 1.6093
 
-@jit('f8(f8)')
 def ms2knot(ms):
     return ms / 0.5144444
 
-@jit('f8(f8)')
 def knot2ms(knot):
     return knot * 0.5144444
 
-@jit('f8(f8)')
 def ms2mileday(ms):
     return km2mile( ms / 1000.0 * 3600.0 * 24)
 
 # return speed [mile/day]
-@jit('f8(f8)')
 def knot2mileday(knot):
     ms = knot2ms(knot)
     return km2mile( ms / 1000.0 * 3600.0 * 24)
@@ -303,7 +288,6 @@ def init_dict_from_keys_with_array(keys, dtype=None):
             ret_dict[key] = np.array([], dtype=dtype)
     return ret_dict
 
-@jit('f8(f8)')
 def rpm2rps(rpm):
     return rpm / 60.0
 
@@ -737,7 +721,6 @@ def aggregate_combinations(raw_combinations, output_dir_path):
     return ret_combinations
 
 # curve fitting #
-@jit
 def calc_y(x, wlist, M):
     ret = wlist[0]
     for i in range(1, M+1):
@@ -745,7 +728,6 @@ def calc_y(x, wlist, M):
     return ret
 
 # estimate params with training data #
-@jit
 def estimate(xlist, tlist, M):
     # (M+1) params exists for the Mth polynomial expression
     A = []
