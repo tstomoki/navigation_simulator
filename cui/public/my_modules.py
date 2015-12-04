@@ -17,6 +17,7 @@ from pylab import *
 import pandas as pd
 from scipy.interpolate import spline
 import operator
+import gc
 # import common modules #
 
 # import own modules #
@@ -26,13 +27,18 @@ from constants  import *
 from cubic_module import *
 # import own modules #
 
+# numba
+from numba import jit
+
 #initialize dir_name
+@jit
 def initializeDir(dir_name):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     return
 
 #initialize dir_name
+@jit
 def initializeDirHierarchy(dir_name):
     split_dir_names = dir_name.split('/')
     if len(split_dir_names) == 0:
@@ -44,6 +50,7 @@ def initializeDirHierarchy(dir_name):
         initializeDir(initialize_dir)
     return
 
+@jit
 def graphInitializer(title, x_label, y_label):
     # clear graph
     plt.clf()
@@ -233,6 +240,7 @@ def add_year(start_date, year_num=1):
     return current_date
 
 # return true with a prob_value [%] possibility
+@jit('b1(f8)')
 def prob(prob_value):
     N = 10000
     nonzero_num = np.count_nonzero(np.random.binomial(1, prob_value, N))
@@ -242,41 +250,46 @@ def prob(prob_value):
 # {c0: 0.1, c2:0.3.....}
 def prob_with_weight(weight_dict):
     # normalization
-    data_sum = sum(weight_dict.values())
+    data_sum = np.sum(np.array(weight_dict.values()))
     return np.random.choice(weight_dict.keys(), p=[ _v / data_sum for _v in weight_dict.values()])
 
 # preconditions: there is only 2 conditions
 def get_another_condition(load_condition):
-    if not load_condition in LOAD_CONDITION.keys():
-        raise 'UNVALID CONDITION ERROR'
-
     return [condition for condition in LOAD_CONDITION.keys() if not condition == load_condition][0]
     
 def load_condition_to_human(load_condition):
     return LOAD_CONDITION[load_condition]
 
+@jit('b1(u1)')
 def is_ballast(load_condition):
     return LOAD_CONDITION[load_condition] == 'ballast'
 
+@jit('b1(u1)')
 def is_full(load_condition):
     return not is_ballast(load_condition)
 
+@jit('f8(f8)')
 def km2mile(km):
     return km * 0.62137
 
+@jit('f8(f8)')
 def mile2km(mile):
     return mile * 1.6093
 
+@jit('f8(f8)')
 def ms2knot(ms):
     return ms / 0.5144444
 
+@jit('f8(f8)')
 def knot2ms(knot):
     return knot * 0.5144444
 
+@jit('f8(f8)')
 def ms2mileday(ms):
     return km2mile( ms / 1000.0 * 3600.0 * 24)
 
 # return speed [mile/day]
+@jit('f8(f8)')
 def knot2mileday(knot):
     ms = knot2ms(knot)
     return km2mile( ms / 1000.0 * 3600.0 * 24)
@@ -290,6 +303,7 @@ def init_dict_from_keys_with_array(keys, dtype=None):
             ret_dict[key] = np.array([], dtype=dtype)
     return ret_dict
 
+@jit('f8(f8)')
 def rpm2rps(rpm):
     return rpm / 60.0
 
@@ -409,26 +423,6 @@ def flatten_3d_to_2d(array_3d):
             except:
                 print "error occured at "
     return ret_combinations
-
-'''
-def devide_array(combinations, devide_num):
-    ret_combinations   = np.array([])
-    combinations_num   = len(combinations)
-    stride             = math.floor( combinations_num / devide_num)
-    combinations_index = 0
-    while True:
-        if combinations_index + stride >= combinations_num:
-            break
-        start_index   = combinations_index
-        end_index     = combinations_index + stride
-        devided_array = combinations[start_index:end_index]
-        pdb.set_trace()
-        ret_combinations = np.vstack((ret_combinations, devided_array))        
-        combinations_index += stride
-    pdb.set_trace()
-    ret_combinations  = np.vstack((ret_combinations, combinations[start_index:]))
-    return retu_combinations
-'''
 
 def error_printer(exception):
     print '================================= Error detail ================================='
@@ -743,6 +737,7 @@ def aggregate_combinations(raw_combinations, output_dir_path):
     return ret_combinations
 
 # curve fitting #
+@jit
 def calc_y(x, wlist, M):
     ret = wlist[0]
     for i in range(1, M+1):
@@ -750,6 +745,7 @@ def calc_y(x, wlist, M):
     return ret
 
 # estimate params with training data #
+@jit
 def estimate(xlist, tlist, M):
     # (M+1) params exists for the Mth polynomial expression
     A = []
@@ -1120,7 +1116,18 @@ def clean_draw_data(draw_data):
                 draw_data.append(append_data)
     return draw_data
 
+def free_market_scenarios(scenario, world_scale, flat_rate):
+    if hasattr(scenario, 'predicted_data'):
+        del scenario.predicted_data
+    if hasattr(world_scale, 'predicted_data'):
+        del world_scale.predicted_data
+    if hasattr(flat_rate, 'predicted_data'):
+        del flat_rate.predicted_data
+    gc.collect()
+    return
+
 def generate_market_scenarios(scenario, world_scale, flat_rate, sinario_mode, simulation_duration_years):
+    free_market_scenarios(scenario, world_scale, flat_rate)
     scenario.generate_sinario(sinario_mode, simulation_duration_years)
     world_scale.generate_sinario_with_oil_corr(sinario_mode, scenario.history_data[-1], scenario.predicted_data)
     flat_rate.generate_flat_rate(sinario_mode, simulation_duration_years)
@@ -1189,22 +1196,6 @@ def compare_hull_design(npv_result, initial_engine_id, initial_propeller_id):
             data_frame[hull_name] = values
             
     # consider delta
-    '''
-    draw_data = []
-    for index, val in enumerate(data_frame['A']):
-        delta = val - data_frame['B'][index]
-        draw_data.append(delta)
-    # draw delta histgram
-    delta_frame = pd.DataFrame(draw_data)
-    delta_frame.hist()
-    plt.ylim([0, 15])
-    plt.xlim([-30000000, 30000000])
-    # draw origin line
-    plt.axvline(linewidth=1.7, color="k")
-    plt.savefig('../delta.png')
-    plt.clf()
-    '''
-
     df = pd.DataFrame(data_frame, columns=data_frame.keys())
     
 
