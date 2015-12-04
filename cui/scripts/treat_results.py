@@ -586,8 +586,10 @@ def draw_retrofit_result(result_dir_path):
                     retrofit_design_mode = retrofit_design_mode[0] if len(retrofit_design_mode) > 0 else '--'
                     transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
                     retrofit_date   = f_result['retrofit_date'][0]
+                    '''
                     if not retrofit_date == '--':
                         draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
+                        '''
                         
                 else:
                     no_retrofit_npv = ("%17.3lf" % nr_result['NPV']) if len(nr_result) == 1 else '--------'
@@ -614,7 +616,15 @@ def draw_retrofit_result(result_dir_path):
             print "%20s" % ('-^-'*50)
             ret_result[bf_mode][target_dir] = {'retrofit_count': retrofit_count,
                                                'effective_count': effective_count, 
+                                               'maximum_delta': delta_dict[maximum_delta_index],
+                                               'maximum_delta_index': maximum_delta_index,
                                                'average_delta': np.average(delta_dict.values())}
+    print_with_notice("whole result")
+    for bf_mode in ret_result.keys():
+        print "%10s %15s %10s\n" % ('^'*10, bf_mode, '^'*10)
+        for case in ret_result[bf_mode]:
+            print "%10s %15s %10s\n" % ('*'*10, case, '*'*10)
+            print ret_result[bf_mode][case]
     return ret_result
 
 def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path):

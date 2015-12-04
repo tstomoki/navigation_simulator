@@ -81,14 +81,15 @@ def run(options):
         deltas   = np.linspace(BASE_DELTA['origin'], BASE_DELTA['end'], case_num)
 
         # for single case
-        trends = [0.05, 0.10, 0.15]
+        trends = [0.05, 0.10]
         deltas = [0.30]
         for trend in trends:
             for delta in deltas:
                 dir_name = "trend_%0.2lf_delta%0.2lf" % (trend, delta)
-                for bf_mode in BF_MODE.keys():
+                for bf_mode in sorted(BF_MODE.keys()):
                     designs    = retrofit_designs[bf_mode]
                     case_modes = designs.keys()
+                    case_modes = TARGET_DESIGNS[bf_mode]
                     for case_mode in case_modes:
                         base_design_key      = designs[case_mode]
                         retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}

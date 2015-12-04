@@ -1409,12 +1409,20 @@ class Agent(object):
         # get analysis oil data (origin_date -> current_date)
         origin_oilprice      = self.sinario.predicted_data[0]['price']
         current_index        = search_near_index(self.current_date, self.sinario.predicted_data['date'])
-        analysis_period_data = self.sinario.predicted_data[:np.where(self.sinario.predicted_data['date']==current_index)[0]]
+        start_index = search_near_index(self.current_date - datetime.timedelta(days=365*2), self.sinario.predicted_data['date'])
+        analysis_period_data = self.sinario.predicted_data[np.where(self.sinario.predicted_data['date']==start_index)[0]:np.where(self.sinario.predicted_data['date']==current_index)[0]]
         avg_oilprice         = np.average(analysis_period_data['price'])
         
         # calc analysis trend
         analysis_data = np.array([[index, v['price']] for index, v in enumerate(analysis_period_data)])
         cons, trend   = estimate(analysis_data.transpose()[0], analysis_data.transpose()[1], 1)
+
+        ## debug
+        print "trend: %3.3lf" % (trend)
+        print "trend_rule: %3.3lf" % (self.rules['trend'])
+        print "origin_price: %3.3lf, avg_oilprice: %3.3lf" % (origin_oilprice, avg_oilprice)
+        print "high: %3.3lf" % (origin_oilprice * (1 + self.rules['delta']))
+        print "low: %3.3lf" % (origin_oilprice * (1 - self.rules['delta']))
 
         # change flag
         ## High

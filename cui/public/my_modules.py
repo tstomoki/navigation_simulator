@@ -27,6 +27,12 @@ from constants  import *
 from cubic_module import *
 # import own modules #
 
+def get_keys_of_unique_values(target_dict):
+    countMap = {}
+    for v in target_dict.itervalues():
+        countMap[v] = countMap.get(v,0) + 1
+    return [ k for k, v in target_dict.iteritems() if countMap[v] == 1]
+
 #initialize dir_name
 def initializeDir(dir_name):
     if not os.path.exists(dir_name):
