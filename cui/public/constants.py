@@ -228,8 +228,14 @@ DEVIDE_INDEX = 0.8
 BASE_PEAK = 60
 
 # RETROFIT DESIGNS
+
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H1E2P1285', 'dec': 'H1E3P257', 'inc': 'H2E1P514'},
                      'rough': {'low': 'H2E1P514','high': 'H2E1P514', 'dec': 'H2E3P1285', 'inc': 'H2E1P514'}}
+'''
+RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H2E4P257', 'dec': 'H2E1P514', 'inc': 'H1E4P514'},
+                     'rough': {'low': 'H2E2P1285','high': 'H2E4P257', 'dec': 'H2E2P1285', 'inc': 'H2E1P514'}}
+'''
+
 # RETROFIT RULES
 '''
 HIGH_TREND          = 1.0
