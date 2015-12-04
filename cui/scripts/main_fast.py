@@ -34,7 +34,7 @@ from agent       import Agent
 
 def run(options):
     # get option variables #
-    final_mode                           = options.final_mode
+    final_mode = options.final_mode
 
     # load history data
     from_date                = '2004/01/01'
@@ -69,10 +69,6 @@ def run(options):
         simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = 100
         ## debug
-        simulation_duration_years = 3
-        simulation_times          = 10
-        ## debug
-        
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
         sinario_mode              = DERIVE_SINARIO_MODE['binomial']
         retrofit_mode             = RETROFIT_MODE['significant_rule']
@@ -103,13 +99,6 @@ def run(options):
                                                      sinario_mode, BF_MODE[bf_mode])
                         agent.rules          = {'trend': trend, 'delta': delta}
                         agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
-
-                        # debug
-                        start = time.time()
-                        agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
-                        elapsed_time = time.time() - start
-                        print ("elapsed_time:{0}".format(elapsed_time)) + "[sec]"                        
-                        sys.exit()
 
                         # multi processing #
                         # initialize
