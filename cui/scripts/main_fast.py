@@ -81,7 +81,7 @@ def run(options):
         deltas   = np.linspace(BASE_DELTA['origin'], BASE_DELTA['end'], case_num)
 
         # for single case
-        trends = [0.05, 0.10]
+        trends = [0.05, 0.50, 0.10, 0.20]
         deltas = [0.30]
         for trend in trends:
             for delta in deltas:

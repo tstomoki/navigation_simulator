@@ -586,10 +586,9 @@ def draw_retrofit_result(result_dir_path):
                     retrofit_design_mode = retrofit_design_mode[0] if len(retrofit_design_mode) > 0 else '--'
                     transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
                     retrofit_date   = f_result['retrofit_date'][0]
-                    '''
                     if not retrofit_date == '--':
-                        draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
-                        '''
+                        if simulate_index == 30:
+                            draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
                         
                 else:
                     no_retrofit_npv = ("%17.3lf" % nr_result['NPV']) if len(nr_result) == 1 else '--------'
@@ -655,7 +654,7 @@ def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path)
                                  skiprows=1)
             flexible_draw_data = [ [datetime.datetime.strptime(_d['date'], '%Y/%m/%d'), _d['npv']] for _d in data]
             flexible_draw_data = np.array(sorted(flexible_draw_data, key= lambda x : x[0]))
-            flexible_draw_label = "%s (Flexible)" % (target_file)
+            flexible_draw_label = "%s%s" % (target_file, '-'*10)
             # for no retrofit
             desti_dir   = "%s/%s/no_retrofit" % (target_dir_path, target_dir)
             if os.path.exists(desti_dir):
@@ -701,7 +700,7 @@ def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path)
                     y1_x_data = [str_to_date(_d) for _d in scenario.predicted_data['date']]
                     p2        = ax2.plot(y1_x_data, [ float(_d) for _d in y1_data], color='b', linestyle='--')
                     ax2.set_ylabel(y1_label)
-                    plt.legend([p1[0], p3[0], p2[0]], [target_file, flexible_draw_label, 'oil price'], loc='lower left')
+                    plt.legend([p1[0], p3[0], p2[0]], [target_file, flexible_draw_label, 'oil price'], loc='upper center')
 
                     # draw origin line
                     plt.title(title)    
