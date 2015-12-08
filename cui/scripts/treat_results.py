@@ -38,7 +38,7 @@ def run(options):
         aggregate_output(result_dir_path)
     if options.significant:
         results, npv_list = aggregate_significant_output(result_dir_path)
-        compare_acutal_sea(npv_list)
+        #compare_acutal_sea(npv_list)
     if options.fuel_cost:
         draw_fuel_cost(result_dir_path)
     if options.retrofit:
@@ -378,6 +378,8 @@ def aggregate_significant_output(result_dir_path):
     
     for bf_mode in sorted(BF_MODE.keys()):
         target_dir_path      = "%s/%s" % (result_dir_path,bf_mode)
+        if not os.path.exists(target_dir_path):
+            continue
         target_dirs          = os.listdir(target_dir_path)
         target_dirs          = [ d for d in target_dirs if (d != 'aggregated_results') and ('.' not in d)]
         result_dict[bf_mode] = {}
@@ -386,7 +388,9 @@ def aggregate_significant_output(result_dir_path):
             desti_dir = "%s/%s/%s" % (result_dir_path,
                                       bf_mode,
                                       target_dir)
-            if os.path.exists(desti_dir):
+            if not os.path.exists(desti_dir):
+                continue
+            else:
                 # draw velocity logs
                 #draw_velocity_logs(desti_dir, target_dir)
                 # draw velocity logs
@@ -413,22 +417,24 @@ def aggregate_significant_output(result_dir_path):
                             fuel_cost_result[combination_key] = fuel_cost
                         if not round_result.has_key(combination_key):
                             round_result[combination_key] = round_num
-                    try:
-                        maximum_key                      = max(npv_result.items(), key=itemgetter(1))[0]
-                        maximum_val                      = npv_result[maximum_key]
-                        maximum_elements                 = dict(sorted(npv_result.iteritems(), key=operator.itemgetter(1), reverse=True)[:5])
-                        delta_array                      = sorted([ (k, maximum_val - v) for k,v in maximum_elements.items() if not (maximum_val - v) == 0 ], key=lambda x : x[1])
-                        result_dict[bf_mode][target_dir] = [maximum_key,
-                                                            maximum_val,
-                                                            fuel_cost_result[maximum_key],
-                                                            round_result[maximum_key],
-                                                            len(npv_result.keys()) / float(whole_design_nums),
-                                                            [': '.join([v[0], str(v[1])]) for v in delta_array]]
-                        npv_list[bf_mode][target_dir]    = npv_result
-                    except:
-                        print 'ERROR OCCURED'
-                        result_dict[bf_mode][target_dir] = ['--------', 0, 0, 0.0, 0.0, ['-'*40]]
-                        
+                try:
+                    maximum_key                      = max(npv_result.items(), key=itemgetter(1))[0]
+                    maximum_val                      = npv_result[maximum_key]
+                    maximum_elements                 = dict(sorted(npv_result.iteritems(), key=operator.itemgetter(1), reverse=True)[:5])
+                    delta_array                      = sorted([ (k, maximum_val - v) for k,v in maximum_elements.items() if not (maximum_val - v) == 0 ], key=lambda x : x[1])
+                    minimum_val                      = min(npv_result.values())
+                    result_dict[bf_mode][target_dir] = [maximum_key,
+                                                        maximum_val,
+                                                        fuel_cost_result[maximum_key],
+                                                        round_result[maximum_key],
+                                                        len(npv_result.keys()) / float(whole_design_nums),
+                                                        [': '.join([v[0], str(v[1])]) for v in delta_array], minimum_val]
+                    npv_list[bf_mode][target_dir]    = npv_result
+                except:
+                    result_dict[bf_mode][target_dir] = ['--------', 0, 0, 0.0, 0.0, ['-'*40], 0.0]
+                    print 'ERROR OCCURED'
+                    raise
+
                 # output_csv
                 output_dir_path = "%s/%s/%s/aggregated_results" % (result_dir_path, bf_mode, target_dir)
                 initializeDirHierarchy(output_dir_path)
@@ -436,9 +442,12 @@ def aggregate_significant_output(result_dir_path):
                                                   target_dir)
                 if os.path.exists(output_file_path):
                     os.remove(output_file_path)
-                draw_npv_histgram(npv_result, target_dir, output_dir_path)
-                draw_fuel_cost_histgram(fuel_cost_result, target_dir, output_dir_path)
-                draw_npv_fuel_twingraph(npv_result, fuel_cost_result, target_dir, output_dir_path)
+                try:
+                    draw_npv_histgram(npv_result, target_dir, output_dir_path)
+                    draw_fuel_cost_histgram(fuel_cost_result, target_dir, output_dir_path)
+                    draw_npv_fuel_twingraph(npv_result, fuel_cost_result, target_dir, output_dir_path)
+                except:
+                    print "error occured"
                 for design_key, npvs in npv_result.items():
                     hull_id, engine_id, propeller_id = get_component_ids_from_design_key(design_key)
                     write_csv(column_names, [design_key,
@@ -449,15 +458,11 @@ def aggregate_significant_output(result_dir_path):
                                              round_result[design_key],
                                              fuel_cost_result[design_key],
                                          ], output_file_path)
-                del npv_result
-                del fuel_cost_result
-                del round_result
-                gc.collect()
         print_with_notice("%s %s" % (bf_mode.upper(), 'sea condition'.upper()))
-        print "%20s %20s %20s %10s %22s %15s %22s %15s %15s %15s" % ('scenario_mode', 'design_key', 'design_key(norm)', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta')
+        print "%20s %20s %20s %10s %22s %15s %22s %15s %15s %15s %20s" % ('scenario_mode', 'design_key', 'design_key(norm)', 'NPV','NPV(sig)', 'Fuel Cost', 'Fuel Cost(sig)', 'Round Num', 'progress', 'delta', 'NPV range')
         print "-" * 90
         for k,v in result_dict[bf_mode].items():
-            print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]))
+            print "%20s %20s %20s %17.3lf %15.3e %17.3lf %15.3e %15.0lf %18.2lf[%%] %30s %20s" % (k, v[0], normalize_design_key(v[0]), v[1], v[1], v[2], v[2], v[3], v[4]*100, "(%s)" % ','.join(v[5]), "%15.3e <-> %15.3e" % (v[1], v[6]))
     return result_dict, npv_list
 
 def draw_retrofit_result(result_dir_path):

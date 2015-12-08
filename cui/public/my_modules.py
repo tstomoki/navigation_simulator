@@ -1006,9 +1006,9 @@ def get_component_ids_from_design_key(design_key):
     p = re.compile(r'H(\d+)E(\d+)P(\d+)')
     try:
         a = p.search(design_key)
+        hull_id, engine_id, propeller_id = a.groups()
     except:
         pdb.set_trace()
-    hull_id, engine_id, propeller_id = a.groups()
 
     return hull_id, engine_id, propeller_id
 
