@@ -231,7 +231,6 @@ class Agent(object):
 
             # calculate optimized speed and rps during 
             if (CF_day is None) and (rpm is None) and (v_knot is None):
-                
                 C_fuel, CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
             else:
                 # conserve calm sea velocity
@@ -261,6 +260,7 @@ class Agent(object):
             navigated_distance = knot2mileday(v_knot)
             updated_distance   = self.current_distance + knot2mileday(v_knot)
             if (self.current_distance < NAVIGATION_DISTANCE) and (updated_distance >= NAVIGATION_DISTANCE):
+                # ballast -> full
                 # calc distance to the port
                 navigated_distance = NAVIGATION_DISTANCE - self.current_distance                                
                 # subtract unnavigated cash flow which depends on the distance
@@ -291,6 +291,7 @@ class Agent(object):
                 C_fuel = CF_day = rpm = v_knot = None
         
             elif updated_distance >= self.round_trip_distance:
+                # full -> ballast
                 # calc distance to the port
                 navigated_distance  = self.round_trip_distance - self.current_distance                
                 # subtract unnavigated cash flow which depends on the distance
@@ -384,7 +385,7 @@ class Agent(object):
                 self.update_CF_log(CF_day)
 
         # update whole NPV in vessel life time
-        whole_NPV       = round(self.update_whole_NPV(), 3)
+        whole_NPV       = round(self.calc_whole_NPV(), 3)
         whole_fuel_cost = round(np.sum(self.fuel_cost['fuel_cost_in_navigation']), 3)
         return whole_NPV, whole_fuel_cost
 
@@ -745,12 +746,6 @@ class Agent(object):
             self.return_trip_days += 1            
         return
 
-    def calc_NPV(self, CF_day, v_knot):
-        left_days = self.calc_left_days_in_navigation(v_knot)
-        PV        = self.calc_present_value_in_navigation(left_days, CF_day)
-        whole_PV  = self.calc_present_value(PV)
-        return
-
     def update_oilprice_and_fare(self):
         # get current_date
         if not ( isinstance(self.current_date, datetime.date) or isinstance(self.current_date, datetime.datetime)):
@@ -806,11 +801,10 @@ class Agent(object):
         raise
         return    
 
-    # PV = CF_in_navigation / (1-Discount_rate)^elapsed_month
+    # PV = CF_in_navigation / (1+Discount_rate)^elapsed_month
     def update_NPV_in_navigation(self):
-        denominator       = math.pow( (1 - DISCOUNT_RATE), self.calc_elapsed_month())
-        numerator         = self.cash_flow
-        NPV_in_navigation = numerator / denominator
+        denominator       = math.pow( (1 + DISCOUNT_RATE), self.calc_elapsed_month())
+        NPV_in_navigation = self.cash_flow / denominator
         self.update_NPV_log(NPV_in_navigation)
         return
 
@@ -835,7 +829,7 @@ class Agent(object):
 
     # including a potential error
     def calc_elapsed_month(self):
-        days_delta_from_voyage = (self.current_date - self.voyage_date).days
+        days_delta_from_voyage = (self.current_date - self.origin_date).days
         days_num               = get_days_num_in_the_month(self.current_date)
         ret_elapsed_month      = days_delta_from_voyage / float(days_num)
         return ret_elapsed_month
@@ -848,7 +842,7 @@ class Agent(object):
         print_with_notice("Present Value on %15s: %20s" % (date, number_with_delimiter(npv)))
         return 
         
-    def update_whole_NPV(self):
+    def calc_whole_NPV(self):
         self.total_NPV = np.sum(self.NPV['NPV_in_navigation'])
         return self.total_NPV
 
