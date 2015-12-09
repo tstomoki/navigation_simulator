@@ -430,6 +430,13 @@ def aggregate_significant_output(result_dir_path):
                                                         len(npv_result.keys()) / float(whole_design_nums),
                                                         [': '.join([v[0], str(v[1])]) for v in delta_array], minimum_val]
                     npv_list[bf_mode][target_dir]    = npv_result
+                    if target_dir == 'oilprice_high' or True:
+                        _design_key       = "H1E4P514"
+                        _design_key_again = "H2E4P514"
+                        delta = abs(abs(npv_result[_design_key]) - npv_result[_design_key_again])
+                        print "%s, %s, %s: %15.3e %3d" % (target_dir, bf_mode, _design_key, npv_result[_design_key], round_result[_design_key])
+                        print "%s, %s, %s: %15.3e %3d" % (target_dir, bf_mode, _design_key_again, npv_result[_design_key_again], round_result[_design_key_again])
+                        print "delta: %15.3e" % (delta)
                 except:
                     result_dict[bf_mode][target_dir] = ['--------', 0, 0, 0.0, 0.0, ['-'*40], 0.0]
                     print 'ERROR OCCURED'
@@ -495,12 +502,12 @@ def draw_retrofit_result(result_dir_path):
             print "%20s" % ('-^-'*50)
             print "%20s\n%15s\n%20s" % ('-'*20, "statistical result".upper(), '-'*20)
             print "%15s %20s %20s %10s %21s %20s %20s" % ('design_type'.upper(), 
-                                                               'avg. npv'.upper(),
-                                                               'avg. npv (sig)'.upper(),
-                                                               'std'.upper(),
-                                                               'std (sig)'.upper(),
-                                                               'simulation count'.upper(),
-                                                               'retrofit occurs'.upper())
+                                                          'avg. npv'.upper(),
+                                                          'avg. npv (sig)'.upper(),
+                                                          'std'.upper(),
+                                                          'std (sig)'.upper(),
+                                                          'simulation count'.upper(),
+                                                          'retrofit occurs'.upper())
             combination_key = None
             # for flexible
             desti_dir = "%s/%s/flexible" % (target_dir_path, target_dir)
@@ -550,7 +557,7 @@ def draw_retrofit_result(result_dir_path):
                         data = np.atleast_1d(data)                
                     for _d in data:
                         # consider option price
-                        _d['NPV'] -= UPFRONT_COST
+                        #_d['NPV'] -= UPFRONT_COST
                         result.append(_d)
                 result = np.array(sorted(result, key=lambda x : x[0]))
                 print "%15s %24.3lf %13.3e %20.3lf %14.3e %15d %15d" % ('no_retrofit', 
@@ -592,7 +599,7 @@ def draw_retrofit_result(result_dir_path):
                     transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
                     retrofit_date   = f_result['retrofit_date'][0]
                     if not retrofit_date == '--':
-                        if simulate_index == 30:
+                        if simulate_index == 98:
                             draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
                         
                 else:
@@ -622,7 +629,24 @@ def draw_retrofit_result(result_dir_path):
                                                'effective_count': effective_count, 
                                                'maximum_delta': delta_dict[maximum_delta_index],
                                                'maximum_delta_index': maximum_delta_index,
-                                               'average_delta': np.average(delta_dict.values())}
+                                               'average_delta': np.average(delta_dict.values()),
+                                               'success_rate': round(float(effective_count) / retrofit_count * 100, 4),
+                                               'simulation_count': len(delta_dict.values())}
+            # draw delta histgram
+            filepath = "./%s_%s_delta.png" % (bf_mode, target_dir)
+            title    = "%s %s delta histgram" % (bf_mode, target_dir)
+            x_label  = "npv delta [USD]".upper()
+            y_label  = "frequency".upper()
+            graphInitializer(title, x_label, y_label)
+            plt.axvline(x=0, color='k', linewidth=3, linestyle='--')
+            panda_frame = pd.DataFrame({'design_key': delta_dict.keys(),
+                                        'delta': delta_dict.values()})
+            panda_frame['delta'].hist(color="#5F9BFF", alpha=.5)
+            plt.xlim([-3000000, 3000000])
+            plt.savefig(filepath)
+            plt.clf()
+            plt.close()        
+            
     print_with_notice("whole result")
     for bf_mode in ret_result.keys():
         print "%10s %15s %10s\n" % ('^'*10, bf_mode, '^'*10)
@@ -705,7 +729,7 @@ def draw_comparison_graph(index_num, retrofit_date, target_dir, target_dir_path)
                     y1_x_data = [str_to_date(_d) for _d in scenario.predicted_data['date']]
                     p2        = ax2.plot(y1_x_data, [ float(_d) for _d in y1_data], color='b', linestyle='--')
                     ax2.set_ylabel(y1_label)
-                    plt.legend([p1[0], p3[0], p2[0]], [target_file, flexible_draw_label, 'oil price'], loc='upper center')
+                    plt.legend([p1[0], p3[0], p2[0]], [target_file, flexible_draw_label, 'oil price'], loc='lower right')
 
                     # draw origin line
                     plt.title(title)    

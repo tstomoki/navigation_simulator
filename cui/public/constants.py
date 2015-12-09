@@ -22,7 +22,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 15 if current_user == 'tsaito' else 3
+PROC_NUM = 10 if current_user == 'tsaito' else 3
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
@@ -138,7 +138,7 @@ PORT_DWELL_DAYS = 2
 LOG_COLUMNS = ['ballast', 'full']
 
 # discount rate
-DISCOUNT_RATE = 0.05
+DISCOUNT_RATE = 0.01
 
 # model variables
 ## agent
@@ -230,7 +230,7 @@ BASE_PEAK = 60
 # RETROFIT DESIGNS
 
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H1E2P1285', 'dec': 'H1E3P257', 'inc': 'H2E1P514'},
-                     'rough': {'low': 'H2E1P514','high': 'H2E1P514', 'dec': 'H2E3P1285', 'inc': 'H2E1P514'}}
+                     'rough': {'low': 'H2E1P514','high': 'H1E4P514', 'dec': 'H1E4P514', 'inc': 'H2E1P514'}}
 TARGET_DESIGNS = {'calm': ['low', 'high', 'dec'],
                   'rough': ['low', 'dec']}
 '''
@@ -252,5 +252,5 @@ BASE_DELTA = {'origin': 0.0, 'end': 0.5}
 PROPELLERS = {'0': 0, '257': 1, '514': 2, '771': 3, '1028': 4, '1285': 5}
 
 # FOR REALOPTION ANALYSIS
-UPFRONT_COST   = 500000
-PRACTICE_PRICE = 100000
+UPFRONT_COST   = 100000
+PRACTICE_PRICE = 20000
