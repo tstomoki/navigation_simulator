@@ -1169,9 +1169,6 @@ class Agent(object):
                     devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
         devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
 
-        self.calc_velocity_combinations_m(0, devided_component_ids, hull_list, engine_list, propeller_list)
-        return
-        
         # initialize
         pool = mp.Pool(PROC_NUM)
 
@@ -1187,7 +1184,6 @@ class Agent(object):
             hull, engine, propeller = get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list)
             self.create_velocity_combination(hull, engine, propeller)
             print "velocity combination of %10s has just generated." % (generate_combination_str(hull, engine, propeller))
-            return
         return 
 
     # draw rps - velocity combinations
