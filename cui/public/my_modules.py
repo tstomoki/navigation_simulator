@@ -1483,6 +1483,10 @@ def calc_BF_from_wspd(wspd):
     return min(comp_dict, key=comp_dict.get)
 
 def bow_test():
+    # load components list
+    hull_list              = load_hull_list()
+    engine_list            = load_engine_list()
+    propeller_list         = load_propeller_list()        
     # draw bow effect
     ## v
     ## calm
@@ -1493,9 +1497,16 @@ def bow_test():
     filepath = "%s/bow_effect_rough.png" % THESIS_DIR_PATH
     title    = "bow effect in velocity".title()
     draw_bow_effect_v(title, 'rough', filepath)    
+    '''
     # target design
-    td0 = 'H1E4P2'
-    td1 = 'H2E4P2'
+    td0 = [1, 4, 514]
+    td1 = [2, 4, 514]
+    rpm = 34.0
+
+    hull_no_bow, engine, propeller = get_component_from_id_array(td0, hull_list, engine_list, propeller_list)
+    hull_bow, engine, propeller    = get_component_from_id_array(td1, hull_list, engine_list, propeller_list)
+    '''
+
     return
 
 def draw_bow_effect_v(title, bf_mode, filepath):

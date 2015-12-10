@@ -85,7 +85,7 @@ class Hull:
 
     # consider bow for velocity
     def consider_bow_for_v(self, velocity, load_condition):
-        if self.base_data['with_bow'] == 'FALSE':
+        if not self.bow_exists():
             return velocity
         index = 16 if LOAD_CONDITION[load_condition] == 'ballast' else 3.0
         velocity *= ( (100 - math.pow(index, 1.0/3)) / 100 )    

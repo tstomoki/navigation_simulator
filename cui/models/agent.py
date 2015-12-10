@@ -424,7 +424,6 @@ class Agent(object):
                 tmp_combinations = []
                 for velocity in self.velocity_array:
                     velocity    = round(velocity, 4)
-                    velocity    = hull.consider_bow_for_v(velocity, load_condition)
                     velocity_ms = knot2ms(velocity)
                     # calc error of fitness bhp values
                     error = self.rpm_velocity_fitness(hull, engine, propeller, velocity_ms, rpm, load_condition)
@@ -433,7 +432,8 @@ class Agent(object):
                 # for no combinations case
                 if len(tmp_combinations) > 0:
                     min_combination = tmp_combinations[np.argmin(map(lambda x: x[2], tmp_combinations))]
-                    combinations.append([min_combination[0],min_combination[1]])
+                    add_velocity = hull.consider_bow_for_v(min_combination[1], load_condition)
+                    combinations.append([min_combination[0],add_velocity])
             ret_combinations[load_condition_to_human(load_condition)] = combinations
 
         dir_name        = "%s/designs" % (COMBINATIONS_DIR_PATH)

@@ -64,7 +64,7 @@ def run(options):
     propeller_list      = load_propeller_list()
 
     # bow test
-    bow_test()
+    #bow_test()
     
     if final_mode == '2':
         # init retrofit designs
