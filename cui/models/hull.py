@@ -78,16 +78,16 @@ class Hull:
         return (v_ms * self.base_data['Lpp'] * self.base_data[draft_key] * FUILD_DENSITY_SEA * ct) / 2.0
     
     def consider_bow_for_wave(self, delta_v, load_condition):
-        if not self.bow_exists:
+        if not self.bow_exists():
             return delta_v
-        index = 0.40 if (load_condition == 'ballast') else 0.50        
+        index = 0.40 if (LOAD_CONDITION[load_condition] == 'ballast') else 0.50        
         return delta_v * index
 
     # consider bow for velocity
     def consider_bow_for_v(self, velocity, load_condition):
         if self.base_data['with_bow'] == 'FALSE':
             return velocity
-        index = 3.0 if LOAD_CONDITION[load_condition] == 'ballast' else 16
+        index = 16 if LOAD_CONDITION[load_condition] == 'ballast' else 3.0
         velocity *= ( (100 - math.pow(index, 1.0/3)) / 100 )    
         return velocity
 

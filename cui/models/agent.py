@@ -50,8 +50,11 @@ class Agent(object):
         self.icr           = DEFAULT_ICR_RATE
         self.operation_date_array = None
 
+
+        if not hasattr(self, 'bf_info'):
+            self.bf_info = load_bf_info()
+
         # initialize the range of velosity and rps
-        
         # for velocity and rps array #
         self.velocity_array = np.arange(DEFAULT_VELOCITY_RANGE['from'], DEFAULT_VELOCITY_RANGE['to'], DEFAULT_VELOCITY_RANGE['stride']) if velocity_array is None else velocity_array
         self.rpm_array      = np.arange(DEFAULT_RPM_RANGE['from'], DEFAULT_RPM_RANGE['to'], DEFAULT_RPM_RANGE['stride']) if rpm_array is None else rpm_array
@@ -416,38 +419,23 @@ class Agent(object):
     def create_velocity_combination(self, hull, engine, propeller):
         ret_combinations = {}
         for load_condition in LOAD_CONDITION.keys():
-            combinations = np.array([])
+            combinations = []
             for rpm in engine.rpm_array:
-                tmp_combinations = np.array([])
+                tmp_combinations = []
                 for velocity in self.velocity_array:
                     velocity    = round(velocity, 4)
-                    velocity    = consider_bow_for_v(hull, velocity, load_condition)
+                    velocity    = hull.consider_bow_for_v(velocity, load_condition)
                     velocity_ms = knot2ms(velocity)
                     # calc error of fitness bhp values
                     error = self.rpm_velocity_fitness(hull, engine, propeller, velocity_ms, rpm, load_condition)
-                    tmp_combinations = append_for_np_array(tmp_combinations, [rpm, velocity, error])
-                # remove None error value
-                remove_induces = np.array([])
-                for index, element in enumerate(tmp_combinations):
-                    if element[2] is None:
-                        remove_induces = np.append(remove_induces, index)
-                tmp_combinations = np.delete(tmp_combinations, remove_induces, 0)
+                    if error is not None:
+                        tmp_combinations.append([rpm, velocity, error])
                 # for no combinations case
                 if len(tmp_combinations) > 0:
-                    min_combination = tmp_combinations[np.argmin(tmp_combinations[:, 2])]
-                    combinations = append_for_np_array(combinations, [min_combination[0],min_combination[1]])
-                    ret_combinations[load_condition_to_human(load_condition)] = combinations
-                else:
-                    # beyond the potential of the components (e.g. max_load or so on)
-                    '''
-                    print 'beyond the potential of components:'
-                    print "%s: %s, %s: %s, %s: %s" % ('Hull'     , self.hull.base_data['id'],
-                                                      'Engine'   , self.engine.base_data['id'],
-                                                      'Propeller', self.propeller.base_data['id'])
-                    '''
-                    pass
+                    min_combination = tmp_combinations[np.argmin(map(lambda x: x[2], tmp_combinations))]
+                    combinations.append([min_combination[0],min_combination[1]])
+            ret_combinations[load_condition_to_human(load_condition)] = combinations
 
-        '''
         dir_name        = "%s/designs" % (COMBINATIONS_DIR_PATH)
         initializeDirHierarchy(dir_name)
         # draw RPS-velocity combinations
@@ -458,7 +446,7 @@ class Agent(object):
         self.draw_EHP_Knot_graph(hull, engine, propeller, ret_combinations, dir_name)
         # output json as file
         self.write_combinations_as_json(hull, engine, propeller, ret_combinations, dir_name)
-        '''
+
         return ret_combinations
 
     def rpm_velocity_fitness(self, hull, engine, propeller, velocity_ms, rpm, load_condition):
@@ -1172,31 +1160,34 @@ class Agent(object):
         # load components list
         hull_list              = load_hull_list()
         engine_list            = load_engine_list()
-        propeller_list         = load_propeller_list()
+        propeller_list         = load_propeller_list()        
 
-        ### list has only 1 hull
-        hull = Hull(hull_list, 1)
+        devided_component_ids = []
+        for hull_info in hull_list:
+            for engine_info in engine_list:
+                for propeller_info in propeller_list:
+                    devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
+        devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
 
-        # devide the propeller list
-        devided_propeller_list = np.array_split(propeller_list, PROC_NUM)
-
+        self.calc_velocity_combinations_m(0, devided_component_ids, hull_list, engine_list, propeller_list)
+        return
+        
         # initialize
         pool = mp.Pool(PROC_NUM)
 
         # multi processing #
-        callback              = [pool.apply_async(self.calc_velocity_combinations_m, args=(index, devided_propeller_list, hull, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
+        callback              = [pool.apply_async(self.calc_velocity_combinations_m, args=(index, devided_component_ids, hull_list, engine_list, propeller_list)) for index in xrange(PROC_NUM)]
         pool.close()
         pool.join()
 
         return 
 
-    def calc_velocity_combinations_m(self, index, devided_propeller_list, hull, engine_list, propeller_list):
-        for propeller_info in devided_propeller_list[index]:
-            propeller = Propeller(propeller_list, propeller_info['id'])
-            for engine_info in engine_list:
-                engine       = Engine(engine_list, engine_info['id'])
-                combinations = self.create_velocity_combination(hull, engine, propeller)
-                print "velocity combination of %10s has just generated." % (generate_combination_str(hull, engine, propeller))
+    def calc_velocity_combinations_m(self, index, devided_component_ids, hull_list, engine_list, propeller_list):
+        for component_ids in devided_component_ids[index]:
+            hull, engine, propeller = get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list)
+            self.create_velocity_combination(hull, engine, propeller)
+            print "velocity combination of %10s has just generated." % (generate_combination_str(hull, engine, propeller))
+            return
         return 
 
     # draw rps - velocity combinations
@@ -1216,7 +1207,7 @@ class Agent(object):
                          y_label)
         colors = ['b', 'r']
         for key, load_condition in LOAD_CONDITION.items():
-            draw_data = combinations[load_condition]
+            draw_data = np.array(combinations[load_condition])
             x_data    = draw_data.transpose()[0]
             y_data    = draw_data.transpose()[1]
             plt.plot(x_data, y_data, label=load_condition, color=colors[key])
@@ -1243,7 +1234,7 @@ class Agent(object):
                          y_label)
         colors = ['b', 'r']
         load_condition = LOAD_CONDITION[0]
-        draw_data = combinations[load_condition]
+        draw_data = np.array(combinations[load_condition])
         # rpm
         x_data    = draw_data.transpose()[0]
         # calc BHP
@@ -1273,7 +1264,7 @@ class Agent(object):
                          y_label)
         colors = ['b', 'r']
         for key, load_condition in LOAD_CONDITION.items():
-            draw_data = combinations[load_condition]
+            draw_data = np.array(combinations[load_condition])
             # knot 
             x_data    = draw_data.transpose()[1]
             # calc EHP
@@ -1295,7 +1286,7 @@ class Agent(object):
         # to serialize numpy ndarray #
         json_serialized_combinations = {}
         for condition in combinations.keys():
-            json_serialized_combinations[condition] = combinations[condition].tolist()
+            json_serialized_combinations[condition] = combinations[condition]
 
         f = open(output_path, 'w')
         json_data = json.dumps(json_serialized_combinations, indent=4)
@@ -1445,10 +1436,10 @@ class Agent(object):
         return retrofit_flag, mode
 
     def calc_EHP(self, hull, engine, propeller, v_knot, load_condition, combination):
-        raw_ehp = hull.calc_raw_EHP(v_knot, load_condition)
-        index   = np.where(combination[load_condition].transpose()[1]==v_knot)
-        rpm     = combination[load_condition][index][0][0]
-        rps     = rpm2rps(rpm)
+        raw_ehp     = hull.calc_raw_EHP(v_knot, load_condition)
+        index       = np.where(np.array(combination[load_condition]).transpose()[1]==v_knot)[0][0]
+        rpm         = combination[load_condition][index][0]
+        rps         = rpm2rps(rpm)
         velocity_ms = knot2ms(v_knot)
         J           = propeller.calc_advance_constant(velocity_ms, rps)
 
@@ -1492,20 +1483,18 @@ class Agent(object):
 
     # beaufort mode
     def load_bf_prob(self):
+        bf_prob = None
         whole_reslut_path = "%s/result.json" % BEAUFORT_RESULT_PATH
         beaufort_data     = load_json_file(whole_reslut_path)
 
         if self.bf_mode == BF_MODE['rough']:
             alpha = 5.5
             beta  = 4.5
+            bf_key = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
+            bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}                    
         elif self.bf_mode == BF_MODE['calm']:
-            return None
-            '''
-            alpha = 4
-            beta  = 6
-            '''
-        bf_key = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
-        bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}        
+            pass
+
         return bf_prob
 
     # consider beaufort for velocity
@@ -1514,11 +1503,10 @@ class Agent(object):
         if self.bf_mode is None or self.bf_prob is None:
             return v_knot
         current_bf          = prob_with_weight(self.bf_prob)
-        current_wave_height = get_wave_height(current_bf)
+        current_wave_height = get_wave_height(current_bf, self.bf_info)
         delta_v = calc_y(current_wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
-
         # reduce for bow
-        delta_v = self.consider_bow_for_wave(delta_v)
+        delta_v = self.hull.consider_bow_for_wave(delta_v, self.load_condition)
         return v_knot + delta_v
 
     # consider dock-to-dock deterioration    
@@ -1576,12 +1564,6 @@ class Agent(object):
         modified_v_knot -= self.age_eff['v_knot']
 
         return modified_rpm, modified_v_knot
-
-    def consider_bow_for_wave(self, delta_v):
-        if self.hull.base_data['with_bow'] == 'FALSE':
-            return delta_v
-        index = 0.40 if self.is_ballast() else 0.50        
-        return delta_v * index
 
     def display_current_design(self):
         print "Hull: %s, Engine: %s, Propeller: %s" % (self.hull.base_data['id'], self.engine.base_data['id'], self.propeller.base_data['id'])

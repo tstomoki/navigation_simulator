@@ -35,6 +35,7 @@ from agent       import Agent
 def run(options):
     # get option variables #
     final_mode = options.final_mode
+    combi_mode = options.combination_mode
 
     # load history data
     from_date                = '2004/01/01'
@@ -61,6 +62,10 @@ def run(options):
     hull_list           = load_hull_list()
     engine_list         = load_engine_list()
     propeller_list      = load_propeller_list()
+
+    # bow test
+    bow_test()
+    
     if final_mode == '2':
         # init retrofit designs
         retrofit_designs          = RETROFIT_DESIGNS
@@ -163,11 +168,20 @@ def run(options):
                 pool.close()
                 pool.join()
         # multi processing #
+    if combi_mode:
+        Agent(None,
+              None,
+              None,
+              None,
+              None,
+              None).only_create_velocity_combinations()
     return 
 
 # authorize exeucation as main script
 if __name__ == '__main__':
     parser = OptionParser()
+    parser.add_option("-C", "--combi-mode", dest="combination_mode",
+                      help="create combination if True", default=False)        
     parser.add_option("-F", "--final-mode", dest="final_mode",
                       help="conduct final case studies if True", default=False)    
     (options, args) = parser.parse_args()

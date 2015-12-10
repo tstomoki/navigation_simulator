@@ -1148,7 +1148,7 @@ def separate_list(raw_list, num):
         index += delta
     return ret_data
 
-def get_wave_height(current_bf):
+def load_bf_info():
     bf_info_path = "%s/beaufort_info.csv" % (DATA_PATH)
     dt   = np.dtype({'names': ('BF', 'wind_speed', 'wave_height', 'wave_period'),
                    'formats': ('S5', np.float, np.float, np.float)})
@@ -1156,20 +1156,15 @@ def get_wave_height(current_bf):
                             delimiter=',',
                             dtype=dt,
                             skiprows=1)
+    return bf_info
+
+def get_wave_height(current_bf, bf_info):
     current_bf_info = bf_info[np.where(bf_info['BF'] == current_bf)]
     if len(current_bf_info) == 0:
         current_wave_height = 0
     else:
         current_wave_height = current_bf_info['wave_height'][0]
     return current_wave_height
-
-# consider bow for velocity
-def consider_bow_for_v(hull, velocity, load_condition):
-    if hull.base_data['with_bow'] == 'FALSE':
-        return velocity
-    index = 3.0 if LOAD_CONDITION[load_condition] == 'ballast' else 16
-    velocity *= ( (100 - math.pow(index, 1.0/3)) / 100 )    
-    return velocity
 
 def compare_hull_design(npv_result, initial_engine_id, initial_propeller_id):
     x_label    = 'NPV [$]'
@@ -1486,3 +1481,65 @@ def calc_BF_from_wspd(wspd):
     for _bf, _wspd in wspd_BF.items():
         comp_dict[_bf] = abs(_wspd - wspd)
     return min(comp_dict, key=comp_dict.get)
+
+def bow_test():
+    # draw bow effect
+    ## v
+    ## calm
+    filepath = "%s/bow_effect_calm.png" % THESIS_DIR_PATH
+    title    = "bow effect in velocity".title()
+    draw_bow_effect_v(title, 'calm', filepath)
+    ## rough
+    filepath = "%s/bow_effect_rough.png" % THESIS_DIR_PATH
+    title    = "bow effect in velocity".title()
+    draw_bow_effect_v(title, 'rough', filepath)    
+    # target design
+    td0 = 'H1E4P2'
+    td1 = 'H2E4P2'
+    return
+
+def draw_bow_effect_v(title, bf_mode, filepath):
+    from hull import Hull
+    hull_list = load_hull_list()
+    # graph setting
+    x_label   = "velocity".upper() + "[knot]"
+    y_label   = "bow effect".upper() + "[knot]"
+    graphInitializer(title, x_label, y_label)
+
+    linestyles = iter(['-', '--', '-.', ':'])
+    colors     = iter(['k', 'k', 'r', 'r'])
+
+    # bf
+    if bf_mode == 'rough':
+        bf_info     = load_bf_info()
+        wave_height = get_wave_height('BF7', bf_info)
+     
+    raw_v = np.linspace(0, 25, 1000)
+    for hull_info in hull_list:
+        hull = Hull(hull_list, hull_info['id'])
+        for _key, load_condition in LOAD_CONDITION.items():
+            v_array = np.array([])
+            label   = "%s" % (load_condition)
+            if hull.bow_exists():
+                label += ", BOW"
+            for _v in raw_v:
+                if bf_mode == 'rough':
+                    delta_v    = calc_y(wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
+                    v_modified = hull.consider_bow_for_v(_v, _key) + hull.consider_bow_for_wave(delta_v, _key)
+                    '''
+                    if _v > 20.0 and _v < 20.30:
+                        if hull.bow_exists():
+                            print "with_bow: %3.3lf -> %3.3lf" % (_v, v_modified)
+                        else:
+                            print "no___bow: %3.3lf -> %3.3lf" % (_v, v_modified)
+                    '''
+                    v_delta = _v - hull.consider_bow_for_v(_v, _key) - hull.consider_bow_for_wave(delta_v, _key)
+                else:
+                    v_delta = _v - hull.consider_bow_for_v(_v, _key)
+                v_array = np.append(v_array, v_delta)
+            plt.plot(raw_v, v_array, label=label, color=colors.next(), linestyle=linestyles.next())
+    plt.ylim(0.0, 3.5)
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')            
+    plt.savefig(filepath)
+    return
