@@ -142,7 +142,7 @@ class Agent(object):
         # initialize retrofit_count
         self.retrofit_count_limit = 0 if self.retrofit_mode == RETROFIT_MODE['none'] else 1
         self.retrofit_count       = 0
-        self.retrofit_design_keys  = retrofit_design_keys
+        self.retrofit_design_keys = retrofit_design_keys
 
         # define velocity and rps for given [hull, engine, propeller]
         ## load combinations if combination file exists 

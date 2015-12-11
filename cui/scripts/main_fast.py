@@ -169,6 +169,8 @@ def run(options):
                 pool.join()
         # multi processing #
     if combi_mode:
+        # generate engines
+        draw_engine_sfoc()
         Agent(None,
               None,
               None,
