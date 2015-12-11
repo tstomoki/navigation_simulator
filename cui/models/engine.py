@@ -158,6 +158,6 @@ class Engine:
         return ret_delta
 
     def change_sfoc_rate(self):
-        change_rate = SFOC_BASE_DEC - self.get_delta_from_name()
-        change_rate /= 100
+        change_rate = SFOC_BASE_DEC + self.get_delta_from_name()
+        change_rate /= 4000
         return 1.0 + change_rate

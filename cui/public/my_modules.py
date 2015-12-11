@@ -1423,12 +1423,9 @@ def draw_engine_sfoc():
         sfoc_array = [engine.calc_sfoc(bhp) for bhp in bhp_array]
         label      = "Engine %s (%s)" % (engine_info['id'], engine_info['name'])
         plt.plot(rpm_array, sfoc_array, label=label)
-        del bhp_array
-        del sfoc_array
-        gc.collect()
 
-    plt.ylim(150,185)
-    plt.xlim(45, 70)
+    plt.ylim(162.5,165)
+    plt.xlim(25, 80)
     plt.legend(shadow=True)
     plt.legend(loc='upper left')
     plt.savefig(output_file_path)
