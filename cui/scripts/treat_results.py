@@ -32,6 +32,10 @@ from world_scale import WorldScale
 
 
 def run(options):
+    # draws
+    #draw_hull_features()
+    draw_engine_sfoc()
+    sys.exit()
     result_dir_path = options.result_dir_path
     json_file_path  = options.json_file_path
     if options.aggregate:
@@ -49,7 +53,7 @@ def run(options):
 
     draw_hull_features()
     #draw_propeller_features()
-    draw_engine_features()
+
     #aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
@@ -272,7 +276,12 @@ def draw_hull_features():
         hull_id = hull_info['id']
         hull    = Hull(hull_list, hull_id)
         hulls.append(hull)
-    
+
+    # bf
+    bf_info     = load_bf_info()
+    wave_height = get_wave_height('BF7', bf_info)
+    delta_v     = calc_y(wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
+        
     # draw graph
     title       = "Hull features".title()
     x_label     = "Froude number".upper()
@@ -291,7 +300,7 @@ def draw_hull_features():
             style_index = (index * 2) + load_condition_num
             f_v_dict = {}
             for _v in v_range:
-                modified_v       = hull.consider_bow_for_v(_v, load_condition_num)
+                modified_v       = hull.consider_bow_for_v(_v, load_condition_num) + hull.consider_bow_for_wave(delta_v, load_condition_num)
                 froude           = hull.calc_froude(modified_v)
                 f_v_dict[froude] = _v
             for _f, _v in f_v_dict.items():
@@ -304,7 +313,7 @@ def draw_hull_features():
     plt.legend(loc='upper left')
     plt.xlim(0.05, 0.25)
     plt.ylim(0, 4)    
-    output_file_path = "%s/hull_features.png" % (GRAPH_DIR_PATH)
+    output_file_path = "%s/hull_features_rough.png" % (GRAPH_DIR_PATH)
     plt.savefig(output_file_path)
     return
 

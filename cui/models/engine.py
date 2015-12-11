@@ -37,7 +37,7 @@ class Engine:
         y_delta = self.get_delta_from_name()
         load    = self.calc_load(bhp)
         ret_val = self.base_data['sfoc0'] + self.base_data['sfoc1'] * load + self.base_data['sfoc2'] * math.pow(load, 2)
-        return ret_val
+        return ret_val * self.change_sfoc_rate()
 
     # return bhp / max_load  
     def calc_load(self, bhp):
@@ -156,3 +156,8 @@ class Engine:
         delta       = float(re.compile(r'.+_(\d+)').search(engine_name).groups()[-1])
         ret_delta = delta - BASE_PEAK
         return ret_delta
+
+    def change_sfoc_rate(self):
+        change_rate = SFOC_BASE_DEC - self.get_delta_from_name()
+        change_rate /= 100
+        return 1.0 + change_rate
