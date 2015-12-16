@@ -42,7 +42,7 @@ class Engine:
 
     def engine_derating(self, load, y_delta):
         bias = 0.0
-        delta_rate = (100.0 - y_delta*25.0 + bias) / 100.0
+        delta_rate = (100.0 - y_delta*15.0 + bias) / 100.0
         return load * delta_rate
 
     # return bhp / max_load  
