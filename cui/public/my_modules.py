@@ -305,10 +305,12 @@ def append_for_np_array(base_array, add_array):
         base_array = np.vstack((base_array, add_array))
     return base_array
 
-def print_with_notice(display_str):
-    notice_str = '*' * 80
+def print_with_notice(display_str, mark=None):
+    if mark is None:
+        mark = '*'
+    notice_str = mark * 80
     print "%80s" % (notice_str)
-    print "%30s %s %30s" % ('*' * 30, display_str, '*' * 30)
+    print "%30s %s %30s" % (mark * 30, display_str, mark * 30)
     print "%80s" % (notice_str)
     return 
 

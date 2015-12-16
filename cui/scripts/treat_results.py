@@ -71,13 +71,16 @@ def validate_components():
     '''
 
     # 1 time navigation
-    significant_modes = ['high', 'low', 'dec', 'inc', 'middle']
+    significant_modes = ['high', 'low', 'middle']
     oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
-    target_mode       = 'hull'
-    oilprice_mode     = 'oilprice_middle'
-    for bf_mode in sorted(BF_MODE.keys()):
-        print_with_notice("%s %s" % (bf_mode.upper(), 'sea condition'.upper()))
-        result = one_time_navigation(target_mode, oilprice_mode, bf_mode)
+    for oilprice_mode in oilprice_modes:
+        print_with_notice("%s %s" % (oilprice_mode.upper(), 'validation'.upper()), '^')
+        target_modes     = sorted(['hull', 'engine'])
+        for target_mode in target_modes:
+            print_with_notice("%s %s" % (target_mode.upper(), 'validation'.upper()), '-')
+            for bf_mode in sorted(BF_MODE.keys()):
+                print_with_notice("%s %s" % (bf_mode.upper(), 'sea condition'.upper()))
+                result = one_time_navigation(target_mode, oilprice_mode, bf_mode)
     return
 
 def one_time_navigation(target_mode, oilprice_mode, bf_mode):
@@ -118,6 +121,8 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
     # create target combinations
     if target_mode == 'hull':
         component_lists = ['H1E1P514', 'H2E1P514']
+    elif target_mode == 'engine':
+        component_lists = ['H1E1P1028', 'H1E2P1028', 'H1E3P1028']
 
     np.random.seed(COMMON_SEED_NUM)
     agent.sinario, agent.world_scale, agent.flat_rate = generate_final_significant_modes(oilprice_mode, 
@@ -135,12 +140,23 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
         NPV, fuel_cost         = agent.simmulate(None, None, None, None, None, None, True)
         income = agent.current_fare * agent.hull.base_data['DWT']
         cf_raw = (1.0-agent.icr) * income - agent.calc_fix_cost()*agent.total_elapsed_days - agent.calc_port_cost(agent.total_elapsed_days)*agent.total_elapsed_days - fuel_cost
+
         print "%10s: Income: %10.3lf CF_raw: %10.3lf FC: %10.3lf NPV: %10.3lf elapsed_days: %3d" % (target_design_key, 
                                                                                                     income, 
                                                                                                     cf_raw,
                                                                                                     fuel_cost, 
                                                                                                     NPV, 
                                                                                                     agent.total_elapsed_days)
+        # calc velocity range
+        range_result = {}
+        for load_condition in LOAD_CONDITION.values():
+            min_rpm_index      = np.argmin(agent.log[load_condition]['rpm'])
+            max_rpm_index      = np.argmax(agent.log[load_condition]['rpm'])
+            min_velocity_index = np.argmin(agent.log[load_condition]['velocity'])
+            max_velocity_index = np.argmax(agent.log[load_condition]['velocity'])
+            print "%10s" % (load_condition.upper())
+            print "\t%5s: %10.3lf ~ %10.3lf" % ("rpm".upper(), agent.log[load_condition]['rpm'][min_rpm_index], agent.log[load_condition]['rpm'][max_rpm_index])
+            print "\t%5s: %10.3lf ~ %10.3lf" % ("velocity".upper(), agent.log[load_condition]['velocity'][min_velocity_index], agent.log[load_condition]['velocity'][max_velocity_index])
     return result
     
 
