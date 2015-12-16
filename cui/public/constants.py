@@ -3,6 +3,7 @@ RESULT_DIR_PATH         = '../results'
 GRAPH_DIR_PATH          = "%s/graphs" % (RESULT_DIR_PATH)
 DATA_PATH               = '../data/'
 COMPONENT_PATH          = '../data/components_lists'
+VALIDATION_LOG_DIR_PATH = "%s/varidation"   % (RESULT_DIR_PATH)
 AGNET_LOG_DIR_PATH      = "%s/agent_log"    % (RESULT_DIR_PATH)
 COMBINATIONS_DIR_PATH   = "%s/combinations" % (RESULT_DIR_PATH)
 WAVE_DIR_PATH           = "%s/wave"         % (RESULT_DIR_PATH)

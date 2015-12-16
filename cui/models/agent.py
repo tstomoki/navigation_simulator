@@ -132,7 +132,7 @@ class Agent(object):
         propeller                                           = Propeller(propeller_list, propeller_id)
         return averaged_NPV, hull, engine, propeller, std
 
-    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None, log_mode=None, retrofit_design_keys=None):
+    def simmulate(self, hull=None, engine=None, propeller=None, multi_flag=None, log_mode=None, retrofit_design_keys=None, validation_flg=None):
         # use instance variables if hull or engine or propeller are not given
         if (hull is None) or (engine is None) or (propeller is None):
             hull      = self.hull
@@ -363,6 +363,13 @@ class Agent(object):
                 C_fuel = CF_day = rpm = v_knot = None
                 self.ballast_trip_days = 0
                 self.return_trip_days  = 0
+
+                # validation flg
+                if validation_flg:
+                    # update whole NPV in vessel life time
+                    whole_NPV       = round(self.calc_whole_NPV(), 3)
+                    whole_fuel_cost = round(np.sum(self.fuel_cost['fuel_cost_in_navigation']), 3)
+                    return whole_NPV, whole_fuel_cost
                 continue
             else:
                 # full -> full or ballast -> ballast
@@ -553,6 +560,28 @@ class Agent(object):
         ret_ND = self.elapsed_days + first_clause + second_clause
         return ret_ND
             
+
+    def calc_CF_in_navigation(self):
+        ND = self.elapsed_days
+
+        # income
+        I = (1 - self.icr) * self.current_fare * self.hull.base_data['DWT']
+
+        # Cost for fix_day
+        C_fix  = self.calc_fix_cost() * ND
+
+        # Cost for port_day
+        C_port = self.calc_port_cost(ND) * ND
+
+        # Fuel Cost
+        voyage_start_index = np.where(self.fuel_cost['navigation_finished_date'] == datetime_to_human(self.voyage_date))[0]
+        voyage_end_index   = np.where(self.fuel_cost['navigation_finished_date'] == datetime_to_human(self.current_date))[0]
+        C_fuel = np.sum(self.fuel_cost[voyage_start_index:voyage_end_index+1]['fuel_cost_in_navigation'])
+
+        # total CF
+        CF_in_navigation = I - C_fix - C_port - C_fuel
+        return CF_in_navigation
+
     def calc_cash_flow(self, rpm_first, velocity_first, rpm_second, velocity_second, hull, engine, propeller, ND):
         # Income_day
         I      = self.current_fare * hull.base_data['DWT']
@@ -788,7 +817,8 @@ class Agent(object):
     # PV = CF_in_navigation / (1+Discount_rate)^elapsed_month
     def update_NPV_in_navigation(self):
         denominator       = math.pow( (1 + DISCOUNT_RATE), self.calc_elapsed_month())
-        NPV_in_navigation = self.cash_flow / denominator
+        CF_in_navigation  = self.calc_CF_in_navigation()
+        NPV_in_navigation = CF_in_navigation / denominator
         self.update_NPV_log(NPV_in_navigation)
         return
 
@@ -1482,6 +1512,12 @@ class Agent(object):
         if self.bf_mode == BF_MODE['rough']:
             alpha = 5.5
             beta  = 4.5
+
+            '''
+            alpha = 9.5
+            beta  = 0.5
+            '''
+
             bf_key = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
             bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}                    
         elif self.bf_mode == BF_MODE['calm']:

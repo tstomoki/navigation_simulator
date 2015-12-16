@@ -1383,6 +1383,11 @@ def generate_final_significant_modes(oilprice_mode,
         significant_oilprice    = [significant_low_oilprice, significant_high_oilprice]
         significant_world_scale = [significant_low_world_scale, significant_high_world_scale]
         significant_flat_rate   = [significant_low_flat_rate, significant_high_flat_rate]        
+    elif oilprice_mode == 'oilprice_middle':
+        # set modes
+        significant_oilprice    = np.average([significant_high_oilprice, significant_low_oilprice])
+        significant_world_scale = np.average([significant_high_world_scale, significant_low_world_scale])
+        significant_flat_rate   = np.average([significant_high_flat_rate, significant_low_flat_rate])
         
     # generate sinario
     sinario.generate_significant_sinario(oilprice_mode, significant_oilprice)

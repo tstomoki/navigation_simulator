@@ -49,7 +49,6 @@ def run(options):
     # generate world scale
     world_scale  = WorldScale(world_scale_history_data)
     # generate flat rate
-    #flat_rate    = FlatRate(flat_rate_history_data)
     flat_rate    = FlatRate(flat_rate_history_data)
     #flat_rate.draw_multiple_flat_rates()
 
