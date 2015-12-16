@@ -1,6 +1,7 @@
 # import common modules #
 import time
 import sys
+import operator
 from operator import itemgetter
 from pdb import *
 import matplotlib
@@ -32,8 +33,8 @@ from world_scale import WorldScale
 
 
 def run(options):
-    # draws
-    draw_hull_features()
+    # validation
+    validate_components()
     result_dir_path = options.result_dir_path
     json_file_path  = options.json_file_path
     if options.aggregate:
@@ -55,6 +56,17 @@ def run(options):
     #aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
+    return
+
+def validate_components():
+    # hull
+    draw_hull_ct()
+    draw_hull_features()
+    
+    # engine
+    draw_engine_sfoc()
+    get_engine_optimal_range()
+
     return
 
 def draw_fuel_cost(result_dir_path):
@@ -214,30 +226,56 @@ def draw_ct_fn(wave=None, beaufort=None):
         plt.clf()
     return
 
-def draw_engine_features():
-    engines = []
-    engine_list   = load_engine_list()
+def get_engine_optimal_range():
+    engines     = []
+    result_dict = {}
+    engine_list = load_engine_list()
     for engine_info in engine_list:
-        engine_id = engine_info['id']
-        engine    = Engine(engine_list, engine_id)
+        engine_id                        = engine_info['id']
+        engine                           = Engine(engine_list, engine_id)
+        result_dict[engine_info['name']] = []
         engines.append(engine)
 
-    # draw graph
-    title   = "Engine features".title()
-    x_label = "rpm".upper()
-    y_label = "BHP [kW]"    
-    graphInitializer(title, x_label, y_label)
-    line_colors = ['k', 'r', 'b', 'g']
-    line_styles = ['-', '--', '-.', ':']
-    for index, engine in enumerate(engines):
-        if not engine.base_data['specific_name'] == 'Hiekata':
-            draw_data = engine.generate_modified_bhp()
-            label = "Engine %d (%s)" % (engine.base_data['id'], engine.base_data['specific_name'])
-            plt.plot(draw_data['rpm'], draw_data['modified_bhp'], label=label, color=line_colors[index], linestyle=line_styles[index])
-    plt.legend(shadow=True)
-    plt.legend(loc='upper left')
-    output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
-    plt.savefig(output_file_path)
+    rpm_array        = engines[0].rpm_array
+    stride           = 0.1
+    rpm_array        = np.arange(DEFAULT_RPM_RANGE['from'], engines[0].base_data['N_max']+stride, stride)
+    mcr_dict         = {}
+    previous_max_key = None
+    rpm_tmp_array    = []
+    for rpm in rpm_array:
+        bhp_dict  = {}
+        sfoc_dict = {}
+        for engine in engines:
+            engine_name = "Engine%s" % (engine.base_data['id'])
+            bhp = bhp_dict[engine_name] = engine.calc_bhp(rpm)
+            sfoc_dict[engine_name] = engine.calc_sfoc(bhp)
+        max_engine_key   = min(sfoc_dict.iteritems(), key=operator.itemgetter(1))[0]
+        if not mcr_dict.has_key(max_engine_key):
+            mcr_dict[max_engine_key] = [rpm, sfoc_dict[max_engine_key]]
+            if len(rpm_tmp_array) > 0:
+                min_rpm = min(rpm_tmp_array)
+                max_rpm = max(rpm_tmp_array)
+                mcr_dict[previous_max_key].append(min_rpm)
+                mcr_dict[previous_max_key].append(max_rpm)
+                mcr_dict[previous_max_key].append(max_rpm-min_rpm)
+            rpm_tmp_array = []
+        else:
+            rpm_tmp_array.append(rpm)
+            if mcr_dict[max_engine_key][1] > sfoc_dict[max_engine_key]:
+                mcr_dict[max_engine_key] = [rpm, sfoc_dict[max_engine_key]]
+            if rpm == rpm_array[-1]:
+                min_rpm = min(rpm_tmp_array)
+                max_rpm = max(rpm_tmp_array)
+                mcr_dict[previous_max_key].append(min_rpm)
+                mcr_dict[previous_max_key].append(max_rpm)
+                mcr_dict[previous_max_key].append(max_rpm-min_rpm)                
+        previous_max_key = max_engine_key
+
+    column_names = ['optimal rpm', 'optimal sfoc', 'rpm_start', 'rpm_end', 'rpm_delta']
+    for key, val in mcr_dict.items():
+        print key
+        for i, _d in enumerate(val):
+            print "\t%15s: %10.3f" % (column_names[i].upper(), _d)
     return
 
 # WIP
@@ -264,6 +302,57 @@ def draw_propeller_features():
     plt.legend(loc='upper left')
     output_file_path = "%s/engine_features.png" % (GRAPH_DIR_PATH)
     plt.savefig(output_file_path)
+    return
+
+def draw_hull_ct():
+    hulls     = []
+    hull_list = load_hull_list()
+    v_range   = np.linspace(0, 25, 1000)
+    for hull_info in hull_list:
+        hull_id = hull_info['id']
+        hull    = Hull(hull_list, hull_id)
+        hulls.append(hull)
+
+    # bf
+    bf_info     = load_bf_info()
+    bfs = ["BF%d" % (_i+1) for _i in range(1,6)]
+
+    # graph
+    x_label     = "Froude number".upper()
+    y_label     = "Ct"
+    title       = "Hull features".title()
+    line_colors = ['b', 'r', 'g', 'c', 'm', 'y', 'k', '#FF4500', '#FF6347']
+    line_styles = ['-', '--']
+    for load_condition_num, load_condition in LOAD_CONDITION.items():
+        output_file_path = "%s/hull_bfs_%s.png" % (GRAPH_DIR_PATH, load_condition)
+        graphInitializer(title, x_label, y_label)
+        for bf_index, bf in enumerate(bfs):
+            wave_height = get_wave_height(bf, bf_info)
+            delta_v     = calc_y(wave_height, [V_DETERIO_FUNC_COEFFS['cons'], V_DETERIO_FUNC_COEFFS['lin'], V_DETERIO_FUNC_COEFFS['squ']], V_DETERIO_M)
+            dt          = np.dtype({'names': ('froude', 'ehp'),
+                                    'formats': (np.float, np.float)})
+            for hull_index, hull in enumerate(hulls):
+                draw_data = []
+                ## plot style
+                sub_label   = "(%s, BOW)" % (bf) if hull.bow_exists() else "(%s)" % (bf)
+                label       = "%s" % (sub_label)
+                f_v_dict = {}
+                for _v in v_range:
+                    modified_v       = hull.consider_bow_for_v(_v, load_condition_num) + hull.consider_bow_for_wave(delta_v, load_condition_num)
+                    froude           = hull.calc_froude(modified_v)
+                    f_v_dict[froude] = _v
+                for _f, _v in f_v_dict.items():
+                    ehp = hull.calc_raw_EHP(_v, load_condition)
+                    ct  = hull.calc_ct(ehp, _v, load_condition)
+                    draw_data.append( (_f, ct))
+                draw_data   = np.array(sorted(draw_data, key=lambda x : x[0]))
+                plt.plot(draw_data.transpose()[0], draw_data.transpose()[1], label=label, color=line_colors[bf_index], linestyle=line_styles[hull_index])
+            print bf
+        plt.legend(shadow=True)
+        plt.legend(loc='upper left')
+        plt.xlim(0.15, 0.23)
+        plt.ylim(0.5, 3.5)    
+        plt.savefig(output_file_path)    
     return
 
 def draw_hull_features():

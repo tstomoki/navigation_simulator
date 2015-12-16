@@ -463,11 +463,7 @@ class Agent(object):
 
     # return modified bhp[kW] by efficiency
     def get_modified_bhp(self, rpm, engine):
-        nearest_rpm = find_nearest(engine.modified_bhp_array['rpm'],rpm)
-        index       = np.where(engine.modified_bhp_array['rpm']==nearest_rpm)
-        designated_array = engine.modified_bhp_array[index]
-        modified_bhp = designated_array['modified_bhp'][0]
-        return modified_bhp
+        return engine.calc_bhp(rpm)
 
     # return bhp [kW]    
     def calc_bhp_with_ehp(self, velocity_ms, rpm, hull, engine, propeller, load_condition):

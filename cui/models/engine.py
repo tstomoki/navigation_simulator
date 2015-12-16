@@ -36,8 +36,14 @@ class Engine:
     def calc_sfoc(self, bhp):
         y_delta = self.get_delta_from_name()
         load    = self.calc_load(bhp)
+        load    = self.engine_derating(load, y_delta)
         ret_val = self.base_data['sfoc0'] + self.base_data['sfoc1'] * load + self.base_data['sfoc2'] * math.pow(load, 2)
-        return ret_val * self.change_sfoc_rate()
+        return ret_val
+
+    def engine_derating(self, load, y_delta):
+        bias = 0.0
+        delta_rate = (100.0 - y_delta*25.0 + bias) / 100.0
+        return load * delta_rate
 
     # return bhp / max_load  
     def calc_load(self, bhp):
@@ -48,12 +54,11 @@ class Engine:
         return float(rpm) / self.base_data['N_max']
 
     def calc_bhp(self, rpm):
-        x_delta = self.get_delta_from_name()
-        rpm     = max(0, rpm-x_delta)
-        rps     = rpm2rps(rpm)
-        max_rps = round(rpm2rps(self.base_data['N_max']), 4)
-        bhp     = self.base_data['bhp0'] + self.base_data['bhp1'] * (rps / max_rps) + self.base_data['bhp2'] * math.pow(rps / max_rps, 2)
-        return bhp
+        nearest_rpm      = find_nearest(self.modified_bhp_array['rpm'],rpm)
+        index            = np.where(self.modified_bhp_array['rpm']==nearest_rpm)
+        designated_array = self.modified_bhp_array[index]
+        modified_bhp     = designated_array['modified_bhp'][0]
+        return modified_bhp
 
     def generate_modified_bhp(self):
         output_dir_path         = "%s/engine/engine%s" % (COMBINATIONS_DIR_PATH, self.base_data['name'])
