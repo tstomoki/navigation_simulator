@@ -65,11 +65,10 @@ def validate_components():
     draw_hull_ct()
     draw_hull_features()
     
+    '''
     # engine
     draw_engine_sfoc()
     get_engine_optimal_range()
-    '''
-
     # 1 time navigation
     significant_modes = ['high', 'low', 'middle']
     oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
@@ -122,7 +121,7 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
     if target_mode == 'hull':
         component_lists = ['H1E1P514', 'H2E1P514']
     elif target_mode == 'engine':
-        component_lists = ['H1E1P1028', 'H1E2P1028', 'H1E3P1028']
+        component_lists = ['H1E1P514', 'H1E2P514', 'H1E3P514']
 
     np.random.seed(COMMON_SEED_NUM)
     agent.sinario, agent.world_scale, agent.flat_rate = generate_final_significant_modes(oilprice_mode, 
@@ -155,8 +154,8 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
             min_velocity_index = np.argmin(agent.log[load_condition]['velocity'])
             max_velocity_index = np.argmax(agent.log[load_condition]['velocity'])
             print "%10s" % (load_condition.upper())
-            print "\t%5s: %10.3lf ~ %10.3lf" % ("rpm".upper(), agent.log[load_condition]['rpm'][min_rpm_index], agent.log[load_condition]['rpm'][max_rpm_index])
-            print "\t%5s: %10.3lf ~ %10.3lf" % ("velocity".upper(), agent.log[load_condition]['velocity'][min_velocity_index], agent.log[load_condition]['velocity'][max_velocity_index])
+            print "\t%5s: %10.3lf ~ %10.3lf (%10s: %10.3lf [rpm])" % ("rpm".upper(), agent.log[load_condition]['rpm'][min_rpm_index], agent.log[load_condition]['rpm'][max_rpm_index], "average".upper(), np.average(agent.log[load_condition]['rpm']))
+            print "\t%5s: %10.3lf ~ %10.3lf (%10s: %10.3lf [knot])" % ("velocity".upper(), agent.log[load_condition]['velocity'][min_velocity_index], agent.log[load_condition]['velocity'][max_velocity_index], "average".upper(), np.average(agent.log[load_condition]['velocity']))
     return result
     
 
