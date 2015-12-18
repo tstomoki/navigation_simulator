@@ -288,7 +288,8 @@ class Sinario:
     def draw_significant_oilprice_modes(self, sinario_modes):
         draw_data = np.array([])
         title     = "oil price significant scenarios".title()
-        colors    = ['r', 'b', 'g','m', 'y', 'orange', 'aqua', 'brown']            
+        colors    = ['r', 'b', 'g','m', 'y', 'orange', 'aqua', 'brown']
+        sinario_modes = [ 'oilprice_' + s for s in ['high', 'low', 'middle', 'inc', 'dec']]
         graphInitializer(title,
                          self.default_xlabel,
                          self.default_ylabel)
@@ -312,14 +313,24 @@ class Sinario:
             elif sinario_mode == 'oilprice_inc':
                 # set modes
                 significant_oilprice    = [significant_low_oilprice, significant_high_oilprice]
+            elif sinario_mode == 'oilprice_middle':
+                # set modes
+                significant_oilprice    = sinario.history_data[-1]['price']
+                
             sinario.generate_significant_sinario(sinario_mode, significant_oilprice)
             draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['price']] for data in sinario.predicted_data]
             draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
+            if sinario_mode[9:] == 'middle':
+                label = 'stage'
+            else:
+                label = sinario_mode[9:]
             plt.plot(draw_data.transpose()[0],
                      draw_data.transpose()[1],
-                     color=colors[index], lw=5, markersize=0, marker='o')
+                     color=colors[index], lw=5, markersize=0, marker='o', label=label)
             xlim_date = draw_data.transpose()[0].min()
             plt.xlim([xlim_date, draw_data.transpose()[0].max()])
         output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.legend(shadow=True)
+        plt.legend(loc='center right')
         plt.savefig(output_file_path)            
         return

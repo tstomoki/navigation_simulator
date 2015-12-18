@@ -288,15 +288,23 @@ class WorldScale:
             elif sinario_mode == 'oilprice_inc':
                 # set modes
                 significant_world_scale = [significant_low_world_scale, significant_high_world_scale]
+            elif sinario_mode == 'oilprice_middle':
+                significant_world_scale = world_scale_history_data[-1]['ws']
             world_scale.generate_significant_sinario(sinario_mode, significant_world_scale)
             draw_data   = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data['ws']] for data in world_scale.predicted_data]
             draw_data   = np.array(sorted(draw_data, key= lambda x : x[0]))
+            if sinario_mode[9:] == 'middle':
+                label = 'stage'
+            else:
+                label = sinario_mode[9:]            
             plt.plot(draw_data.transpose()[0],
                      draw_data.transpose()[1],
-                     color=colors[index], lw=5, markersize=0, marker='o')
+                     color=colors[index], lw=5, markersize=0, marker='o', label=label)
             xlim_date = draw_data.transpose()[0].min()
             plt.xlim([xlim_date, draw_data.transpose()[0].max()])
         output_file_path = "%s/graphs/%s.png" % (RESULTSDIR, title)
+        plt.legend(shadow=True)
+        plt.legend(loc='center right')        
         plt.savefig(output_file_path)            
         return
     
