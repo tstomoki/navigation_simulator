@@ -39,7 +39,7 @@ def run(options):
 
     # load history data
     from_date                = '2004/01/01'
-    to_date                  = '2015/01/01'
+    to_date                  = '2016/01/01'
     oil_price_history_data   = load_monthly_history_data(from_date, to_date)
     world_scale_history_data = load_world_scale_history_data()
     flat_rate_history_data   = load_flat_rate_history_data()
