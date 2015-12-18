@@ -24,7 +24,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 12 if current_user == 'tsaito' else 3
+PROC_NUM = 8 if current_user == 'tsaito' else 3
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
@@ -233,9 +233,9 @@ SFOC_BASE_DEC = 9
 # RETROFIT DESIGNS
 
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H1E2P1285', 'dec': 'H1E3P257', 'inc': 'H2E1P514'},
-                     'rough': {'low': 'H2E1P514','high': 'H1E4P514', 'dec': 'H1E4P514', 'inc': 'H2E1P514'}}
+                     'rough': {'low': 'H1E1P514','high': 'H1E2P514', 'dec': 'H1E2P514', 'inc': 'H1E1P514', 'middle': 'H1E3P514'}}
 TARGET_DESIGNS = {'calm': ['low', 'high', 'dec'],
-                  'rough': ['low', 'dec']}
+                  'rough': ['middle']}
 '''
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H2E4P257', 'dec': 'H2E1P514', 'inc': 'H1E4P514'},
                      'rough': {'low': 'H2E2P1285','high': 'H2E4P257', 'dec': 'H2E2P1285', 'inc': 'H2E1P514'}}

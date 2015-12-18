@@ -72,6 +72,7 @@ def run(options):
         # initialize parameters
         simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = 100
+        simulation_times          = 200
         ## debug
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
         sinario_mode              = DERIVE_SINARIO_MODE['binomial']
@@ -116,7 +117,7 @@ def run(options):
                         # multi processing #
                         
     if final_mode:
-        significant_modes = ['high', 'low', 'dec', 'inc']
+        significant_modes = ['middle', 'high', 'low', 'dec', 'inc']
         oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
         # search initial_design
         for bf_mode in BF_MODE.keys():

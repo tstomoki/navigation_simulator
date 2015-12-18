@@ -35,7 +35,7 @@ from agent       import Agent
 
 def run(options):
     # validation
-    validate_components()
+    #validate_components()
     result_dir_path = options.result_dir_path
     json_file_path  = options.json_file_path
     if options.aggregate:
@@ -604,6 +604,8 @@ def aggregate_significant_output(result_dir_path):
                             fuel_cost_result[combination_key] = fuel_cost
                         if not round_result.has_key(combination_key):
                             round_result[combination_key] = round_num
+                if len(npv_result) == 0:
+                    continue
                 try:
                     maximum_key                      = max(npv_result.items(), key=itemgetter(1))[0]
                     maximum_val                      = npv_result[maximum_key]
@@ -617,9 +619,9 @@ def aggregate_significant_output(result_dir_path):
                                                         len(npv_result.keys()) / float(whole_design_nums),
                                                         [': '.join([v[0], str(v[1])]) for v in delta_array], minimum_val]
                     npv_list[bf_mode][target_dir]    = npv_result
-                    if target_dir == 'oilprice_high' or True:
-                        _design_key       = "H1E4P514"
-                        _design_key_again = "H2E4P514"
+                    if False:
+                        _design_key       = "H1E3P514"
+                        _design_key_again = "H2E3P514"
                         delta = abs(abs(npv_result[_design_key]) - npv_result[_design_key_again])
                         print "%s, %s, %s: %15.3e %3d" % (target_dir, bf_mode, _design_key, npv_result[_design_key], round_result[_design_key])
                         print "%s, %s, %s: %15.3e %3d" % (target_dir, bf_mode, _design_key_again, npv_result[_design_key_again], round_result[_design_key_again])
@@ -786,8 +788,7 @@ def draw_retrofit_result(result_dir_path):
                     transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
                     retrofit_date   = f_result['retrofit_date'][0]
                     if not retrofit_date == '--':
-                        if simulate_index == 98:
-                            draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
+                        draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
                         
                 else:
                     no_retrofit_npv = ("%17.3lf" % nr_result['NPV']) if len(nr_result) == 1 else '--------'
@@ -829,7 +830,6 @@ def draw_retrofit_result(result_dir_path):
             panda_frame = pd.DataFrame({'design_key': delta_dict.keys(),
                                         'delta': delta_dict.values()})
             panda_frame['delta'].hist(color="#5F9BFF", alpha=.5)
-            plt.xlim([-3000000, 3000000])
             plt.savefig(filepath)
             plt.clf()
             plt.close()        
