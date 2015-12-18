@@ -149,8 +149,13 @@ def draw_incident_rate():
     data_num = sum(bf_data.values())
         
     # draw incident rate
-    panda_frame = pd.DataFrame({'date': [datetime.datetime.strptime(_str, "%Y/%m") for _str in data.keys()],
-                                'wspd': data.values()})
+    start_date = datetime.datetime(1995, 1,1,0,0)
+    target_data = [ _v for _d, _v in data.items() if datetime.datetime.strptime(_d, "%Y/%m") > start_date]
+    '''
+    panda_frame = pd.DataFrame({'date': [datetime.datetime.strptime(_str, "%Y/%m") for _str in target_data.keys()],
+                                
+    '''
+    panda_frame = pd.DataFrame({'wspd': target_data})
     # hist
     filepath = "./wspd.png"
     plt.figure()
@@ -161,6 +166,7 @@ def draw_incident_rate():
     plt.savefig(filepath)
     plt.clf()
     plt.close()
+    sys.exit()
 
     '''
     bf_frame    = pd.DataFrame({'BF': bf_data.keys(),
@@ -179,6 +185,6 @@ def draw_incident_rate():
     return 
     
 if __name__ == '__main__':
+    draw_incident_rate()
     analyze()
     sys.exit()
-    draw_incident_rate()

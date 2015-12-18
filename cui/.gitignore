@@ -3,5 +3,5 @@ results/*
 results/combinations/*
 data/components_lists/results-paper-based/
 data/components_lists/results/
-
 dummy/
+./scripts/result*
