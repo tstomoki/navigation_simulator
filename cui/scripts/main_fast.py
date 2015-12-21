@@ -52,6 +52,13 @@ def run(options):
     flat_rate    = FlatRate(flat_rate_history_data)
     #flat_rate.draw_multiple_flat_rates()
 
+    # draw test market prices
+    #draw_market_prices(base_sinario, world_scale, flat_rate)
+    # generate significant motecalro sinario
+    sinario_seeds = get_significant_scenarios_seeds(base_sinario, world_scale, flat_rate)
+    sys.exit()
+    
+
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
@@ -71,8 +78,7 @@ def run(options):
 
         # initialize parameters
         simulation_duration_years = VESSEL_LIFE_TIME
-        simulation_times          = 100
-        simulation_times          = 200
+        simulation_times          = SIMULATE_COUNT
         ## debug
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
         sinario_mode              = DERIVE_SINARIO_MODE['binomial']

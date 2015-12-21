@@ -1564,3 +1564,34 @@ def draw_bow_effect_v(title, bf_mode, filepath):
     plt.legend(loc='upper left')            
     plt.savefig(filepath)
     return
+
+def draw_market_prices(sinario, world_scale, flat_rate):
+    # draw sinario and world_scale
+    sinario.draw_multiple_scenarios(world_scale)
+
+    # draw sinario and world_scale
+    flat_rate.draw_multiple_flat_rates()
+    return
+
+def get_significant_scenarios_seeds(sinario, world_scale, flat_rate):
+    scenario_seeds = dict.fromkeys(SIGNIFICANT_SENARIO_MODES_WITH_MONTE)
+    scenario_mode  = DERIVE_SINARIO_MODE['binomial']
+    simulation_duration_years = 15
+    tmp_result = {}
+    for current_simulate_num in range(SIMULATE_COUNT):
+        current_seed = COMMON_SEED_NUM + current_simulate_num
+        generate_market_scenarios(sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
+
+        # calc avg
+        latest_oilprice = sinario.history_data[-1]['price']
+        avg_oilprice    = np.average(sinario.predicted_data['price'])
+
+        tmp_result[current_seed] = avg_oilprice / latest_oilprice
+        print "Done %4d" % (current_simulate_num)
+
+    tmp_result_items = tmp_result.items()
+    seed_for_max = max(tmp_result_items, key=itemgetter(1))[0]
+    seed_for_min = min(tmp_result_items, key=itemgetter(1))[0]
+    set_trace()
+    
+    return

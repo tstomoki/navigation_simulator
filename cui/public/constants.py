@@ -257,3 +257,9 @@ PROPELLERS = {'0': 0, '257': 1, '514': 2, '771': 3, '1028': 4, '1285': 5}
 # FOR REALOPTION ANALYSIS
 UPFRONT_COST   = 100000
 PRACTICE_PRICE = 20000
+
+# derive sinario modes
+SIGNIFICANT_SENARIO_MODES_WITH_MONTE = ['high', 'low', 'stage']
+
+# simulate count
+SIMULATE_COUNT = 100

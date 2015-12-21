@@ -273,7 +273,7 @@ class Sinario:
             for index in range(10):
                 oilprice_array = sinario_log[index]
                 draw_data      = np.array([])
-                world_scale.generate_sinario_with_oil_corr(self.history_data[-1], oilprice_array)
+                world_scale.generate_sinario_with_oil_corr(sinario_mode, self.history_data[-1], oilprice_array)
                 draw_data = [ [datetime.datetime.strptime(data['date'], '%Y-%m-%d'), data['ws']] for data in world_scale.predicted_data]
                 draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))                
                 plt.plot(draw_data.transpose()[0],
