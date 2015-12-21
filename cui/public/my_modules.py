@@ -12,12 +12,16 @@ import random
 import csv
 import json
 import operator
+from operator import itemgetter
 import re
 from pylab import *
 import pandas as pd
 from scipy.interpolate import spline
 import operator
 import gc
+# for multi processing
+import multiprocessing as mp
+# for multi processing
 # import common modules #
 
 # import own modules #
@@ -1573,25 +1577,112 @@ def draw_market_prices(sinario, world_scale, flat_rate):
     flat_rate.draw_multiple_flat_rates()
     return
 
-def get_significant_scenarios_seeds(sinario, world_scale, flat_rate):
-    scenario_seeds = dict.fromkeys(SIGNIFICANT_SENARIO_MODES_WITH_MONTE)
-    scenario_mode  = DERIVE_SINARIO_MODE['binomial']
-    simulation_duration_years = 15
+def check_each_seed_for_significant_scenarios(index, sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years, devided_simulate_count):
     tmp_result = {}
-    for current_simulate_num in range(SIMULATE_COUNT):
-        current_seed = COMMON_SEED_NUM + current_simulate_num
+    for current_simulate_num in devided_simulate_count[index]:
+        current_seed = calc_seed(current_simulate_num)
+        np.random.seed(current_seed)
         generate_market_scenarios(sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
 
         # calc avg
         latest_oilprice = sinario.history_data[-1]['price']
         avg_oilprice    = np.average(sinario.predicted_data['price'])
+        last_oilprice   = sinario.predicted_data[-1]['price']
 
+        #tmp_result[current_seed] = last_oilprice / latest_oilprice
         tmp_result[current_seed] = avg_oilprice / latest_oilprice
-        print "Done %4d" % (current_simulate_num)
 
-    tmp_result_items = tmp_result.items()
-    seed_for_max = max(tmp_result_items, key=itemgetter(1))[0]
-    seed_for_min = min(tmp_result_items, key=itemgetter(1))[0]
-    set_trace()
-    
+        print "done %4d" % (current_simulate_num)
+
+    return tmp_result
+
+def flatten_callback_dict(callback_combinations):
+    ret_dict = {}
+    for callback_combination in callback_combinations:
+        for _k, _v in callback_combination.items():
+            ret_dict[_k] = _v
+
+    return ret_dict
+
+def get_significant_scenarios_seeds(sinario, world_scale, flat_rate):
+    scenario_seeds = dict.fromkeys(SIGNIFICANT_SENARIO_MODES_WITH_MONTE)
+    scenario_mode  = DERIVE_SINARIO_MODE['binomial']
+    simulation_duration_years = 15
+
+
+    # for multi prog
+    devided_simulation_times = np.array_split(range(SIMULATE_COUNT), PROC_NUM)
+    # multi processing #
+    # initialize
+    pool                  = mp.Pool(PROC_NUM)
+    callback              = [pool.apply_async(check_each_seed_for_significant_scenarios, args=(index, sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years, devided_simulation_times)) for index in xrange(PROC_NUM)]
+    callback_combinations = [p.get() for p in callback]
+    ret_dict              = flatten_callback_dict(callback_combinations)
+    pool.close()
+    pool.join()
+    # multi processing #
+
+    '''
+    # for single
+    devided_simulation_times = np.array_split(range(SIMULATE_COUNT), 1)
+    ret_dict = check_each_seed_for_significant_scenarios(0, sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years, devided_simulation_times)
+    '''
+
+    # aggregate_result
+    tmp_result_items = ret_dict.items()
+    seed_for_max     = max(tmp_result_items, key=itemgetter(1))[0]
+    seed_for_min     = min(tmp_result_items, key=itemgetter(1))[0]
+    seed_for_median  = min([(_k, abs(_v - 1.0)) for _k, _v in tmp_result_items], key=itemgetter(1))[0]
+
+    result_seeds  = {'high': seed_for_max,
+                     'low': seed_for_min,
+                     'stage': seed_for_median}
+    return result_seeds
+
+def draw_significant_scenario(sinario, world_scale, flat_rate, scenario_seeds):
+    scenario_mode             = DERIVE_SINARIO_MODE['binomial']
+    drawing_indexes           = ['sinario', 'world_scale', 'flat_rate']
+    simulation_duration_years = 15
+
+    init_each_index = {'sinario':     {'title': 'significant oilprice scenarios', 'x_label': 'Date', 'y_label': 'Oil Price [USD/barrel]', 'y_name': 'price'},
+                       'world_scale': {'title': 'significant world scale scenarios', 'x_label': 'Date', 'y_label': 'World Scale Flat [USD/ton]', 'y_name': 'ws'},
+                       'flat_rate':   {'title': 'significant flat rate scenarios', 'x_label': 'Date', 'y_label': 'World Scale Rate [%]', 'y_name': 'fr'}}
+
+    for drawing_index in drawing_indexes:
+        index_info = init_each_index[drawing_index]
+        title      = index_info['title'].upper()
+        x_label    = index_info['x_label']
+        y_label    = index_info['y_label']
+        graphInitializer(title, x_label, y_label)
+        colors = {'high': 'r', 'low': 'b', 'stage': 'g'}
+
+        # event
+        target_class = eval(drawing_index)
+
+        # draw history data
+        draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data[index_info['y_name']]] for data in target_class.history_data]
+        draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+        xmin_lim  = draw_data.transpose()[0].min()
+        plt.plot(draw_data.transpose()[0],
+                 draw_data.transpose()[1],
+                 color='#9370DB', lw=5, markersize=0, marker='o')
+        plt.axvline(x=datetime.datetime.strptime(target_class.history_data[-1]['date'], '%Y/%m/%d'), color='k', linewidth=4, linestyle='--')
+        for key, scenario_seed in scenario_seeds.items():
+            # predicted history data
+            np.random.seed(scenario_seed)
+            generate_market_scenarios(sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
+            draw_data = [ [datetime.datetime.strptime(data['date'], '%Y/%m/%d'), data[index_info['y_name']]] for data in target_class.predicted_data]
+            draw_data = np.array(sorted(draw_data, key= lambda x : x[0]))
+            plt.plot(draw_data.transpose()[0],
+                     draw_data.transpose()[1],
+                     lw=5, markersize=0, marker='o', color=colors[key], label=key)
+        plt.xlim([xmin_lim,
+                  draw_data.transpose()[0].max()])
+        output_file_path = "%s/graphs/significant_scenario_%s.png" % (RESULT_DIR_PATH, drawing_index)
+        plt.legend(shadow=True)
+        plt.legend(loc='upper left')            
+        plt.savefig(output_file_path)
     return
+
+def calc_seed(index):
+    return COMMON_SEED_NUM + index + index * 100

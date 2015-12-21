@@ -909,59 +909,6 @@ class Agent(object):
             combinations = append_for_np_array(combinations, [C_fuel, cash_flow, rpm_first, velocity_first])
         return combinations
     
-    def calc_initial_design_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, simulate_count, devided_component_ids, result_path):
-        column_names    = ['scenario_num',
-                           'hull_id',
-                           'engine_id',
-                           'propeller_id',
-                           'NPV']
-        dtype  = np.dtype({'names': ('scenario_num', 'hull_id', 'engine_id', 'propeller_id', 'NPV'),
-                           'formats': (np.int, np.int, np.int , np.int, np.float)})
-        design_array = np.array([], dtype=dtype)
-
-        result_data  = load_result(result_path)
-
-        start_time   = time.clock()
-        # conduct multiple simmulation for each design
-        for scenario_num in range(simulate_count):
-            # fix the random seed #
-            np.random.seed(scenario_num)
-            ## generate scenairo and world scale
-            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)        
-            # fix the random seed #
-            result_array = {}
-            for component_ids in devided_component_ids[index]:
-                hull, engine, propeller = get_component_from_id_array(component_ids, hull_list, engine_list, propeller_list)
-                # get existing result file
-                combination_str  = generate_combination_str(hull, engine, propeller)
-                if result_data.has_key(combination_str) and result_data[combination_str].has_key(scenario_num):
-                    NPV = result_data[combination_str][scenario_num]
-                else:
-                    # conduct simulation #
-                    agent = Agent(self.sinario, self.world_scale, self.flat_rate, self.retrofit_mode, self.sinario_mode, self.bf_mode, hull, engine, propeller)
-                    agent.operation_date_array = generate_operation_date(self.sinario.predicted_data['date'][0], str_to_date(self.sinario.predicted_data['date'][-1]))
-                    NPV   = agent.simmulate()
-                    # conduct simulation #
-                # ignore aborted simmulation
-                if NPV is None:
-                    continue
-                # write simmulation result
-                output_file_path = "%s/%s_core%d.csv" % (result_path, 'initial_design', index)
-                lap_time         = convert_second(time.clock() - start_time)
-                write_csv(column_names, [scenario_num,
-                                         hull.base_data['id'],
-                                         engine.base_data['id'],
-                                         propeller.base_data['id'],
-                                         NPV, lap_time], output_file_path)
-                add_design   = np.array([(scenario_num,
-                                          hull.base_data['id'],
-                                          engine.base_data['id'],
-                                          propeller.base_data['id'],
-                                          NPV)],
-                                        dtype=dtype)
-                design_array = append_for_np_array(design_array, add_design)                    
-        return design_array        
-
     def calc_significant_design_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_component_ids, result_path):
         column_names    = ['hull_id',
                            'engine_id',

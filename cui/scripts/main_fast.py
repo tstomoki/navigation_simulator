@@ -54,11 +54,16 @@ def run(options):
 
     # draw test market prices
     #draw_market_prices(base_sinario, world_scale, flat_rate)
-    # generate significant motecalro sinario
-    sinario_seeds = get_significant_scenarios_seeds(base_sinario, world_scale, flat_rate)
-    sys.exit()
-    
 
+    # generate significant motecalro sinario
+    ## {'high': 19917289, 'low': 19962436, 'stage': 19935671}
+    scenario_seeds = {'high': 19917289, 'low': 19962436, 'stage': 19935671}
+    if scenario_seeds is None:
+        scenario_seeds = get_significant_scenarios_seeds(base_sinario, world_scale, flat_rate)
+    draw_significant_scenario(base_sinario, world_scale, flat_rate, scenario_seeds)
+    print 'scenario_seeds:'
+    print scenario_seeds
+    
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
     initializeDirHierarchy(output_dir_path)
@@ -71,17 +76,18 @@ def run(options):
 
     # bow test
     #bow_test()
-    
+
+    simulation_duration_years = VESSEL_LIFE_TIME
+    scenario_mode = DERIVE_SINARIO_MODE['binomial']
+
     if final_mode == '2':
         # init retrofit designs
         retrofit_designs          = RETROFIT_DESIGNS
 
         # initialize parameters
-        simulation_duration_years = VESSEL_LIFE_TIME
         simulation_times          = SIMULATE_COUNT
         ## debug
         devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
-        sinario_mode              = DERIVE_SINARIO_MODE['binomial']
         retrofit_mode             = RETROFIT_MODE['significant_rule']
 
         # create variables
@@ -123,27 +129,25 @@ def run(options):
                         # multi processing #
                         
     if final_mode:
-        significant_modes = ['middle', 'high', 'low', 'dec', 'inc']
-        oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
+        significant_modes = ['middle', 'low', 'high']
         # search initial_design
         for bf_mode in BF_MODE.keys():
-            for oilprice_mode in oilprice_modes:
-                # generate sinario
-                sinario, world_scale, flat_rate = generate_final_significant_modes(oilprice_mode, 
-                                                                                   oil_price_history_data, 
-                                                                                   world_scale_history_data, 
-                                                                                   flat_rate_history_data)
+            for oilprice_mode in significant_modes:
+                # init seeds and scenario
+                fixed_seed    = scenario_seeds[oilprice_mode] if oilprice_mode != 'middle' else scenario_seeds['stage']
+                np.random.seed(fixed_seed)
+                generate_market_scenarios(base_sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
+
+                oilprice_mode = "oilprice_%s" % (oilprice_mode)
                 # visualize for debug
-                #sinario.draw_significant_oilprice_modes(oilprice_modes)
-                #world_scale.draw_significant_oilprice_modes(oilprice_modes, sinario)
         
                 # initialize
                 retrofit_mode = RETROFIT_MODE['none']
-                agent         = Agent(sinario,
+                agent         = Agent(base_sinario,
                                       world_scale,
                                       flat_rate,
                                       retrofit_mode,
-                                      'significant',
+                                      scenario_mode,
                                       BF_MODE[bf_mode])
 
                 output_path = "%s/%s/%s" % (output_dir_path, bf_mode, oilprice_mode)
@@ -155,8 +159,7 @@ def run(options):
                         for propeller_info in propeller_list:
                             devided_component_ids.append([hull_info['id'], engine_info['id'], propeller_info['id']])
                 devided_component_ids = np.array_split(devided_component_ids, PROC_NUM)
-                            
-                simulation_duration_years = VESSEL_LIFE_TIME
+
                 '''
                 simulation_duration_years = 1
                 devided_component_ids[0] = np.array([[1, 1, 0], [1, 2, 0]], dtype=np.int16)

@@ -1,4 +1,4 @@
 *.pyc
 *~
 *.log
-result.*
+cui/scripts/*.txt
