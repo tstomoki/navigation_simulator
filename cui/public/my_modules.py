@@ -1686,3 +1686,9 @@ def draw_significant_scenario(sinario, world_scale, flat_rate, scenario_seeds):
 
 def calc_seed(index):
     return COMMON_SEED_NUM + index + index * 100
+
+def load_bf_prob_with_param(alpha, beta):
+    whole_reslut_path = "%s/result.json" % BEAUFORT_RESULT_PATH
+    beaufort_data     = load_json_file(whole_reslut_path)
+    bf_key            = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
+    return { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}

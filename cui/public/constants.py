@@ -24,7 +24,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 8 if current_user == 'tsaito' else 3
+PROC_NUM = 4 if current_user == 'tsaito' else 3
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
@@ -233,7 +233,9 @@ SFOC_BASE_DEC = 9
 # RETROFIT DESIGNS
 
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H1E2P1285', 'dec': 'H1E3P257', 'inc': 'H2E1P514'},
-                     'rough': {'low': 'H1E1P514','high': 'H1E2P514', 'dec': 'H1E2P514', 'inc': 'H1E1P514', 'middle': 'H1E3P514'}}
+                     'rough': {'low': 'H1E1P0','high': 'H1E2P514', 'middle': 'H1E1P514'}}
+RETROFIT_DESIGNS_FOR_ROUTE_CHANGE = {'rough': {'low': 'H2E3P514','high': 'H2E2P1285', 'middle': 'H2E3P1285'}}
+
 TARGET_DESIGNS = {'calm': ['low', 'high', 'dec'],
                   'rough': ['middle']}
 '''
@@ -263,3 +265,6 @@ SIGNIFICANT_SENARIO_MODES_WITH_MONTE = ['high', 'low', 'stage']
 
 # simulate count
 SIMULATE_COUNT = 1000
+
+# for actual 
+CHANGE_ROUTE_PERIODS = range(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)[1:]
