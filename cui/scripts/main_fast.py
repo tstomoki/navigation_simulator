@@ -78,7 +78,7 @@ def run(options):
     # bow test
     #bow_test()
 
-    simulation_duration_years = VESSEL_LIFE_TIME
+    simulation_duration_years = 15
     scenario_mode = DERIVE_SINARIO_MODE['binomial']
 
     if final_mode == '2':
@@ -127,6 +127,11 @@ def run(options):
                                 agent.change_route_period = change_route_period
                                 agent.output_dir_path     = "%s/%s/period_%d/%s_design" % (output_dir_path, dir_name, change_route_period, case_mode)
                                 initializeDirHierarchy(agent.output_dir_path)
+
+                            '''
+                            agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
+                            sys.exit()
+                            '''
                             # multi processing #
                             # initialize
                             pool                  = mp.Pool(PROC_NUM)

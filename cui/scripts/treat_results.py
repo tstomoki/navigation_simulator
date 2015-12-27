@@ -36,8 +36,9 @@ from agent       import Agent
 def run(options):
     # validation
     #validate_components()
-    result_dir_path = options.result_dir_path
-    json_file_path  = options.json_file_path
+    result_dir_path       = options.result_dir_path
+    json_file_path        = options.json_file_path
+    count_simulation_mode = options.count_simulation_mode
     if options.aggregate:
         aggregate_output(result_dir_path)
     if options.significant:
@@ -49,6 +50,8 @@ def run(options):
         draw_retrofit_result(result_dir_path)
     if options.sensitivity:
         draw_sensitivity_result(result_dir_path, json_file_path)
+    if count_simulation_mode:
+        count_simulation(result_dir_path)
     sys.exit()        
 
     draw_hull_features()
@@ -57,6 +60,30 @@ def run(options):
     #aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
+    return
+
+def count_simulation(result_dir_path):
+    dt   = np.dtype({'names': ('scenario_num','hull_id','engine_id','propeller_id','NPV','fuel_cost','base_design','retrofit_design','retrofit_date','change_route_date'),
+                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S15', 'S15', 'S15', 'S15')})
+    target_dirs      = os.listdir(result_dir_path)
+    target_dirs      = sorted(target_dirs, key= lambda x: int(re.compile(r'period_(.+)').search(x).groups()[0]))
+    
+    for target_dir in target_dirs:
+        target_dir_path = "%s/%s/middle_design/flexible" % (result_dir_path, target_dir)
+        files           = os.listdir(target_dir_path)
+        target_files    = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+        result_dict = {}
+        count_result = 0
+        for target_file in target_files:
+            target_file_path = "%s/%s" % (target_dir_path, target_file)
+            data = np.genfromtxt(target_file_path,
+                                 delimiter=',',
+                                 dtype=dt,
+                                 skiprows=1)
+            if data.ndim == 0:
+                data = np.atleast_1d(data)
+            count_result += len(data)
+        print "%10s: %5d (%3.2lf%%)" % (target_dir, count_result, count_result / float(SIMULATE_COUNT))
     return
 
 def validate_components():
@@ -1175,5 +1202,7 @@ if __name__ == '__main__':
                       help="sensitivitiy analysis with multiple result", default=False)        
     parser.add_option("-J", "--json-file-path", dest="json_file_path",
                       help="json file path", default=None)    
+    parser.add_option("-C", "--count-simulation", dest="count_simulation_mode",
+                      help="count simulation count", default=None)    
     (options, args) = parser.parse_args()
     run(options)    
