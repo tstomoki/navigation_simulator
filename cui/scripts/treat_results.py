@@ -35,8 +35,7 @@ from agent       import Agent
 
 def run(options):
     # validation
-    validate_components()
-    sys.exit()
+    #validate_components()
     result_dir_path = options.result_dir_path
     json_file_path  = options.json_file_path
     if options.aggregate:

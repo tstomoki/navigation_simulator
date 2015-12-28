@@ -61,7 +61,8 @@ class Agent(object):
         # for velocity and rps array #
 
         # beaufort mode
-        self.bf_prob = self.load_bf_prob()
+        self.bf_prob          = self.load_bf_prob()
+        self.change_sea_flag  = None
 
         if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
@@ -206,6 +207,10 @@ class Agent(object):
         self.ballast_trip_days  = 0
         self.return_trip_days   = 0
 
+        # acutal sea fluctuation
+        self.change_sea_count  = 1
+        self.route_change_date = None
+
         # deteriorate
         self.d2d_det = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
         self.age_eff = {'v_knot': 0, 'rpm': 0, 'ehp': 0}
@@ -339,6 +344,8 @@ class Agent(object):
                             # consider dock-to-dock deterioration
                             self.update_d2d()
                     elif self.retrofit_mode == RETROFIT_MODE['significant_rule']:
+                        # change route based on prob
+                        self.change_route()
                         retrofit_flag, mode = self.check_significant_rule_retrofit()
                         if retrofit_flag:
                             retorfit_design = self.retrofit_design_keys[mode]
@@ -1070,7 +1077,8 @@ class Agent(object):
                             'fuel_cost',
                             'base_design',
                             'retrofit_design',
-                            'retrofit_date']
+                            'retrofit_date',
+                            'change_route_date']
         dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
                            'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
         design_array     = np.array([], dtype=dtype)        
@@ -1083,7 +1091,7 @@ class Agent(object):
 
             # for no retrofit design
             start_time                 = time.clock()
-            np.random.seed(COMMON_SEED_NUM * simulation_time)
+            np.random.seed(calc_seed(simulation_time))
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
@@ -1102,11 +1110,11 @@ class Agent(object):
                                      self.hull.base_data['id'],
                                      self.engine.base_data['id'],
                                      self.propeller.base_data['id'],
-                                     NPV, fuel_cost, self.base_design, '--', '--', lap_time], output_file_path)            
+                                     NPV, fuel_cost, self.base_design, '--', '--', self.route_change_date, lap_time], output_file_path)            
             
             # for flexible design
             start_time                 = time.clock()
-            np.random.seed(COMMON_SEED_NUM * simulation_time)
+            np.random.seed(calc_seed(simulation_time))
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             self.retrofit_mode         = retrofit_mode
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
@@ -1125,7 +1133,7 @@ class Agent(object):
                                      self.hull.base_data['id'],
                                      self.engine.base_data['id'],
                                      self.propeller.base_data['id'],
-                                     NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), lap_time], output_file_path)            
+                                     NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
         return 
     
     ## multi processing method ##
@@ -1360,6 +1368,11 @@ class Agent(object):
         if not self.retrofittable():
             return retrofit_flag, mode
 
+        # Block for route change
+        ## retrofit occured after route changes
+        if not self.retrofittable_after_route_change():
+            return retrofit_flag, mode        
+
         # get analysis oil data (origin_date -> current_date)
         origin_oilprice      = self.sinario.predicted_data[0]['price']
         current_index        = search_near_index(self.current_date, self.sinario.predicted_data['date'])
@@ -1381,10 +1394,10 @@ class Agent(object):
         # change flag
         ## High
         if trend > self.rules['trend']:
-            mode = 'inc'
+            mode = 'high'
             retrofit_flag = True
         elif trend < self.rules['trend'] * (-1):
-            mode = 'dec'
+            mode = 'low'
             retrofit_flag = True
         else:
             if (avg_oilprice > origin_oilprice * (1 + self.rules['delta'])):
@@ -1393,6 +1406,11 @@ class Agent(object):
             elif avg_oilprice < origin_oilprice * (1 - self.rules['delta']):
                 mode          = 'low'
                 retrofit_flag = True
+
+
+        # avoid comparison with another route designs
+        if self.change_sea_flag:
+            return True, mode
 
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
@@ -1451,26 +1469,19 @@ class Agent(object):
         return
 
     # beaufort mode
-    def load_bf_prob(self):
+    def load_bf_prob(self, next_route_flg=False):
         bf_prob = None
-        whole_reslut_path = "%s/result.json" % BEAUFORT_RESULT_PATH
-        beaufort_data     = load_json_file(whole_reslut_path)
-
         if self.bf_mode == BF_MODE['rough']:
-            alpha = 5.5
-            beta  = 4.5
-
-            '''
-            alpha = 9.5
-            beta  = 0.5
-            '''
-
-            bf_key = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
-            bf_prob = { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}                    
+            if next_route_flg:
+                alpha = 5.5
+                beta  = 4.5
+            else:
+                alpha = 7.0
+                beta  = 3.0
         elif self.bf_mode == BF_MODE['calm']:
             pass
 
-        return bf_prob
+        return load_bf_prob_with_param(alpha, beta)
 
     # consider beaufort for velocity
     def modify_by_external(self, v_knot):
@@ -1659,3 +1670,39 @@ class Agent(object):
 
     def retrofit_design_human(self):
         return self.retrofit_design if self.retrofit_date is not None else '--'
+
+    # change route based on prob
+    def change_route(self):
+        if not self.can_change_route():
+            return
+        
+        if self.should_route_change():
+            self.load_bf_prob(True)
+            self.change_sea_count     = 0
+            self.route_change_date    = self.current_date
+            self.retrofit_design_keys = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
+
+        return
+
+    def should_route_change(self):
+        # time elapsed
+        return self.current_date > add_year(self.origin_date, self.change_route_period)
+                    
+
+    def can_change_route(self):
+        return self.change_sea_count > 0
+
+    def after_route_change(self):
+        return (self.change_sea_count == 0) and (self.change_sea_flag)
+
+    def retrofittable_after_route_change(self):
+        # Block
+        if not self.change_sea_flag:
+            return True
+
+        if self.after_route_change():
+            return True
+        return False
+            
+        
+        
