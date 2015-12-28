@@ -335,6 +335,8 @@ class Agent(object):
                     self.initiate_dockin()
                     # consider age effect
                     self.update_age_effect()
+                    # change route based on prob
+                    self.change_route()
                     if self.retrofit_mode == RETROFIT_MODE['significant']:
                         if self.check_significant_retrofit():
                             self.conduct_retrofit()
@@ -344,8 +346,6 @@ class Agent(object):
                             # consider dock-to-dock deterioration
                             self.update_d2d()
                     elif self.retrofit_mode == RETROFIT_MODE['significant_rule']:
-                        # change route based on prob
-                        self.change_route()
                         retrofit_flag, mode = self.check_significant_rule_retrofit()
                         if retrofit_flag:
                             retorfit_design = self.retrofit_design_keys[mode]
