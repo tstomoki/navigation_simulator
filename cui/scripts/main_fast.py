@@ -87,9 +87,10 @@ def run(options):
 
         # initialize parameters
         simulation_times          = SIMULATE_COUNT
-        ## debug
-        devided_simulation_times  = np.array_split(range(simulation_times), PROC_NUM)
-        retrofit_mode             = RETROFIT_MODE['significant_rule']
+
+        conducted_simulation_count = 0
+        devided_simulation_times   = np.array_split(range(simulation_times)[conducted_simulation_count:], PROC_NUM)
+        retrofit_mode              = RETROFIT_MODE['significant_rule']
 
         # create variables
         ## 10 cases
@@ -103,6 +104,7 @@ def run(options):
         trends = [0.05]
         deltas = [0.30]
 
+        #change_route_periods = range(4, 15,2)[1:] if change_route_mode else [None]
         change_route_periods = CHANGE_ROUTE_PERIODS if change_route_mode else [None]
         for change_route_period in change_route_periods:
             for trend in trends:
@@ -128,10 +130,6 @@ def run(options):
                                 agent.output_dir_path     = "%s/%s/period_%d/%s_design" % (output_dir_path, dir_name, change_route_period, case_mode)
                                 initializeDirHierarchy(agent.output_dir_path)
 
-                            '''
-                            agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
-                            sys.exit()
-                            '''
                             # multi processing #
                             # initialize
                             pool                  = mp.Pool(PROC_NUM)

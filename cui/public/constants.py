@@ -24,7 +24,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 11 if current_user == 'tsaito' else 3
+PROC_NUM = 7 if current_user == 'tsaito' else 3
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
@@ -264,7 +264,7 @@ PRACTICE_PRICE = 20000
 SIGNIFICANT_SENARIO_MODES_WITH_MONTE = ['high', 'low', 'stage']
 
 # simulate count
-SIMULATE_COUNT = 1000
+SIMULATE_COUNT = 100
 
 # for actual 
 CHANGE_ROUTE_PERIODS = range(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)[1:]

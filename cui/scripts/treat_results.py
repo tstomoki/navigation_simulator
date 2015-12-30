@@ -67,13 +67,21 @@ def count_simulation(result_dir_path):
                      'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S15', 'S15', 'S15', 'S15')})
     target_dirs      = os.listdir(result_dir_path)
     target_dirs      = sorted(target_dirs, key= lambda x: int(re.compile(r'period_(.+)').search(x).groups()[0]))
-    
+
+    whole_simulate_count = SIMULATE_COUNT * len(CHANGE_ROUTE_PERIODS)
+    print "%30s: %4d" % ('whole simulation count'.upper(), whole_simulate_count)
+    print "%30s: %4d" % ('each simulation count'.upper(), SIMULATE_COUNT)
+    whole_simulate_num = 0
     for target_dir in target_dirs:
+        count_result = 0
         target_dir_path = "%s/%s/middle_design/flexible" % (result_dir_path, target_dir)
+        # target_dir_path = "%s/%s/middle_design/no_retrofit" % (result_dir_path, target_dir)
+        if not os.path.exists(target_dir_path):
+            print "%10s: %5d (%3.2lf%%)" % (target_dir, count_result, count_result / float(whole_simulate_count) * 100)
+            continue
         files           = os.listdir(target_dir_path)
         target_files    = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
         result_dict = {}
-        count_result = 0
         for target_file in target_files:
             target_file_path = "%s/%s" % (target_dir_path, target_file)
             data = np.genfromtxt(target_file_path,
@@ -83,7 +91,9 @@ def count_simulation(result_dir_path):
             if data.ndim == 0:
                 data = np.atleast_1d(data)
             count_result += len(data)
-        print "%10s: %5d (%3.2lf%%)" % (target_dir, count_result, count_result / float(SIMULATE_COUNT))
+        print "%10s: %5d (%3.2lf%%)" % (target_dir, count_result, count_result / float(SIMULATE_COUNT) * 100)
+        whole_simulate_num += count_result
+    print "%20s: %3.2lf%%" % ('progress'.upper(), whole_simulate_num / float(whole_simulate_count) * 100)
     return
 
 def validate_components():

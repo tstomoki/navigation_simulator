@@ -1407,10 +1407,9 @@ class Agent(object):
                 mode          = 'low'
                 retrofit_flag = True
 
-
         # avoid comparison with another route designs
         if self.change_sea_flag:
-            return True, mode
+            return retrofit_flag, mode
 
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
@@ -1473,11 +1472,11 @@ class Agent(object):
         bf_prob = None
         if self.bf_mode == BF_MODE['rough']:
             if next_route_flg:
-                alpha = 5.5
-                beta  = 4.5
-            else:
                 alpha = 7.0
                 beta  = 3.0
+            else:
+                alpha = 5.5
+                beta  = 4.5
         elif self.bf_mode == BF_MODE['calm']:
             pass
 
@@ -1677,7 +1676,8 @@ class Agent(object):
             return
         
         if self.should_route_change():
-            self.load_bf_prob(True)
+            # beaufort mode
+            self.bf_prob              = self.load_bf_prob(True)
             self.change_sea_count     = 0
             self.route_change_date    = self.current_date
             self.retrofit_design_keys = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
