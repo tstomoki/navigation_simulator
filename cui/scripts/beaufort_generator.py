@@ -25,13 +25,16 @@ sys.exit()
 
 def run():
     args = {'Calm': 4, 'Rough': 7}
+    args = {'Benchmark': 7}
     designated_kinds(args)
+    sys.exit()
     all_kinds()
 
 def designated_kinds(args):
     output_dir_path = "../results/beauforts"
     initializeDirHierarchy(output_dir_path)
-    output_file_path = "%s/alpha_%d_%d.png" % (output_dir_path, args['Calm'], args['Rough'])
+    #output_file_path = "%s/alpha_%d_%d.png" % (output_dir_path, args['Calm'], args['Rough'])
+    output_file_path = "%s/alpha_7.0_3.0.png" % (output_dir_path)
     title  = "incidence rate of Beaufort at designated points".title()
     x_label   = "beaufort scale".upper()
     y_label   = "probability".upper()
@@ -41,6 +44,7 @@ def designated_kinds(args):
     
     result = {}
     color = 'r'
+    color = '#DFB2BD'
     for label, alpha in args.items():
         beta           = 10 - alpha
         x              = [ 0.01*i for i in range(100)]
@@ -55,8 +59,10 @@ def designated_kinds(args):
     xticks = ["BF%d" % (_x) for _x in x_data ]    
     matplotlib.pyplot.xticks(x_data+0.5, xticks)
     matplotlib.pyplot.ylim(0, 0.20)
+    '''
     plt.legend(shadow=True)
     plt.legend(loc='upper right')    
+    '''
     matplotlib.pyplot.savefig(output_file_path)
     matplotlib.pyplot.clf()    
     
