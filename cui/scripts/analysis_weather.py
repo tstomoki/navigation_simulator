@@ -138,6 +138,15 @@ def analyze():
     time = fh.variables['time'][:]
     wspd = fh.variables['wspd'][:]
 
+    # second target area
+    m = init_basemap()
+    target_areas     = [[(60.4583, 26.2895), (50.2629, -34.1206)],
+                       [(50.2629, -34.1206), (-56.6120, -50.1591)]]
+    area_name        = 'arabia_us'
+    result_dict      = analyze_target_areas(target_areas, area_name, lat, lon, time, wspd, m)
+    output_json_path = "../results/weather_analysis_data_in_%s.json" % (area_name)
+    write_file_as_json(result_dict, output_json_path)
+    
     # third target area
     m = init_basemap()
     target_areas = [[(60.4583, 26.2895), (50.2629, -34.1206)],
@@ -158,15 +167,6 @@ def analyze():
                     [(71.225, 30.801), (48.134, 16.063)]]
 
     area_name        = 'japan_arabia'
-    result_dict      = analyze_target_areas(target_areas, area_name, lat, lon, time, wspd, m)
-    output_json_path = "../results/weather_analysis_data_in_%s.json" % (area_name)
-    write_file_as_json(result_dict, output_json_path)
-
-    # second target area
-    m = init_basemap()
-    target_areas = [[(60.4583, 26.2895), (50.2629, -34.1206)],
-                    [(50.2629, -34.1206), (-56.6120, -38.1591)]]
-    area_name        = 'arabia_us'
     result_dict      = analyze_target_areas(target_areas, area_name, lat, lon, time, wspd, m)
     output_json_path = "../results/weather_analysis_data_in_%s.json" % (area_name)
     write_file_as_json(result_dict, output_json_path)
@@ -198,8 +198,8 @@ def draw_incident_rate(json_file_path):
     plt.figure()
     graphInitializer('wind speed'.upper(), 'wind speed'.upper() + ' [m/s]', 'probability'.upper())
     panda_frame['wspd'].hist(color="#5F9BFF", alpha=.5)
-    plt.xlim(3.5, 10.0)
-    plt.ylim(0.0, 80.0)
+    plt.xlim(7.0, 11.0)
+    plt.ylim(0.0, 60.0)
     plt.legend(shadow=True)
     plt.legend(loc='upper right')        
     plt.savefig(filepath)

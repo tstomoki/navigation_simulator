@@ -1473,11 +1473,11 @@ class Agent(object):
         bf_prob = None
         if self.bf_mode == BF_MODE['rough']:
             if next_route_flg:
-                alpha = 5.5
-                beta  = 4.5
-            else:
                 alpha = 7.0
                 beta  = 3.0
+            else:
+                alpha = 5.5
+                beta  = 4.5                
         elif self.bf_mode == BF_MODE['calm']:
             pass
 
