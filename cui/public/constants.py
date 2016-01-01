@@ -47,8 +47,8 @@ RETROFIT_MODE = {'none': 0,
                  'propeller_and_engine': 2,
                  'whole': 3,
                  'significant': 4,
-                 'significant_rule': 5}
-
+                 'significant_rule': 5,
+                 'route_change': 6}
 
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}

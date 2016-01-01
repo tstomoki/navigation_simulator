@@ -39,6 +39,7 @@ def run(options):
     result_dir_path       = options.result_dir_path
     json_file_path        = options.json_file_path
     count_simulation_mode = options.count_simulation_mode
+    route_change_mode     = options.route_change_mode
     if options.aggregate:
         aggregate_output(result_dir_path)
     if options.significant:
@@ -52,6 +53,9 @@ def run(options):
         draw_sensitivity_result(result_dir_path, json_file_path)
     if count_simulation_mode:
         count_simulation(result_dir_path)
+    if route_change_mode:
+        aggregate_route_change_output(result_dir_path)
+    
     sys.exit()        
 
     draw_hull_features()
@@ -60,6 +64,45 @@ def run(options):
     #aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
+    return
+
+def aggregate_route_change_output(result_dir_path):
+    dt   = np.dtype({'names': ('hull_id','engine_id','propeller_id','NPV','fuel_cost','base_design','retrofit_design','retrofit_date','change_route_date'),
+                     'formats': (np.int64, np.int64, np.int64, np.float, np.float, 'S15', 'S15', 'S15', 'S15')})
+    target_dirs      = os.listdir(result_dir_path)
+    target_dirs      = sorted(target_dirs, key= lambda x: int(re.compile(r'period_(.+)').search(x).groups()[0]))
+    modes            = ['no_retrofit', 'flexible']
+    npv_result       = dict.fromkeys(modes, 0)
+    for target_dir in target_dirs:
+        print "%20s:" % (target_dir.upper())
+        print "\t%20s: %5s %20s %15s %10s" % ('mode'.upper(), 'npv'.upper(), 'npv'.upper(), 'retrofit_date'.upper(), 'change_route_date'.upper())
+        for target_key in modes:
+            target_dir_path = "%s/%s/%s" % (result_dir_path, target_dir, target_key)
+            if not os.path.exists(target_dir_path):
+                print "\t%20s: -----" % (target_key)
+                continue
+            files = os.listdir(target_dir_path)
+            target_files    = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+            if len(target_files) == 0:
+                print "\t%20s: -----" % (target_key)
+                continue
+                
+            for target_file in target_files:
+                target_file_path = "%s/%s" % (target_dir_path, target_file)
+                data = np.genfromtxt(target_file_path,
+                                     delimiter=',',
+                                     dtype=dt,
+                                     skiprows=1)
+                if data.ndim == 0:
+                    data = np.atleast_1d(data)
+            if not len(data) < 2:
+                print 'data too much'
+                raise
+            print "\t%20s: %10.3lf %15.3e %10s %10s" % (target_key, data[0]['NPV'], data[0]['NPV'], data[0]['retrofit_date'], data[0]['change_route_date'])
+            npv_result[target_key] = data[0]['NPV']
+            data = None
+        delta = npv_result['flexible'] - npv_result['no_retrofit']
+        print "\t%20s: %10.3lf %15.3e" % ('delta'.upper(), delta, delta)
     return
 
 def count_simulation(result_dir_path):
@@ -1214,5 +1257,7 @@ if __name__ == '__main__':
                       help="json file path", default=None)    
     parser.add_option("-C", "--count-simulation", dest="count_simulation_mode",
                       help="count simulation count", default=None)    
+    parser.add_option("-R", "--route-change", dest="route_change_mode",
+                      help="route change mode", default=False)    
     (options, args) = parser.parse_args()
     run(options)    

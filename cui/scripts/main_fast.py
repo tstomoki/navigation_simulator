@@ -78,10 +78,49 @@ def run(options):
     # bow test
     #bow_test()
 
-    simulation_duration_years = 15
+    simulation_duration_years = VESSEL_LIFE_TIME
     scenario_mode = DERIVE_SINARIO_MODE['binomial']
 
-    if final_mode == '2':
+    if final_mode == 'route_fluc':
+        # init market fluc as middle(stage)
+        fixed_seed    = scenario_seeds['stage']
+        np.random.seed(fixed_seed)
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
+        
+        # init parameters
+        oilprice_mode        = "oilprice_middle"
+        change_route_periods = CHANGE_ROUTE_PERIODS
+        bf_mode              = 'rough'
+        case_mode            = 'middle'
+        designs              = RETROFIT_DESIGNS[bf_mode]
+        base_design_key      = designs[case_mode]
+        retrofit_design_key  = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE[bf_mode][case_mode]
+        retrofit_mode        = RETROFIT_MODE['route_change']
+        devided_periods      = np.array_split(change_route_periods, PROC_NUM)
+        agent                = Agent(base_sinario,
+                                     world_scale,
+                                     flat_rate,
+                                     retrofit_mode,
+                                     scenario_mode, BF_MODE[bf_mode])
+        agent.change_sea_flag = True
+        agent.output_dir_path = output_dir_path
+        
+        '''
+        agent.calc_flexible_design_m_route_change(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_periods, base_design_key, retrofit_design_key, retrofit_mode)
+        sys.exit()
+        '''
+
+        # multi processing #
+        # initialize
+        pool                  = mp.Pool(PROC_NUM)
+        callback              = [pool.apply_async(agent.calc_flexible_design_m_route_change, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_periods, base_design_key, retrofit_design_key, retrofit_mode)) for index in xrange(PROC_NUM)]
+
+        pool.close()
+        pool.join()
+        # multi processing #
+        
+
+    elif final_mode == '2':
         # init retrofit designs
         retrofit_designs          = RETROFIT_DESIGNS
 
@@ -211,7 +250,7 @@ if __name__ == '__main__':
     parser.add_option("-F", "--final-mode", dest="final_mode",
                       help="conduct final case studies if True", default=False)    
     parser.add_option("-R", "--change-route-mode", dest="change_route",
-                      help="including change route mode if True", default=False)    
+                      help="including change route mode if True", default=False)
     (options, args) = parser.parse_args()
     start = time.time()
     run(options)
