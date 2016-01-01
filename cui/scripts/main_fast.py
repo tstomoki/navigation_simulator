@@ -130,6 +130,11 @@ def run(options):
                                 agent.output_dir_path     = "%s/%s/period_%d/%s_design" % (output_dir_path, dir_name, change_route_period, case_mode)
                                 initializeDirHierarchy(agent.output_dir_path)
 
+                            '''
+                            agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
+                            sys.exit()
+                            '''
+
                             # multi processing #
                             # initialize
                             pool                  = mp.Pool(PROC_NUM)

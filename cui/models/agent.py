@@ -1685,6 +1685,9 @@ class Agent(object):
         return
 
     def should_route_change(self):
+        if not hasattr(self, 'change_route_period'):
+            return False
+
         # time elapsed
         return self.current_date > add_year(self.origin_date, self.change_route_period)
                     
