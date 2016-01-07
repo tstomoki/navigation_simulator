@@ -113,17 +113,28 @@ def calc_whole_sim(result_dir_path):
                                   'simulation_count': len(tmp_result)}
 
     # display part
-
+    print "\n%20s: %10d" % ('simulation count'.upper(), len(npv_result['route_a']))
     conduct_modes = [_e for _e in npv_result.keys()]
-    print "\n%15s %17s %15s %20s" % tuple(map(lambda x:x.upper(), conduct_modes))
-
+    print "\n%15s %17s %15s %20s " % tuple(map(lambda x:x.upper(), conduct_modes))
     display_nums = npv_result['route_a'].keys()
+    winner_count = dict.fromkeys(conduct_modes, 0)
     for display_num in sorted(display_nums):
         display_str = ''
+        max_data = {conduct_modes[0]: npv_result[conduct_modes[0]][display_num]}
         for conduct_mode in conduct_modes:
-            display_str += ("%17.3lf" % npv_result[conduct_mode][display_num]) if npv_result[conduct_mode].has_key(display_num) else ("%17s" % ('-'*13))
+            if npv_result[conduct_mode].has_key(display_num):
+                display_str += ("%17.3lf" % npv_result[conduct_mode][display_num])
+            else:
+                display_str += ("%17s" % ('-'*13))
+                continue
+            if max_data.values()[0] < npv_result[conduct_mode][display_num]:
+                max_data = {conduct_mode: npv_result[conduct_mode][display_num]}
+        max_key = max_data.keys()[0]
+        print display_str + "%20s" % (max_key)
+        winner_count[max_key] += 1
 
-        print display_str
+    print "\n"
+    print winner_count
     return
 
 def aggregate_route_change_output(result_dir_path):
