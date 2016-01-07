@@ -218,7 +218,6 @@ def run(options):
         bf_mode = 'rough'
         simulation_times           = SIMULATE_COUNT
         simulation_duration_years  = VESSEL_LIFE_TIME
-        simulation_duration_years  = 3
         conducted_simulation_count = 0
         devided_simulation_times   = np.array_split(range(simulation_times)[conducted_simulation_count:], PROC_NUM)
         agent                      = Agent(base_sinario,
@@ -239,7 +238,7 @@ def run(options):
         '''
 
         '''
-        agent.calc_whole_simulation_m(1, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times)
+        agent.calc_whole_simulation_m(3, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times)
         print 'done'
         sys.exit()
         '''

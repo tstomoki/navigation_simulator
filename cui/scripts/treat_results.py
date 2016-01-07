@@ -35,8 +35,7 @@ from agent       import Agent
 
 def run(options):
     # validation
-    validate_components()
-    sys.exit()
+    #validate_components()
     result_dir_path       = options.result_dir_path
     json_file_path        = options.json_file_path
     count_simulation_mode = options.count_simulation_mode
@@ -60,6 +59,8 @@ def run(options):
         draw_retrofit_route_result(result_dir_path)
     if options.histgram_mode == 'True':
         draw_delta_histgram(result_dir_path)
+    if options.whole_sim_mode == 'True':
+        calc_whole_sim(result_dir_path)
     sys.exit()        
 
     draw_hull_features()
@@ -68,6 +69,61 @@ def run(options):
     #aggregate_results(result_dir_path)
     draw_ct_fn()
     draw_ct_fn(True, 'BF6')
+    return
+
+def calc_whole_sim(result_dir_path):
+    if result_dir_path is None:
+        print 'No result_dir_path. abort'
+        return
+
+    ret_result = {}
+    target_dir_path = "%s/rough" % (result_dir_path)
+    target_dirs     = os.listdir(target_dir_path)
+
+    dt = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
+                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
+    column_names = ["simulation_time",
+                    "hull_id",
+                    "engine_id",
+                    "propeller_id",
+                    "NPV",
+                    "fuel_cost",
+                    "retrofit_date"]
+    npv_result = {}
+    for target_dir in target_dirs:
+        npv_result[target_dir] = {}
+        dir_path     = "%s/%s" % (target_dir_path, target_dir)
+        files_in_dir = os.listdir(dir_path)
+        target_files = [_f for _f in files_in_dir if _f[-4:] == '.csv']
+        tmp_result = []
+        for target_file in target_files:
+            target_file_path = "%s/%s" % (dir_path, target_file)
+            data = np.genfromtxt(target_file_path,
+                                 delimiter=',',
+                                 dtype=dt,
+                                 skiprows=1)
+            if data.ndim == 0:
+                data = np.atleast_1d(data)
+            for _d in data:
+                tmp_result.append(_d)
+                npv_result[target_dir][_d['simulation_time']] = _d['NPV']
+        tmp_result     = np.array(sorted(tmp_result, key=lambda x : x[0]))
+        retrofit_count = len([_d for _d in tmp_result['retrofit_date'] if _d != '--'])
+        ret_result[target_dir] = {'retrofit_count': retrofit_count,
+                                  'simulation_count': len(tmp_result)}
+
+    # display part
+
+    conduct_modes = [_e for _e in npv_result.keys()]
+    print "\n%15s %17s %15s %20s" % tuple(map(lambda x:x.upper(), conduct_modes))
+
+    display_nums = npv_result['route_a'].keys()
+    for display_num in sorted(display_nums):
+        display_str = ''
+        for conduct_mode in conduct_modes:
+            display_str += ("%17.3lf" % npv_result[conduct_mode][display_num]) if npv_result[conduct_mode].has_key(display_num) else ("%17s" % ('-'*13))
+
+        print display_str
     return
 
 def aggregate_route_change_output(result_dir_path):
@@ -1456,5 +1512,7 @@ if __name__ == '__main__':
                       help="route change mode", default=False)    
     parser.add_option("-H", "--histgram", dest="histgram_mode",
                       help="histgram mode", default=False)    
+    parser.add_option("-W", "--whole", dest="whole_sim_mode",
+                      help="whole simulation mode", default=False)    
     (options, args) = parser.parse_args()
     run(options)    

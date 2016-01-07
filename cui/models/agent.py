@@ -1332,6 +1332,7 @@ class Agent(object):
             # define maket price on route B
             self.world_scale_other.generate_sinario_with_oil_corr(self.sinario_mode, self.sinario.history_data[-1], self.sinario.predicted_data)
             self.flat_rate_other.generate_flat_rate(self.sinario_mode, simulation_duration_years)
+
             ### flexible for Route A (route_A) ###
             start_time   = time.clock()
             conduct_mode = 'route_a'
@@ -2089,6 +2090,8 @@ class Agent(object):
         if hasattr(self, 'change_sea_mode') and self.change_sea_mode == 'market_fluc':
             if self.check_route_fare_trend():
                 return True
+            else:
+                return False
 
         if not hasattr(self, 'change_route_period'):
             return False
