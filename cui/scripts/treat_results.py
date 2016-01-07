@@ -130,8 +130,18 @@ def calc_whole_sim(result_dir_path):
             if max_data.values()[0] < npv_result[conduct_mode][display_num]:
                 max_data = {conduct_mode: npv_result[conduct_mode][display_num]}
         max_key = max_data.keys()[0]
-        print display_str + "%20s" % (max_key)
-        winner_count[max_key] += 1
+
+        if (max_key == 'route_ab_prob'):
+            if npv_result.has_key('route_ab_market') and npv_result['route_ab_prob'][display_num] == max_data.values()[0]:
+                winner_count[max_key] += 0.5        
+                winner_count['route_ab_market'] += 0.5        
+                print display_str + "%20s, %20s" % (max_key, 'route_ab_market')
+            else:
+                winner_count[max_key] += 1.0
+                print display_str + "%20s" % (max_key)
+        else:
+            winner_count[max_key] += 1
+            print display_str + "%20s" % (max_key)
 
     print "\n"
     print winner_count

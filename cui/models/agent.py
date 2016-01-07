@@ -2112,18 +2112,14 @@ class Agent(object):
 
         other_world_sacle = self.world_scale_other.predicted_data[start_index_raw:end_index_raw]
 
-        try:
-            flat_rate_induces = []
-            for ws_date in analysis_period_ws['date']:
-                # current route
-                current_index_fr = search_near_index(str_to_date(ws_date), self.flat_rate.predicted_data['date'])
-                current_index_fr = np.where(self.flat_rate.predicted_data['date']==current_index_fr)[0]
-                flat_rate_induces.append(current_index_fr[0])
-        except:
-            set_trace()
+        flat_rate_induces = []
+        for ws_date in analysis_period_ws['date']:
+            # current route
+            current_index_fr = search_near_index(str_to_date(ws_date), self.flat_rate.predicted_data['date'])
+            current_index_fr = np.where(self.flat_rate.predicted_data['date']==current_index_fr)[0]
+            flat_rate_induces.append(current_index_fr[0])
 
         flat_rate_induces = np.array(flat_rate_induces)
-
 
         current_fares = calc_fare_with_params(analysis_period_ws['ws'], self.flat_rate.predicted_data[flat_rate_induces]['fr'])
         next_fares    = calc_fare_with_params(self.world_scale_other.predicted_data[start_index_raw:end_index_raw]['ws'], self.flat_rate_other.predicted_data[flat_rate_induces]['fr'])
