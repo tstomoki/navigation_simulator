@@ -1355,7 +1355,7 @@ def generate_final_significant_modes(oilprice_mode,
 
     # oilprice
     significant_high_oilprice_index = oil_price_history_data[np.argmax(oil_price_history_data['price'])]
-    significant_high_oilprice       = significant_high_oilprice_index['price'] * MULTIPLY_INDEX
+    significant_high_oilprice       = significant_high_oilprice_index['price']
     significant_low_oilprice_index  = oil_price_history_data[np.argmin(oil_price_history_data['price'])]
     significant_low_oilprice        = significant_low_oilprice_index['price']
     # world_scale
@@ -1692,3 +1692,6 @@ def load_bf_prob_with_param(alpha, beta):
     beaufort_data     = load_json_file(whole_reslut_path)
     bf_key            = "a_%1.1lf_b_%1.1lf" % (alpha, beta)
     return { str("BF%s" % (_k)):_d for _k, _d in beaufort_data[bf_key].items()}
+
+def calc_fare_with_params(world_scale, flat_rate):
+    return world_scale * ( flat_rate / 100.0)

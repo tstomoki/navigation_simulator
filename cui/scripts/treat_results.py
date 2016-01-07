@@ -35,7 +35,8 @@ from agent       import Agent
 
 def run(options):
     # validation
-    #validate_components()
+    validate_components()
+    sys.exit()
     result_dir_path       = options.result_dir_path
     json_file_path        = options.json_file_path
     count_simulation_mode = options.count_simulation_mode
@@ -53,9 +54,12 @@ def run(options):
         draw_sensitivity_result(result_dir_path, json_file_path)
     if count_simulation_mode:
         count_simulation(result_dir_path)
-    if route_change_mode:
+    if route_change_mode == 'True':
         aggregate_route_change_output(result_dir_path)
-    
+    if route_change_mode == 'monte':
+        draw_retrofit_route_result(result_dir_path)
+    if options.histgram_mode == 'True':
+        draw_delta_histgram(result_dir_path)
     sys.exit()        
 
     draw_hull_features()
@@ -98,8 +102,13 @@ def aggregate_route_change_output(result_dir_path):
             if not len(data) < 2:
                 print 'data too much'
                 raise
-            print "\t%20s: %10.3lf %15.3e %10s %10s" % (target_key, data[0]['NPV'], data[0]['NPV'], data[0]['retrofit_date'], data[0]['change_route_date'])
-            npv_result[target_key] = data[0]['NPV']
+
+            if target_key == 'flexible':
+                npv = data[0]['NPV'] - UPFRONT_COST_ROUTE - PRACTICE_PRICE_ROUTE
+            else:
+                npv = data[0]['NPV']
+            print "\t%20s: %10.3lf %15.3e %10s %10s" % (target_key, npv, npv, data[0]['retrofit_date'], data[0]['change_route_date'])
+            npv_result[target_key] = npv
             data = None
         delta = npv_result['flexible'] - npv_result['no_retrofit']
         print "\t%20s: %10.3lf %15.3e" % ('delta'.upper(), delta, delta)
@@ -168,7 +177,7 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
     # initialize
     # load history data
     from_date                 = '2004/01/01'
-    to_date                   = '2015/01/01'
+    to_date                   = '2016/01/01'
     oil_price_history_data    = load_monthly_history_data(from_date, to_date)
     world_scale_history_data  = load_world_scale_history_data()
     flat_rate_history_data    = load_flat_rate_history_data()
@@ -212,6 +221,8 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
     end_date                   = add_year(str_to_date(agent.sinario.predicted_data['date'][0]), simulation_duration_years)
     agent.operation_date_array = generate_operation_date(agent.sinario.predicted_data['date'][0], end_date)            
     agent.retrofit_mode        = RETROFIT_MODE['none']
+
+    print "%s: %lf" % (oilprice_mode, agent.sinario.predicted_data['price'][0])
 
     for target_design_key in component_lists:
         component_ids          = get_component_ids_from_design_key(target_design_key)
@@ -899,19 +910,203 @@ def draw_retrofit_result(result_dir_path):
                                                'average_delta': np.average(delta_dict.values()),
                                                'success_rate': round(float(effective_count) / retrofit_count * 100, 4),
                                                'simulation_count': len(delta_dict.values())}
-            # draw delta histgram
-            filepath = "./%s_%s_delta.png" % (bf_mode, target_dir)
-            title    = "%s %s delta histgram" % (bf_mode, target_dir)
-            x_label  = "npv delta [USD]".upper()
-            y_label  = "frequency".upper()
-            graphInitializer(title, x_label, y_label)
-            plt.axvline(x=0, color='k', linewidth=3, linestyle='--')
-            panda_frame = pd.DataFrame({'design_key': delta_dict.keys(),
-                                        'delta': delta_dict.values()})
-            panda_frame['delta'].hist(color="#5F9BFF", alpha=.5)
-            plt.savefig(filepath)
-            plt.clf()
-            plt.close()        
+            # write file as json
+            write_file_as_json(delta_dict, "%s/%s/aggregated_result.json" % (target_dir_path, target_dir))
+        
+    print_with_notice("whole result")
+    for bf_mode in ret_result.keys():
+        print "%10s %15s %10s\n" % ('^'*10, bf_mode, '^'*10)
+        for case in ret_result[bf_mode]:
+            print "%10s %15s %10s\n" % ('*'*10, case, '*'*10)
+            print ret_result[bf_mode][case]
+    return ret_result
+
+def draw_delta_histgram(json_dir_path):
+    # draw delta histgram
+    files        = os.listdir(json_dir_path)
+    target_file = [_f for _f in files if _f[-5:] == '.json']
+    if len(target_file) > 0:
+        target_file = target_file[0]
+    else:
+        print 'error: abort'
+        return
+
+    json_file_path = "%s/%s" % (json_dir_path, target_file)
+    delta_dict     = load_json_file(json_file_path)
+    output_filepath  = "%s/delta_histgram.png" % (json_dir_path)
+    title    = "delta histgram"
+    x_label  = "npv delta [USD]".upper()
+    y_label  = "frequency".upper()
+    graphInitializer(title, x_label, y_label)
+    plt.axvline(x=0, color='k', linewidth=3, linestyle='--')
+    panda_frame = pd.DataFrame({'design_key': delta_dict.keys(),
+                                'delta': delta_dict.values()})
+    panda_frame['delta'].hist(color="#5F9BFF", alpha=.5, bins=100)
+    plt.ylim(0, 120)
+    plt.xlim(-1e7, 4e7)
+    plt.savefig(output_filepath)
+    plt.clf()
+    plt.close()        
+    return
+
+def draw_retrofit_route_result(result_dir_path):
+    if result_dir_path is None:
+        print 'No result_dir_path. abort'
+        return
+
+    # get bf_mode
+    bf_modes   = ['rough']
+    ret_result = {}
+    for bf_mode in bf_modes:
+        ret_result[bf_mode] = {}
+        target_dir_path     = result_dir_path
+        for target_dir in ['middle']:
+            ret_result[bf_mode][target_dir] = {}
+            # initialize
+            dt   = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
+                             'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
+            column_names = ["simulation_time",
+                            "hull_id",
+                            "engine_id",
+                            "propeller_id",
+                            "NPV",
+                            "fuel_cost",
+                            "retrofit_date"]
+            print "%20s\n%15s\n%20s" % ('*'*20, target_dir.upper(), '*'*20)
+            print "%20s" % ('-^-'*50)
+            print "%20s\n%15s\n%20s" % ('-'*20, "statistical result".upper(), '-'*20)
+            print "%15s %20s %20s %10s %21s %20s %20s" % ('design_type'.upper(), 
+                                                          'avg. npv'.upper(),
+                                                          'avg. npv (sig)'.upper(),
+                                                          'std'.upper(),
+                                                          'std (sig)'.upper(),
+                                                          'simulation count'.upper(),
+                                                          'retrofit occurs'.upper())
+            combination_key = None
+            # for flexible
+            desti_dir = "%s/flexible" % (target_dir_path)
+            flexible_result = []
+            if os.path.exists(desti_dir):
+                # calc average npv from initial_designs
+                files               = os.listdir(desti_dir)
+                target_files        = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+                target_files        = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+                flexible_npv_result = {}
+                for target_file in target_files:
+                    data = np.genfromtxt(target_file,
+                                         delimiter=',',
+                                         dtype=dt,
+                                         skiprows=1)
+                    if data.ndim == 0:
+                        data = np.atleast_1d(data)
+                    for _d in data:
+                        # consider option price
+                        if _d['retrofit_date'] == '--':
+                            _d['NPV'] -= UPFRONT_COST_ROUTE
+                        else:
+                            _d['NPV'] -= (UPFRONT_COST_ROUTE + PRACTICE_PRICE_ROUTE )
+                        flexible_result.append(_d)
+                flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
+                retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
+                print "%15s %24.3lf %13.3e %20.3lf %14.3e %15d %15d" % ('flexible', 
+                                                                        np.average(flexible_result['NPV']),
+                                                                        np.average(flexible_result['NPV']),
+                                                                        np.std(flexible_result['NPV']),
+                                                                        np.std(flexible_result['NPV']),
+                                                                        len(flexible_result), retrofit_count)
+            # for no retrofit
+            desti_dir = "%s/no_retrofit" % (target_dir_path)
+            if os.path.exists(desti_dir):
+                # calc average npv from initial_designs
+                files        = os.listdir(desti_dir)
+                target_files = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+                target_files = [ "%s/%s" % (desti_dir, _f) for _f in target_files]
+                result       = []
+                for target_file in target_files:
+                    data = np.genfromtxt(target_file,
+                                         delimiter=',',
+                                         dtype=dt,
+                                         skiprows=1)
+                    if data.ndim == 0:
+                        data = np.atleast_1d(data)                
+                    for _d in data:
+                        # consider option price
+                        #_d['NPV'] -= UPFRONT_COST
+                        result.append(_d)
+                result = np.array(sorted(result, key=lambda x : x[0]))
+                print "%15s %24.3lf %13.3e %20.3lf %14.3e %15d %15d" % ('no_retrofit', 
+                                                                   np.average(result['NPV']),
+                                                                   np.average(result['NPV']),
+                                                                   np.std(result['NPV']),
+                                                                   np.std(result['NPV']),
+                                                                   len(result), 0)
+            print "%20s" % ('-^-'*50)
+            print "%20s" % ('-#-'*50)
+            print "%20s\n%15s\n%20s" % ('-'*20, "simulation details".upper(), '-'*20)
+            print "%10s %17s %20s %23s %18s %45s %27s" % ('sim'.upper(),
+                                                          'flexible'.upper(), 
+                                                          'no retrofit'.upper(), 
+                                                          'judgement'.upper(),
+                                                          'delta'.upper(),
+                                                          'design transition'.upper(),
+                                                          'retrofit date'.upper() )
+            simulate_induces = np.unique(np.r_[result['simulation_time'],flexible_result['simulation_time']])
+            effective_count  = 0
+            delta_dict       = {}
+            for simulate_index in simulate_induces:
+                nr_result = result[np.where(result['simulation_time']==simulate_index)]
+                f_result  = flexible_result[np.where(flexible_result['simulation_time']==simulate_index)]
+                if len(nr_result) == 1 and len(f_result) == 1:
+                    no_retrofit_npv = ("%17.3lf" % nr_result['NPV'])
+                    flexible_npv    = ("%17.3lf" % f_result['NPV'])
+                    if (flexible_npv > no_retrofit_npv):
+                        judgement = 'flexible'
+                        effective_count += 1
+                    else:
+                        judgement = 'no_retrofit'
+                    
+                    delta           = "%17.3lf" % (float(flexible_npv)-float(no_retrofit_npv))
+                    delta_dict[simulate_index] = float(flexible_npv)-float(no_retrofit_npv)
+                    base_design_mode     = [key for key, value in RETROFIT_DESIGNS[bf_mode].iteritems() if value == nr_result['base_design']][0]
+                    retrofit_design_mode = [key for key, value in RETROFIT_DESIGNS[bf_mode].iteritems() if value == f_result['retrofit_design'][0]]
+                    retrofit_design_mode = retrofit_design_mode[0] if len(retrofit_design_mode) > 0 else '--'
+                    transition_str  = "%s (%s) -> %s (%s)" % (nr_result['base_design'][0], base_design_mode, f_result['retrofit_design'][0], retrofit_design_mode)
+                    retrofit_date   = f_result['retrofit_date'][0]
+                    if not retrofit_date == '--':
+                        draw_comparison_graph(simulate_index, retrofit_date, target_dir, target_dir_path)
+                        
+                else:
+                    no_retrofit_npv = ("%17.3lf" % nr_result['NPV']) if len(nr_result) == 1 else '--------'
+                    if len(f_result) == 1:
+                        flexible_npv    = f_result['NPV']
+                        retrofit_date   = f_result['retrofit_date'][0] 
+                    else:
+                        flexible_npv = retrofit_date = '--------'                 
+                    transition_str  = "%s -> --" % (nr_result['base_design'][0])
+                    judgement = delta = '--------'
+
+                print "%10s %20s %20s %20s %20s %50s %20s" % (simulate_index, 
+                                                              flexible_npv,
+                                                              no_retrofit_npv,
+                                                              judgement.upper(),
+                                                              delta,
+                                                              transition_str,
+                                                              retrofit_date)
+            print "%20s" % ('-^-'*50)
+            maximum_delta_index = max(delta_dict.iteritems(), key=operator.itemgetter(1))[0]
+            print "%29s: %10d\n%29s: %17.3lf\n%20s(at %4d): %17.3lf" % ('effective count'.upper(), effective_count,
+                                                                        'average delta'.upper(), np.average(delta_dict.values()),
+                                                                        'maximum delta'.upper(), maximum_delta_index, delta_dict[maximum_delta_index])
+            print "%20s" % ('-^-'*50)
+            ret_result[bf_mode][target_dir] = {'retrofit_count': retrofit_count,
+                                               'effective_count': effective_count, 
+                                               'maximum_delta': delta_dict[maximum_delta_index],
+                                               'maximum_delta_index': maximum_delta_index,
+                                               'average_delta': np.average(delta_dict.values()),
+                                               'success_rate': round(float(effective_count) / retrofit_count * 100, 4),
+                                               'simulation_count': len(delta_dict.values())}
+            # write file as json
+            write_file_as_json(delta_dict, "%s/%s/aggregated_result.json" % (target_dir_path, target_dir))
             
     print_with_notice("whole result")
     for bf_mode in ret_result.keys():
@@ -1259,5 +1454,7 @@ if __name__ == '__main__':
                       help="count simulation count", default=None)    
     parser.add_option("-R", "--route-change", dest="route_change_mode",
                       help="route change mode", default=False)    
+    parser.add_option("-H", "--histgram", dest="histgram_mode",
+                      help="histgram mode", default=False)    
     (options, args) = parser.parse_args()
     run(options)    

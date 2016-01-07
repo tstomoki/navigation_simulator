@@ -48,7 +48,8 @@ RETROFIT_MODE = {'none': 0,
                  'whole': 3,
                  'significant': 4,
                  'significant_rule': 5,
-                 'route_change': 6}
+                 'route_change': 6,
+                 'route_change_merged': 7}
 
 RETROFIT_COST = {'propeller': 200000,
                  'engine': 1000000}
@@ -260,6 +261,16 @@ PROPELLERS = {'0': 0, '257': 1, '514': 2, '771': 3, '1028': 4, '1285': 5}
 UPFRONT_COST   = 100000
 PRACTICE_PRICE = 20000
 
+# for WHOLE RETROFIT
+'''
+UPFRONT_COST   = 500000
+PRACTICE_PRICE = 50000
+'''
+
+# FOR REALOPTION ANALYSIS (sea)
+UPFRONT_COST_ROUTE   = 300000
+PRACTICE_PRICE_ROUTE = 50000
+
 # derive sinario modes
 SIGNIFICANT_SENARIO_MODES_WITH_MONTE = ['high', 'low', 'stage']
 
@@ -267,4 +278,8 @@ SIGNIFICANT_SENARIO_MODES_WITH_MONTE = ['high', 'low', 'stage']
 SIMULATE_COUNT = 1000
 
 # for actual 
-CHANGE_ROUTE_PERIODS = range(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)[1:]
+CHANGE_ROUTE_PERIODS_RAW = range(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)
+CHANGE_ROUTE_PERIODS     = CHANGE_ROUTE_PERIODS_RAW[1:]
+
+# change route prob
+CHANGE_ROUTE_PROB = {d:100.0/len(CHANGE_ROUTE_PERIODS_RAW) for d in CHANGE_ROUTE_PERIODS_RAW}

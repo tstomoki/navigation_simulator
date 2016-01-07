@@ -62,7 +62,7 @@ class Agent(object):
 
         # beaufort mode
         self.bf_prob          = self.load_bf_prob()
-        self.change_sea_flag  = None
+        self.change_sea_flag  = False
 
         if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
@@ -348,7 +348,7 @@ class Agent(object):
                     elif self.retrofit_mode == RETROFIT_MODE['significant_rule']:
                         retrofit_flag, mode = self.check_significant_rule_retrofit()
                         if retrofit_flag:
-                            retorfit_design = self.retrofit_design_key
+                            retorfit_design = self.retrofit_design_keys[mode]
                             self.conduct_retrofit(retorfit_design)
                             self.retrofit_count_limit = 0
                             self.clear_age_effect()
@@ -365,12 +365,22 @@ class Agent(object):
                         else:
                             # consider dock-to-dock deterioration
                             self.update_d2d()
+                    elif self.retrofit_mode == RETROFIT_MODE['route_change_merged']:
+                        retrofit_flag, mode = self.check_route_change_retrofit_merged()
+                        if retrofit_flag:
+                            retorfit_design = self.retrofit_design_keys[mode]
+                            self.conduct_retrofit(retorfit_design)
+                            self.retrofit_count_limit = 0
+                            self.clear_age_effect()
+                        else:
+                            # consider dock-to-dock deterioration
+                            self.update_d2d()
                     else:
                         # consider dock-to-dock deterioration
                         self.update_d2d()                        
                     # for the same random seed
                     if hasattr(self, 'simulate_log_index'):
-                        np.random.seed(COMMON_SEED_NUM + self.simulate_log_index + self.dock_in_count)
+                        np.random.seed(calc_seed(self.simulate_log_index + self.dock_in_count))
                             
                 # update cash flow
                 self.cash_flow       += CF_day
@@ -1099,6 +1109,11 @@ class Agent(object):
             self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             self.simulate_log_index                = simulation_time
 
+            # for route fluc
+            if hasattr(self, 'change_route_prob'):
+                np.random.seed(calc_seed(simulation_time))
+                self.set_change_route_period()
+
             # for no retrofit design
             start_time                 = time.clock()
             np.random.seed(calc_seed(simulation_time))
@@ -1145,6 +1160,14 @@ class Agent(object):
                                      self.propeller.base_data['id'],
                                      NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
         return 
+
+    def set_change_route_period(self):
+        self.change_route_period = prob_with_weight(self.change_route_prob)
+        return 
+
+    def reset_change_route_period(self):
+        self.change_route_period = None
+        return 
     
     def calc_flexible_design_m_route_change(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_periods, base_design_key, retrofit_design_key, retrofit_mode):
         column_names     = ['hull_id',
@@ -1166,11 +1189,11 @@ class Agent(object):
             self.change_route_period = change_route_period
             self.output_dir_path     = "%s/period_%d" % (self.output_dir_path, change_route_period)
             initializeDirHierarchy(self.output_dir_path)
+            self.simulate_log_index  = COMMON_SEED_NUM
 
             # for no retrofit design
             start_time                 = time.clock()
-            np.random.seed(calc_seed(change_route_period))
-            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            np.random.seed(calc_seed(COMMON_SEED_NUM))
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
             self.retrofit_mode         = RETROFIT_MODE['none']
@@ -1190,8 +1213,7 @@ class Agent(object):
                                      NPV, fuel_cost, self.base_design, '--', '--', self.route_change_date, lap_time], output_file_path)            
             # for flexible design
             start_time                 = time.clock()
-            np.random.seed(calc_seed(change_route_period))
-            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            np.random.seed(calc_seed(COMMON_SEED_NUM))
             self.retrofit_mode         = retrofit_mode
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)        
             ## write npv and fuel_cost file
@@ -1208,6 +1230,241 @@ class Agent(object):
                                      self.engine.base_data['id'],
                                      self.propeller.base_data['id'],
                                      NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
+        return
+
+    def calc_flexible_design_m_route_change_monte(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, retrofit_mode):
+        column_names     = ['simulation_time',
+                            'hull_id',
+                            'engine_id',
+                            'propeller_id',
+                            'NPV',
+                            'fuel_cost',
+                            'base_design',
+                            'retrofit_design',
+                            'retrofit_date',
+                            'change_route_date']
+        dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
+                           'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
+        simulation_times = devided_simulation_times[index]
+        for simulation_time in simulation_times:
+            # common process
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            self.simulate_log_index  = simulation_time
+
+            # for route fluc
+            if hasattr(self, 'change_route_prob'):
+                np.random.seed(calc_seed(simulation_time))
+                self.set_change_route_period()
+
+            # for no retrofit design
+            start_time                 = time.clock()
+            np.random.seed(calc_seed(simulation_time))
+            end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
+            self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
+            self.retrofit_mode         = RETROFIT_MODE['none']
+            NPV, fuel_cost             = self.simmulate(None, None, None, None, None, None)                        
+            ## write npv and fuel_cost file
+            output_dir_path            = "%s/no_retrofit/%s" % (self.output_dir_path, base_design_key)
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(self.NPV.dtype.names, self.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(self.fuel_cost.dtype.names, self.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+            # write simmulation result
+            output_dir_path  = "%s/no_retrofit" % (self.output_dir_path)
+            output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            write_csv(column_names, [simulation_time, 
+                                     self.hull.base_data['id'],
+                                     self.engine.base_data['id'],
+                                     self.propeller.base_data['id'],
+                                     NPV, fuel_cost, self.base_design, '--', '--', self.route_change_date, lap_time], output_file_path)
+            # for flexible design
+            start_time                 = time.clock()
+            np.random.seed(calc_seed(simulation_time))
+            self.retrofit_mode         = retrofit_mode
+            NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)        
+            ## write npv and fuel_cost file
+            output_dir_path            = "%s/flexible/%s" % (self.output_dir_path, base_design_key)
+            initializeDirHierarchy(output_dir_path)
+            write_array_to_csv(self.NPV.dtype.names, self.NPV, "%s/npv.csv" % (output_dir_path))
+            write_array_to_csv(self.fuel_cost.dtype.names, self.fuel_cost, "%s/fuel_cost.csv" % (output_dir_path))
+            # write simmulation result
+            output_dir_path  = "%s/flexible" % (self.output_dir_path)
+            output_file_path = "%s/%s_core%d.csv" % (output_dir_path, 'initial_design', index)
+            lap_time         = convert_second(time.clock() - start_time)
+            retrofit_design  = self.retrofit_design_human
+            write_csv(column_names, [simulation_time, 
+                                     self.hull.base_data['id'],
+                                     self.engine.base_data['id'],
+                                     self.propeller.base_data['id'],
+                                     NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
+        return
+
+
+    # conduct final simulation 
+    def calc_whole_simulation_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times):
+        debug_mode = False
+        # common process
+        column_names     = ['simulation_time',
+                            'hull_id',
+                            'engine_id',
+                            'propeller_id',
+                            'NPV',
+                            'fuel_cost',
+                            'base_design',
+                            'retrofit_design',
+                            'retrofit_date',
+                            'change_route_date']
+        dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
+                           'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
+        simulation_times = devided_simulation_times[index]        
+        
+        for simulation_time in simulation_times:
+            # common process
+            base_mode                = 'middle'
+            self.simulate_log_index  = simulation_time
+            np.random.seed(calc_seed(simulation_time))
+            # define maket price on route A
+            generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
+            self.world_scale_base = self.world_scale
+            self.flat_rate_base   = self.flat_rate
+
+            # define maket price on route B
+            self.world_scale_other.generate_sinario_with_oil_corr(self.sinario_mode, self.sinario.history_data[-1], self.sinario.predicted_data)
+            self.flat_rate_other.generate_flat_rate(self.sinario_mode, simulation_duration_years)
+            ### flexible for Route A (route_A) ###
+            start_time   = time.clock()
+            conduct_mode = 'route_a'
+
+            self.set_market_prices('A')
+            np.random.seed(calc_seed(simulation_time))
+            base_design_key      = RETROFIT_DESIGNS['rough'][base_mode]
+            retrofit_design_keys = { k:v for k,v in RETROFIT_DESIGNS['rough'].items() if not k == base_mode}
+            self.retrofit_mode   = RETROFIT_MODE['significant_rule']
+            # set design
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation
+            NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            ## write npv and fuel_cost file
+            output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
+            output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
+            initializeDirHierarchy(output_dir_path)
+            lap_time         = convert_second(time.clock() - start_time)
+            # debug
+            if debug_mode:
+                self.display_debug_info('route A'.upper(), retrofit_design_keys)
+            else:
+                write_csv(column_names, [simulation_time, 
+                                         self.hull.base_data['id'],
+                                         self.engine.base_data['id'],
+                                         self.propeller.base_data['id'],
+                                         NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)                
+            ### flexible for Route A (route_A) ###
+
+            ### flexible for Route B (route_B) ###
+            start_time   = time.clock()
+            conduct_mode = 'route_b'
+            self.set_market_prices('B')
+
+            np.random.seed(calc_seed(simulation_time))
+            base_design_key      = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough'][base_mode]
+            retrofit_design_keys = { k:v for k,v in RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough'].items() if not k == base_mode}
+            self.bf_prob         = self.load_bf_prob(True)
+            self.retrofit_mode   = RETROFIT_MODE['significant_rule']
+            # set design
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation
+            NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            ## write npv and fuel_cost file
+            output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
+            output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
+            initializeDirHierarchy(output_dir_path)
+            lap_time         = convert_second(time.clock() - start_time)
+
+            # debug
+            if debug_mode:
+                self.display_debug_info('route B'.upper(), retrofit_design_keys)
+            else:
+                write_csv(column_names, [simulation_time, 
+                                         self.hull.base_data['id'],
+                                         self.engine.base_data['id'],
+                                         self.propeller.base_data['id'],
+                                         NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)                            
+            ### flexible for Route B (route_B) ###
+
+            ### flexible for Route A + B based on probability (route_AB_prob) ###
+            start_time   = time.clock()
+            conduct_mode = 'route_ab_prob'
+            self.set_market_prices('A')
+            # change route change periods
+            np.random.seed(calc_seed(simulation_time))
+            self.change_sea_flag   = True
+            self.change_route_prob = CHANGE_ROUTE_PROB
+            self.set_change_route_period()
+            np.random.seed(calc_seed(simulation_time))
+            base_design_key      = RETROFIT_DESIGNS['rough'][base_mode]
+            retrofit_design_keys = { k:v for k,v in RETROFIT_DESIGNS['rough'].items() if not k == base_mode}
+            self.retrofit_mode   = RETROFIT_MODE['route_change_merged']
+            self.bf_prob         = self.load_bf_prob()
+            # set design
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation
+            NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            ## write npv and fuel_cost file
+            output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
+            output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
+            initializeDirHierarchy(output_dir_path)
+            lap_time         = convert_second(time.clock() - start_time)
+            # debug
+            if debug_mode:
+                self.display_debug_info('route A, B prob'.upper(), retrofit_design_keys)
+            else:
+                write_csv(column_names, [simulation_time, 
+                                         self.hull.base_data['id'],
+                                         self.engine.base_data['id'],
+                                         self.propeller.base_data['id'],
+                                         NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
+            ### flexible for Route A + B based on probability (route_AB_prob) ###
+
+            ### flexible for Route A + B based on market value (route_AB_market) ###
+            start_time   = time.clock()
+            conduct_mode = 'route_ab_market'
+            self.set_market_prices('A')
+            # change route change periods
+            np.random.seed(calc_seed(simulation_time))
+            self.change_sea_flag   = True
+            self.reset_change_route_period()
+            self.change_sea_mode   = 'market_fluc'
+            base_design_key        = RETROFIT_DESIGNS['rough'][base_mode]
+            retrofit_design_keys   = { k:v for k,v in RETROFIT_DESIGNS['rough'].items() if not k == base_mode}
+            self.retrofit_mode     = RETROFIT_MODE['route_change_merged']
+            self.bf_prob           = self.load_bf_prob()
+            # set design
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation
+            NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            ## write npv and fuel_cost file
+            output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
+            output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
+            initializeDirHierarchy(output_dir_path)
+            lap_time         = convert_second(time.clock() - start_time)
+            # debug
+            if debug_mode:
+                self.display_debug_info('route A, B market'.upper(), retrofit_design_keys)
+                sys.exit()
+            else:
+                write_csv(column_names, [simulation_time, 
+                                         self.hull.base_data['id'],
+                                         self.engine.base_data['id'],
+                                         self.propeller.base_data['id'],
+                                         NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
+                
+            ### flexible for Route A + B based on market value (route_AB_market) ###
+
         return
 
     ## multi processing method ##
@@ -1508,6 +1765,61 @@ class Agent(object):
 
         return retrofit_flag, mode
 
+    def check_route_change_retrofit_merged(self):
+        retrofit_flag = False
+        mode          = None
+        # Block
+        if not self.retrofittable():
+            return retrofit_flag, mode
+
+        # get analysis oil data (origin_date -> current_date)
+        origin_oilprice      = self.sinario.predicted_data[0]['price']
+        current_index        = search_near_index(self.current_date, self.sinario.predicted_data['date'])
+        start_index = search_near_index(self.current_date - datetime.timedelta(days=365*2), self.sinario.predicted_data['date'])
+        analysis_period_data = self.sinario.predicted_data[np.where(self.sinario.predicted_data['date']==start_index)[0]:np.where(self.sinario.predicted_data['date']==current_index)[0]]
+        avg_oilprice         = np.average(analysis_period_data['price'])
+        
+        # calc analysis trend
+        analysis_data = np.array([[index, v['price']] for index, v in enumerate(analysis_period_data)])
+        cons, trend   = estimate(analysis_data.transpose()[0], analysis_data.transpose()[1], 1)
+
+        ## debug
+        print "trend: %3.3lf" % (trend)
+        print "trend_rule: %3.3lf" % (self.rules['trend'])
+        print "origin_price: %3.3lf, avg_oilprice: %3.3lf" % (origin_oilprice, avg_oilprice)
+        print "high: %3.3lf" % (origin_oilprice * (1 + self.rules['delta']))
+        print "low: %3.3lf" % (origin_oilprice * (1 - self.rules['delta']))
+
+        # change flag
+        ## High
+        if trend > self.rules['trend']:
+            mode = 'high'
+            retrofit_flag = True
+        elif trend < self.rules['trend'] * (-1):
+            mode = 'low'
+            retrofit_flag = True
+        else:
+            if (avg_oilprice > origin_oilprice * (1 + self.rules['delta'])):
+                mode          = 'high'
+                retrofit_flag = True
+            elif avg_oilprice < origin_oilprice * (1 - self.rules['delta']):
+                mode          = 'low'
+                retrofit_flag = True
+
+        # avoid comparison with another route designs
+        if self.after_route_change():
+            return True, 'middle'
+
+        # remove current mode
+        if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
+            retrofit_flag = False
+            
+        # remove the same design
+        if not (retrofit_flag and self.current_design_key() != self.retrofit_design_keys[mode]):
+            retrofit_flag = False
+
+        return retrofit_flag, mode
+
     def calc_EHP(self, hull, engine, propeller, v_knot, load_condition, combination):
         raw_ehp     = hull.calc_raw_EHP(v_knot, load_condition)
         index       = np.where(np.array(combination[load_condition]).transpose()[1]==v_knot)[0][0]
@@ -1538,7 +1850,7 @@ class Agent(object):
     # fare = world_scale * flat_rate (e.g. WS50)
     def calc_fare(self):
         # return world_scale * flat_rate
-        return self.current_world_scale * ( self.current_flat_rate / 100.0)
+        return calc_fare_with_params(self.current_world_scale, self.current_flat_rate)
 
     def retrofit_mode_to_human(self):
         return [key for key, value in RETROFIT_MODE.iteritems() if value == self.retrofit_mode][0]
@@ -1565,7 +1877,7 @@ class Agent(object):
                 alpha = 5.5
                 beta  = 4.5
         elif self.bf_mode == BF_MODE['calm']:
-            pass
+            return bf_prob
 
         return load_bf_prob_with_param(alpha, beta)
 
@@ -1768,16 +2080,56 @@ class Agent(object):
             self.change_sea_count     = 0
             self.route_change_date    = self.current_date
             self.retrofit_design_keys = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
+            if hasattr(self, 'world_scale_base'):
+                self.set_market_prices('B')
 
         return
 
     def should_route_change(self):
+        if hasattr(self, 'change_sea_mode') and self.change_sea_mode == 'market_fluc':
+            if self.check_route_fare_trend():
+                return True
+
         if not hasattr(self, 'change_route_period'):
+            return False
+
+        if self.change_route_period == 0:
             return False
 
         # time elapsed
         return self.current_date > add_year(self.origin_date, self.change_route_period)
-                    
+                 
+    def check_route_fare_trend(self):
+        ret_flag = False
+        current_index_ws   = search_near_index(self.current_date, self.world_scale.predicted_data['date'])
+        start_index_ws     = search_near_index(self.current_date - datetime.timedelta(days=365*2), self.world_scale.predicted_data['date'])
+        start_index_raw    = np.where(self.world_scale.predicted_data['date']==start_index_ws)[0]
+        end_index_raw      = np.where(self.world_scale.predicted_data['date']==current_index_ws)[0]
+        analysis_period_ws = self.world_scale.predicted_data[start_index_raw:end_index_raw]
+
+        other_world_sacle = self.world_scale_other.predicted_data[start_index_raw:end_index_raw]
+
+        try:
+            flat_rate_induces = []
+            for ws_date in analysis_period_ws['date']:
+                # current route
+                current_index_fr = search_near_index(str_to_date(ws_date), self.flat_rate.predicted_data['date'])
+                current_index_fr = np.where(self.flat_rate.predicted_data['date']==current_index_fr)[0]
+                flat_rate_induces.append(current_index_fr[0])
+        except:
+            set_trace()
+
+        flat_rate_induces = np.array(flat_rate_induces)
+
+
+        current_fares = calc_fare_with_params(analysis_period_ws['ws'], self.flat_rate.predicted_data[flat_rate_induces]['fr'])
+        next_fares    = calc_fare_with_params(self.world_scale_other.predicted_data[start_index_raw:end_index_raw]['ws'], self.flat_rate_other.predicted_data[flat_rate_induces]['fr'])
+
+        # condition to change the route
+        if np.average(next_fares) > np.average(current_fares):
+            ret_flag = True
+
+        return ret_flag
 
     def can_change_route(self):
         return self.change_sea_count > 0
@@ -1792,9 +2144,28 @@ class Agent(object):
         if not self.change_sea_flag:
             return True
 
-        if self.after_route_change():
-            return True
-        return False
-            
-        
-        
+        return self.after_route_change()
+
+    def display_debug_info(self, debug_mode, retrofit_design_keys):
+        print "\n%40s" % ('-'*40)
+        print "%20s" % (debug_mode)
+        print "%20s: %50s" % ('base design'.title(), self.display_current_design())
+        print "%20s: %50s" % ('retrofit mode'.title(), self.retrofit_mode_to_human())
+        print "%20s: %50s" % ('retrofit design keys'.title(), retrofit_design_keys)
+        print "%20s: %50s" % ('bf mode'.title(), self.bf_prob)
+        print "%20s: %50s" % ('origin date'.title(), self.sinario.history_data['date'][-1])
+        print "%20s: %50s" % ('retire date'.title(), self.sinario.predicted_data['date'][-1])
+        print "%20s: %50s" % ('change route period'.title(), str(self.change_route_period) if hasattr(self, 'change_route_period') else 'None')
+        print "%20s: %50s" % ('change sea mode'.title(), self.change_sea_mode if hasattr(self, 'change_sea_mode') else 'None')
+        market = 'A' if self.world_scale == self.world_scale_base else 'B'
+        print "%20s: %50s" % ('market'.title(), market.upper())
+        return
+
+    def set_market_prices(self, route_type):
+        if route_type == 'A':
+            self.world_scale = self.world_scale_base
+            self.flat_rate   = self.flat_rate_base
+        else:
+            self.world_scale = self.world_scale_other
+            self.flat_rate   = self.flat_rate_other
+        return

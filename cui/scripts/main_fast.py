@@ -96,6 +96,7 @@ def run(options):
         base_design_key      = designs[case_mode]
         retrofit_design_key  = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE[bf_mode][case_mode]
         retrofit_mode        = RETROFIT_MODE['route_change']
+
         devided_periods      = np.array_split(change_route_periods, PROC_NUM)
         agent                = Agent(base_sinario,
                                      world_scale,
@@ -118,7 +119,138 @@ def run(options):
         pool.close()
         pool.join()
         # multi processing #
+
+    elif final_mode == 'route_fluc_monte':
+        # init market fluc as middle(stage)
+        fixed_seed    = scenario_seeds['stage']
+        np.random.seed(fixed_seed)
+        generate_market_scenarios(base_sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
         
+        # init parameters
+        oilprice_mode        = "oilprice_middle"
+        bf_mode              = 'rough'
+        case_mode            = 'middle'
+        designs              = RETROFIT_DESIGNS[bf_mode]
+        base_design_key      = designs[case_mode]
+        retrofit_design_key  = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE[bf_mode][case_mode]
+        retrofit_mode        = RETROFIT_MODE['route_change']
+
+        # for monte-carlo simulation
+        simulation_times           = SIMULATE_COUNT
+        conducted_simulation_count = 0
+        devided_simulation_times   = np.array_split(range(simulation_times)[conducted_simulation_count:], PROC_NUM)
+
+        agent                = Agent(base_sinario,
+                                     world_scale,
+                                     flat_rate,
+                                     retrofit_mode,
+                                     scenario_mode, BF_MODE[bf_mode])
+
+        agent.change_sea_flag   = True
+        agent.change_route_prob = CHANGE_ROUTE_PROB
+        agent.output_dir_path   = output_dir_path
+        
+        '''
+        agent.calc_flexible_design_m_route_change(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_periods, base_design_key, retrofit_design_key, retrofit_mode)
+        sys.exit()
+        '''
+
+        # multi processing #
+        # initialize
+        pool                  = mp.Pool(PROC_NUM)
+        callback              = [pool.apply_async(agent.calc_flexible_design_m_route_change_monte, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, retrofit_mode)) for index in xrange(PROC_NUM)]
+
+        pool.close()
+        pool.join()
+        # multi processing #
+
+    elif final_mode == 'route_fluc_prob':
+        # init retrofit designs
+        retrofit_designs          = RETROFIT_DESIGNS
+
+        # initialize parameters
+        simulation_times          = SIMULATE_COUNT
+
+        conducted_simulation_count = 0
+        devided_simulation_times   = np.array_split(range(simulation_times)[conducted_simulation_count:], PROC_NUM)
+        retrofit_mode              = RETROFIT_MODE['route_change_merged']
+
+        # for single case
+        trends = [0.05]
+        deltas = [0.30]
+
+        for trend in trends:
+            for delta in deltas:
+                dir_name = "trend_%0.2lf_delta%0.2lf" % (trend, delta)
+                for bf_mode in ['rough']:
+                    designs    = retrofit_designs[bf_mode]
+                    case_modes = TARGET_DESIGNS[bf_mode]
+                    for case_mode in case_modes:
+                        base_design_key      = designs[case_mode]
+                        retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}
+                        agent                = Agent(base_sinario,
+                                                     world_scale,
+                                                     flat_rate,
+                                                     retrofit_mode,
+                                                     scenario_mode, BF_MODE[bf_mode])
+                        agent.rules           = {'trend': trend, 'delta': delta}
+                        agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
+
+                        # for route change
+                        agent.change_sea_flag   = True
+                        agent.change_route_prob = CHANGE_ROUTE_PROB
+
+                        '''
+                        agent.calc_flexible_design_m(1, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
+                        sys.exit()
+                        '''
+                         
+                        # multi processing #
+                        # initialize
+                        pool                  = mp.Pool(PROC_NUM)
+                        callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)) for index in xrange(PROC_NUM)]
+                        pool.close()
+                        pool.join()
+                        # multi processing #
+
+    elif final_mode == 'whole_sim':
+        # initialize parameters
+        bf_mode = 'rough'
+        simulation_times           = SIMULATE_COUNT
+        simulation_duration_years  = VESSEL_LIFE_TIME
+        simulation_duration_years  = 3
+        conducted_simulation_count = 0
+        devided_simulation_times   = np.array_split(range(simulation_times)[conducted_simulation_count:], PROC_NUM)
+        agent                      = Agent(base_sinario,
+                                           world_scale,
+                                           flat_rate,
+                                           None,
+                                           scenario_mode, BF_MODE[bf_mode])
+        agent.rules                = {'trend': 0.05, 'delta': 0.30}
+        agent.output_dir_path      = "%s/%s" % (output_dir_path, bf_mode)
+
+        agent.world_scale_other = WorldScale(world_scale_history_data)
+        agent.flat_rate_other   = FlatRate(flat_rate_history_data)
+        
+        '''
+        # for route change
+        agent.change_sea_flag     = True
+        agent.change_route_prob   = CHANGE_ROUTE_PROB
+        '''
+
+        '''
+        agent.calc_whole_simulation_m(1, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times)
+        print 'done'
+        sys.exit()
+        '''
+        
+        # multi processing #
+        # initialize
+        pool                  = mp.Pool(PROC_NUM)
+        callback              = [pool.apply_async(agent.calc_whole_simulation_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times)) for index in xrange(PROC_NUM)]
+        pool.close()
+        pool.join()
+        # multi processing #
 
     elif final_mode == '2':
         # init retrofit designs
@@ -139,48 +271,39 @@ def run(options):
         deltas   = np.linspace(BASE_DELTA['origin'], BASE_DELTA['end'], case_num)
 
         # for single case
-        #trends = [0.05, 0.50, 0.10, 0.20]
         trends = [0.05]
         deltas = [0.30]
 
-        #change_route_periods = range(4, 15,2)[1:] if change_route_mode else [None]
-        change_route_periods = CHANGE_ROUTE_PERIODS if change_route_mode else [None]
-        for change_route_period in change_route_periods:
-            for trend in trends:
-                for delta in deltas:
-                    dir_name = "trend_%0.2lf_delta%0.2lf" % (trend, delta)
-                    for bf_mode in ['rough']:
-                        designs    = retrofit_designs[bf_mode]
-                        case_modes = designs.keys()
-                        case_modes = TARGET_DESIGNS[bf_mode]
-                        for case_mode in case_modes:
-                            base_design_key      = designs[case_mode]
-                            retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}
-                            agent                = Agent(base_sinario,
-                                                         world_scale,
-                                                         flat_rate,
-                                                         retrofit_mode,
-                                                         scenario_mode, BF_MODE[bf_mode])
-                            agent.rules          = {'trend': trend, 'delta': delta}
-                            agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
-                            if change_route_period is not None:
-                                agent.change_sea_flag     = True
-                                agent.change_route_period = change_route_period
-                                agent.output_dir_path     = "%s/%s/period_%d/%s_design" % (output_dir_path, dir_name, change_route_period, case_mode)
-                                initializeDirHierarchy(agent.output_dir_path)
-
-                            '''
-                            agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
-                            sys.exit()
-                            '''
-
-                            # multi processing #
-                            # initialize
-                            pool                  = mp.Pool(PROC_NUM)
-                            callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)) for index in xrange(PROC_NUM)]
-                            pool.close()
-                            pool.join()
-                            # multi processing #
+        for trend in trends:
+            for delta in deltas:
+                dir_name = "trend_%0.2lf_delta%0.2lf" % (trend, delta)
+                for bf_mode in ['rough']:
+                    designs    = retrofit_designs[bf_mode]
+                    case_modes = designs.keys()
+                    case_modes = TARGET_DESIGNS[bf_mode]
+                    for case_mode in case_modes:
+                        base_design_key      = designs[case_mode]
+                        retrofit_design_keys = { k:v for k,v in designs.items() if not k == case_mode}
+                        agent                = Agent(base_sinario,
+                                                     world_scale,
+                                                     flat_rate,
+                                                     retrofit_mode,
+                                                     scenario_mode, BF_MODE[bf_mode])
+                        agent.rules          = {'trend': trend, 'delta': delta}
+                        agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
+                            
+                        '''
+                        agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
+                        sys.exit()
+                        '''
+                        
+                        # multi processing #
+                        # initialize
+                        pool                  = mp.Pool(PROC_NUM)
+                        callback              = [pool.apply_async(agent.calc_flexible_design_m, args=(index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)) for index in xrange(PROC_NUM)]
+                        pool.close()
+                        pool.join()
+                        # multi processing #
                                 
     if final_mode == 'True':
         significant_modes = ['middle', 'low', 'high']
