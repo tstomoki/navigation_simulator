@@ -2125,8 +2125,11 @@ class Agent(object):
         next_fares    = calc_fare_with_params(self.world_scale_other.predicted_data[start_index_raw:end_index_raw]['ws'], self.flat_rate_other.predicted_data[flat_rate_induces]['fr'])
 
         # condition to change the route
-        if np.average(next_fares) > np.average(current_fares):
+        if np.average(next_fares) > np.average(current_fares) * CHANGE_ROUTE_MARKET_RATE:
             ret_flag = True
+
+        # debug
+        print "fare trend: %3.3lf" % (np.average(next_fares) / np.average(current_fares))
 
         return ret_flag
 
