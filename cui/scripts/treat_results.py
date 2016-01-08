@@ -80,18 +80,21 @@ def calc_whole_sim(result_dir_path):
     target_dir_path = "%s/rough" % (result_dir_path)
     target_dirs     = os.listdir(target_dir_path)
 
-    dt = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
-                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
+    dt = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date', 'change_route_date'),
+                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20','S20')})        
     column_names = ["simulation_time",
                     "hull_id",
                     "engine_id",
                     "propeller_id",
                     "NPV",
                     "fuel_cost",
-                    "retrofit_date"]
-    npv_result = {}
+                    "retrofit_date",
+                    "change_route_date"]
+    npv_result      = {}
+    retrofit_result = {}
     for target_dir in target_dirs:
-        npv_result[target_dir] = {}
+        npv_result[target_dir]      = {}
+        retrofit_result[target_dir] = {}
         dir_path     = "%s/%s" % (target_dir_path, target_dir)
         files_in_dir = os.listdir(dir_path)
         target_files = [_f for _f in files_in_dir if _f[-4:] == '.csv']
@@ -106,7 +109,8 @@ def calc_whole_sim(result_dir_path):
                 data = np.atleast_1d(data)
             for _d in data:
                 tmp_result.append(_d)
-                npv_result[target_dir][_d['simulation_time']] = _d['NPV']
+                npv_result[target_dir][_d['simulation_time']]      = _d['NPV']
+                retrofit_result[target_dir][_d['simulation_time']] = _d['change_route_date']
         tmp_result     = np.array(sorted(tmp_result, key=lambda x : x[0]))
         retrofit_count = len([_d for _d in tmp_result['retrofit_date'] if _d != '--'])
         ret_result[target_dir] = {'retrofit_count': retrofit_count,
@@ -115,11 +119,11 @@ def calc_whole_sim(result_dir_path):
     # display part
     print "\n%20s: %10d" % ('simulation count'.upper(), len(npv_result['route_a']))
     conduct_modes = [_e for _e in npv_result.keys()]
-    print "\n%15s %17s %15s %20s " % tuple(map(lambda x:x.upper(), conduct_modes))
+    print "\n%5s" % ('sim'.upper()) + "%15s %17s %15s %20s " % tuple(map(lambda x:x.upper(), conduct_modes)) + "%20s" % ('winner'.upper())
     display_nums = npv_result['route_a'].keys()
     winner_count = dict.fromkeys(conduct_modes, 0)
     for display_num in sorted(display_nums):
-        display_str = ''
+        display_str = "%5d" % (display_num)
         max_data = {conduct_modes[0]: npv_result[conduct_modes[0]][display_num]}
         for conduct_mode in conduct_modes:
             if npv_result[conduct_mode].has_key(display_num):
@@ -132,17 +136,22 @@ def calc_whole_sim(result_dir_path):
         max_key = max_data.keys()[0]
 
         if (max_key == 'route_ab_prob'):
-            if npv_result.has_key('route_ab_market') and npv_result['route_ab_prob'][display_num] == max_data.values()[0]:
+            if npv_result.has_key('route_ab_market') and npv_result['route_ab_market'].has_key(display_num) and npv_result['route_ab_market'][display_num] == max_data.values()[0]:
                 winner_count[max_key] += 0.5        
                 winner_count['route_ab_market'] += 0.5        
-                print display_str + "%20s, %20s" % (max_key, 'route_ab_market')
+                display_str += "%20s, %20s" % (max_key, 'route_ab_market')
             else:
                 winner_count[max_key] += 1.0
-                print display_str + "%20s" % (max_key)
+                display_str += "%40s" % (max_key)
         else:
             winner_count[max_key] += 1
-            print display_str + "%20s" % (max_key)
+            display_str += "%40s" % (max_key)
 
+        prob_retrofit   = retrofit_result['route_ab_prob'][display_num] if retrofit_result['route_ab_prob'].has_key(display_num) else "-" * 10
+        market_retrofit = retrofit_result['route_ab_market'][display_num] if retrofit_result['route_ab_market'].has_key(display_num) else "-" * 10
+        market_retrofit += "%10s" % ('True' if prob_retrofit == market_retrofit else 'False')
+        retrofit_str = "\t%10s:%10s %10s:%10s" % ('(prob)', prob_retrofit, '(market)', market_retrofit)
+        print display_str + "%20s" % (retrofit_str)
     print "\n"
     print winner_count
     return
