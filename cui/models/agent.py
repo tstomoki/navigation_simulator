@@ -1809,7 +1809,10 @@ class Agent(object):
 
         # avoid comparison with another route designs
         if self.after_route_change():
-            return True, 'middle'
+            if not retrofit_flag:
+                retrofit_flag = True
+                mode          = 'middle'
+            return retrofit_flag, mode
 
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
