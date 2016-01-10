@@ -895,7 +895,8 @@ def draw_retrofit_result(result_dir_path):
                         if _d['retrofit_date'] == '--':
                             _d['NPV'] -= UPFRONT_COST
                         else:
-                            _d['NPV'] -= (UPFRONT_COST + PRACTICE_PRICE )
+                            practice_price = calc_practice_price(_d['base_design'], _d['retrofit_design'])
+                            _d['NPV'] -= (UPFRONT_COST + practice_price )
                         flexible_result.append(_d)
                 flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
                 retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
@@ -1029,7 +1030,7 @@ def draw_delta_histgram(json_dir_path):
                                 'delta': delta_dict.values()})
     panda_frame['delta'].hist(color="#5F9BFF", alpha=.5, bins=100)
     plt.ylim(0, 120)
-    plt.xlim(-1e7, 4e7)
+    plt.xlim(-1e7, 7e7)
     plt.savefig(output_filepath)
     plt.clf()
     plt.close()        
@@ -1090,7 +1091,8 @@ def draw_retrofit_route_result(result_dir_path):
                         if _d['retrofit_date'] == '--':
                             _d['NPV'] -= UPFRONT_COST_ROUTE
                         else:
-                            _d['NPV'] -= (UPFRONT_COST_ROUTE + PRACTICE_PRICE_ROUTE )
+                            practice_price = calc_practice_price(_d['base_design'], _d['retrofit_design'])
+                            _d['NPV'] -= (UPFRONT_COST_ROUTE + practice_price )
                         flexible_result.append(_d)
                 flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
                 retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
@@ -1518,6 +1520,35 @@ def draw_compare_graph(comp_result):
     plt.legend(loc='upper left')    
     plt.savefig('./test.png')
     return
+
+def check_retrofitted_components(base_design, retrofit_design):
+    hull = engine = propeller = False
+
+    base_hull_id, base_engine_id, base_propeller_id             = get_component_ids_from_design_key(base_design) 
+    retrofit_hull_id, retrofit_engine_id, retrofit_propeller_id = get_component_ids_from_design_key(retrofit_design) 
+    
+    if base_hull_id != retrofit_hull_id:
+        hull = True
+    if base_engine_id != retrofit_engine_id:
+        engine = True
+    if base_propeller_id != retrofit_propeller_id:
+        propeller = True
+    return hull, engine, propeller
+
+def calc_practice_price(base_design, retrofit_design):
+    practice_price = 0
+    hull, engine, propeller = check_retrofitted_components(base_design, retrofit_design)
+    
+    if hull:
+        practice_price += PRACTICE_PRICES['hull']
+
+    if engine:
+        practice_price += PRACTICE_PRICES['engine']
+
+    if propeller:
+        practice_price += PRACTICE_PRICES['propeller']
+    return practice_price
+
 
 # authorize exeucation as main script
 if __name__ == '__main__':
