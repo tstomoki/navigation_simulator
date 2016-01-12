@@ -222,9 +222,38 @@ def draw_incident_rate(json_file_path):
     plt.close()    
     '''
 
-    return 
+    return
+
+def draw_comparison_wind(mode_blue, mode_red):
+    filepath = "../results/weather/wspd_comparison_with_%s_%s.png" % (mode_blue, mode_red)
+    plt.figure()
+    graphInitializer('wind speed comparison'.upper(), 'wind speed'.upper() + ' [m/s]', 'frequency'.upper())
+    # load json
+    start_date = datetime.datetime(1995, 1,1,0,0)
+    colors = {'blue': "#5F9BFF", 'red': "#DFB2BD"}
+    labels = {'blue': mode_blue, 'red': 'arabia_Argentina'}
+    for mode in ['blue', 'red']:
+        target_mode    = eval("mode_%s" % (mode))
+        json_file_path = "../results/weather_analysis_data_in_%s.json" % (target_mode)
+        if not os.path.exists(json_file_path):
+            print "file load error, abort"
+            sys.exit()
+            
+        data        = load_json_file(json_file_path)
+        target_data = [ _v for _d, _v in data.items() if datetime.datetime.strptime(_d, "%Y/%m") > start_date]
+        panda_frame = pd.DataFrame({'wspd': target_data})
+        panda_frame['wspd'].hist(color = colors[mode], alpha=.5, label=labels[mode].replace('_', '-').upper())
+        print 'whole data num: %d' % (len(data))
+        
+    plt.legend(shadow=True)
+    plt.legend(loc='upper left')
+    plt.savefig(filepath)
+    plt.clf()
+    plt.close()
+    return
     
 if __name__ == '__main__':
+    draw_comparison_wind('japan_arabia', 'arabia_us')
     analyze()
     for loc in ['japan_arabia', 'arabia_us', 'arabia_mid_us']:
         json_path = "../results/weather_analysis_data_in_%s.json" % loc

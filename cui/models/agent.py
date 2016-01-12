@@ -239,7 +239,10 @@ class Agent(object):
 
             # calculate optimized speed and rps during 
             if (CF_day is None) and (rpm is None) and (v_knot is None):
-                C_fuel, CF_day, rpm, v_knot  = self.calc_optimal_velocity(hull, engine, propeller)
+                if hasattr(self, 'constant_rpm'):
+                    C_fuel, CF_day, rpm, v_knot = self.calc_constant_velocity(hull, engine, propeller)
+                else:
+                    C_fuel, CF_day, rpm, v_knot = self.calc_optimal_velocity(hull, engine, propeller)
             else:
                 # conserve calm sea velocity
                 v_knot = raw_v
@@ -552,6 +555,26 @@ class Agent(object):
         C_fuel, CF_day, optimal_rpm, optimal_velocity = sorted(combinations, key=lambda x : x[1], reverse=True)[0]
         return C_fuel, CF_day, optimal_rpm, optimal_velocity
 
+    def calc_constant_velocity(self, hull, engine, propeller):
+        combinations       = []
+        # cull the combination for the fast cunduct #
+        target_combination = self.cull_combination()
+        constant_rpm       = self.constant_rpm
+        
+        if self.is_ballast():
+            combinations    = target_combination[self.load_condition_to_human()]
+            velocity_first  = [_d[1] for _d in combinations if _d[0] == constant_rpm][0]
+            combinations    = target_combination[self.get_another_load_condition_to_human()]
+            velocity_second = [_d[1] for _d in combinations if _d[0] == constant_rpm][0]
+            ND              = self.calc_ND(velocity_first, velocity_second)
+            CF_day, C_fuel  = self.calc_cash_flow(constant_rpm, velocity_first, constant_rpm, velocity_second, hull, engine, propeller, ND)
+        else:
+            combinations    = target_combination[self.get_another_load_condition_to_human()]
+            velocity_first  = [_d[1] for _d in combinations if _d[0] == constant_rpm][0]
+            ND              = self.calc_ND(velocity_first, 0)
+            CF_day, C_fuel  = self.calc_cash_flow(constant_rpm, velocity_first, 0, 0, hull, engine, propeller, ND)
+        return C_fuel, CF_day, constant_rpm, velocity_first
+    
     # multi processing method #
     def calc_optimal_velocity_m(self, hull, engine, propeller):
         # devide the range

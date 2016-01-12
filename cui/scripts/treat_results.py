@@ -34,8 +34,6 @@ from agent       import Agent
 
 
 def run(options):
-    # validation
-    #validate_components()
     result_dir_path       = options.result_dir_path
     json_file_path        = options.json_file_path
     count_simulation_mode = options.count_simulation_mode
@@ -61,7 +59,10 @@ def run(options):
         draw_delta_histgram(result_dir_path)
     if options.whole_sim_mode == 'True':
         calc_whole_sim(result_dir_path)
-    sys.exit()        
+    if options.validate_result_mode == 'True':
+        # validation
+        validate_components()
+    sys.exit()
 
     draw_hull_features()
     #draw_propeller_features()
@@ -235,6 +236,8 @@ def validate_components():
     # engine
     draw_engine_sfoc()
     get_engine_optimal_range()
+    # validation simulation
+    validation_simulation('H1E1P514')
     # 1 time navigation
     significant_modes = ['high', 'low', 'middle']
     oilprice_modes    = [ 'oilprice_' + s for s in significant_modes]
@@ -246,6 +249,57 @@ def validate_components():
             for bf_mode in sorted(BF_MODE.keys()):
                 print_with_notice("%s %s" % (bf_mode.upper(), 'sea condition'.upper()))
                 result = one_time_navigation(target_mode, oilprice_mode, bf_mode)
+    return
+
+def validation_simulation(design):
+    # initialize
+    # load history data
+    from_date                 = '2004/01/01'
+    to_date                   = '2016/01/01'
+    oil_price_history_data    = load_monthly_history_data(from_date, to_date)
+    world_scale_history_data  = load_world_scale_history_data()
+    flat_rate_history_data    = load_flat_rate_history_data()
+    simulation_duration_years = VESSEL_LIFE_TIME
+
+    # generate sinario
+    base_sinario = Sinario(oil_price_history_data)
+    # generate world scale
+    world_scale  = WorldScale(world_scale_history_data)
+    # generate flat rate
+    flat_rate    = FlatRate(flat_rate_history_data)
+    #flat_rate.draw_multiple_flat_rates()
+
+    # initialize directory 
+    output_dir_path = VALIDATION_LOG_DIR_PATH
+    initializeDirHierarchy(output_dir_path)
+
+    # load components list
+    hull_list           = load_hull_list()
+    engine_list         = load_engine_list()
+    propeller_list      = load_propeller_list()
+    
+    np.random.seed(COMMON_SEED_NUM)
+    sinario, world_scale, flat_rate = generate_final_significant_modes('oilprice_middle', 
+                                                                       oil_price_history_data, 
+                                                                       world_scale_history_data, 
+                                                                       flat_rate_history_data)
+    end_date                        = add_year(str_to_date(sinario.predicted_data['date'][0]), simulation_duration_years)
+    component_ids                   = get_component_ids_from_design_key(design)
+    print "%7s %10s %7s" % ('NPV', 'fuel_cost', 'round_num')
+    for bf_mode in BF_MODE.keys():
+        print '%10s' % (bf_mode)
+        agent                = Agent(base_sinario,
+                                     world_scale,
+                                     flat_rate,
+                                     None,
+                                     'significant', BF_MODE[bf_mode])
+        agent.hull, agent.engine, agent.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+        agent.sinario, agent.world_scale, agent.flat_rate = sinario, world_scale, flat_rate
+        agent.operation_date_array = generate_operation_date(agent.sinario.predicted_data['date'][0], end_date)
+        agent.retrofit_mode        = RETROFIT_MODE['none']
+        NPV, fuel_cost             = agent.simmulate(None, None, None, None, None, None, None)
+        print "%10.3lf %10.3lf %3d" % (NPV, fuel_cost, len(agent.elapsed_days_log))
+    sys.exit()
     return
 
 def one_time_navigation(target_mode, oilprice_mode, bf_mode):
@@ -301,10 +355,13 @@ def one_time_navigation(target_mode, oilprice_mode, bf_mode):
 
     print "%s: %lf" % (oilprice_mode, agent.sinario.predicted_data['price'][0])
 
+    # define constant_rpm
+    constant_rpm = 65
     for target_design_key in component_lists:
-        component_ids          = get_component_ids_from_design_key(target_design_key)
+        component_ids      = get_component_ids_from_design_key(target_design_key)
+        agent.constant_rpm = constant_rpm
         agent.hull, agent.engine, agent.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
-        NPV, fuel_cost         = agent.simmulate(None, None, None, None, None, None, True)
+        NPV, fuel_cost     = agent.simmulate(None, None, None, None, None, None, True)
         income = agent.current_fare * agent.hull.base_data['DWT']
         cf_raw = (1.0-agent.icr) * income - agent.calc_fix_cost()*agent.total_elapsed_days - agent.calc_port_cost(agent.total_elapsed_days)*agent.total_elapsed_days - fuel_cost
 
@@ -1534,6 +1591,8 @@ if __name__ == '__main__':
     parser.add_option("-H", "--histgram", dest="histgram_mode",
                       help="histgram mode", default=False)    
     parser.add_option("-W", "--whole", dest="whole_sim_mode",
-                      help="whole simulation mode", default=False)    
+                      help="whole simulation mode", default=False)
+    parser.add_option("-V", "--validate", dest="validate_result_mode",
+                      help="hull validate mode", default=False)    
     (options, args) = parser.parse_args()
     run(options)    
