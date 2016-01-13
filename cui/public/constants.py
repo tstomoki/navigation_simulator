@@ -258,7 +258,7 @@ BASE_DELTA = {'origin': 0.0, 'end': 0.5}
 PROPELLERS = {'0': 0, '257': 1, '514': 2, '771': 3, '1028': 4, '1285': 5}
 
 # FOR REALOPTION ANALYSIS
-UPFRONT_COST   = 1000000
+UPFRONT_COST   = 1100000
 PRACTICE_PRICE = 20000
 
 # practice prices

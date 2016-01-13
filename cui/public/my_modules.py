@@ -328,7 +328,12 @@ def daterange_to_str(start_date, end_date):
     return "%s-%s" % (start_date.strftime('%Y%m%d'), end_date.strftime('%Y%m%d'))
 
 def str_to_datetime(datetime_str):
-    return datetime.datetime.strptime(datetime_str, "%Y/%m/%d")
+    try:
+        ret_datetime = datetime.datetime.strptime(datetime_str, "%Y/%m/%d")
+    except:
+        ret_datetime = datetime.datetime.strptime(datetime_str, "%Y-%m-%d")
+
+    return ret_datetime
 
 def str_to_date(datetime_str):
     tdatetime = str_to_datetime(datetime_str)
@@ -1695,3 +1700,18 @@ def load_bf_prob_with_param(alpha, beta):
 
 def calc_fare_with_params(world_scale, flat_rate):
     return world_scale * ( flat_rate / 100.0)
+
+def calc_delta_from_origin(target_date):
+    if len(target_date) == 0 or target_date == '--':
+        return None
+    origin_date = str_to_datetime('2015/01/01')
+    delta_years = 0
+    possible_deltas = np.arange(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)
+
+    for possible_delta in possible_deltas:
+        tmp_date = add_year(origin_date, possible_delta)
+        comp_date = datetime.datetime(tmp_date.year, 12, 31)
+        if str_to_datetime(target_date) < comp_date:
+            return possible_delta
+    return 0
+    
