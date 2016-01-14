@@ -1338,7 +1338,7 @@ class Agent(object):
                             'retrofit_date',
                             'change_route_date']
         dtype            = np.dtype({'names': ('simulation_time', 'hull_id', 'engine_id', 'propeller_id', 'NPV', 'fuel_cost'),
-                           'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
+                                     'formats': (np.int, np.int, np.int , np.int, np.float, np.float)})
         simulation_times = devided_simulation_times[index]        
         
         for simulation_time in simulation_times:
@@ -1350,6 +1350,8 @@ class Agent(object):
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             self.world_scale_base = self.world_scale
             self.flat_rate_base   = self.flat_rate
+
+            print "\n\n%20s: %d" % ('simulation'.upper(), simulation_time)
 
             # define maket price on route B
             self.world_scale_other.generate_sinario_with_oil_corr(self.sinario_mode, self.sinario.history_data[-1], self.sinario.predicted_data)
@@ -1364,11 +1366,15 @@ class Agent(object):
             base_design_key      = RETROFIT_DESIGNS['rough'][base_mode]
             retrofit_design_keys = { k:v for k,v in RETROFIT_DESIGNS['rough'].items() if not k == base_mode}
             self.retrofit_mode   = RETROFIT_MODE['significant_rule']
+            self.reset_change_route_period()
             # set design
             component_ids                          = get_component_ids_from_design_key(base_design_key)
             self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation
+            print self.check_different_market_prices()
             NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            # debug
+            print "%20s: %4s years" % (conduct_mode, str(self.change_route_period) if (hasattr(self, 'change_route_period') and self.change_route_period is not None) else '----')
             ## write npv and fuel_cost file
             output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
             output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
@@ -1376,7 +1382,8 @@ class Agent(object):
             lap_time         = convert_second(time.clock() - start_time)
             # debug
             if debug_mode:
-                self.display_debug_info('route A'.upper(), retrofit_design_keys)
+                #self.display_debug_info('route A'.upper(), retrofit_design_keys)
+                pass
             else:
                 write_csv(column_names, [simulation_time, 
                                          self.hull.base_data['id'],
@@ -1395,11 +1402,15 @@ class Agent(object):
             retrofit_design_keys = { k:v for k,v in RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough'].items() if not k == base_mode}
             self.bf_prob         = self.load_bf_prob(True)
             self.retrofit_mode   = RETROFIT_MODE['significant_rule']
+            self.reset_change_route_period()
             # set design
             component_ids                          = get_component_ids_from_design_key(base_design_key)
             self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation
+            print self.check_different_market_prices()
             NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            # debug
+            print "%20s: %4s years" % (conduct_mode, str(self.change_route_period) if (hasattr(self, 'change_route_period') and self.change_route_period is not None) else '----')
             ## write npv and fuel_cost file
             output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
             output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
@@ -1408,7 +1419,8 @@ class Agent(object):
 
             # debug
             if debug_mode:
-                self.display_debug_info('route B'.upper(), retrofit_design_keys)
+                #self.display_debug_info('route B'.upper(), retrofit_design_keys)
+                pass
             else:
                 write_csv(column_names, [simulation_time, 
                                          self.hull.base_data['id'],
@@ -1435,7 +1447,10 @@ class Agent(object):
             component_ids                          = get_component_ids_from_design_key(base_design_key)
             self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation
+            print self.check_different_market_prices()
             NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            # debug
+            print "%20s: %4s years" % (conduct_mode, str(self.change_route_period) if (hasattr(self, 'change_route_period') and self.change_route_period is not None) else '----')
             ## write npv and fuel_cost file
             output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
             output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
@@ -1443,7 +1458,8 @@ class Agent(object):
             lap_time         = convert_second(time.clock() - start_time)
             # debug
             if debug_mode:
-                self.display_debug_info('route A, B prob'.upper(), retrofit_design_keys)
+                #self.display_debug_info('route A, B prob'.upper(), retrofit_design_keys)
+                pass
             else:
                 write_csv(column_names, [simulation_time, 
                                          self.hull.base_data['id'],
@@ -1469,7 +1485,10 @@ class Agent(object):
             component_ids                          = get_component_ids_from_design_key(base_design_key)
             self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation
+            print self.check_different_market_prices()
             NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            # debug
+            print "%20s: %4s years" % (conduct_mode, str(self.change_route_period) if (hasattr(self, 'change_route_period') and self.change_route_period is not None) else '----')
             ## write npv and fuel_cost file
             output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
             output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
@@ -1477,8 +1496,8 @@ class Agent(object):
             lap_time         = convert_second(time.clock() - start_time)
             # debug
             if debug_mode:
-                self.display_debug_info('route A, B market'.upper(), retrofit_design_keys)
-                sys.exit()
+                #self.display_debug_info('route A, B market'.upper(), retrofit_design_keys)
+                pass
             else:
                 write_csv(column_names, [simulation_time, 
                                          self.hull.base_data['id'],
@@ -1505,7 +1524,10 @@ class Agent(object):
             component_ids                          = get_component_ids_from_design_key(base_design_key)
             self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
             # conduct simulation
+            print self.check_different_market_prices()
             NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            # debug
+            print "%20s: %4s years" % (conduct_mode, str(self.change_route_period) if (hasattr(self, 'change_route_period') and self.change_route_period is not None) else '----')
             ## write npv and fuel_cost file
             output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
             output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
@@ -1513,8 +1535,8 @@ class Agent(object):
             lap_time         = convert_second(time.clock() - start_time)
             # debug
             if debug_mode:
-                self.display_debug_info('route A, B answer'.upper(), retrofit_design_keys)
-                sys.exit()
+                #self.display_debug_info('route A, B answer'.upper(), retrofit_design_keys)
+                pass
             else:
                 write_csv(column_names, [simulation_time, 
                                          self.hull.base_data['id'],
@@ -1522,6 +1544,7 @@ class Agent(object):
                                          self.propeller.base_data['id'],
                                          NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
             ### flexible for Route A + B based on market value (route_AB_market) ###
+            self.set_market_prices('A')
 
         return
 
@@ -1774,11 +1797,13 @@ class Agent(object):
         cons, trend   = estimate(analysis_data.transpose()[0], analysis_data.transpose()[1], 1)
 
         ## debug
+        '''
         print "trend: %3.3lf" % (trend)
         print "trend_rule: %3.3lf" % (self.rules['trend'])
         print "origin_price: %3.3lf, avg_oilprice: %3.3lf" % (origin_oilprice, avg_oilprice)
         print "high: %3.3lf" % (origin_oilprice * (1 + self.rules['delta']))
         print "low: %3.3lf" % (origin_oilprice * (1 - self.rules['delta']))
+        '''
 
         # change flag
         ## High
@@ -1842,11 +1867,13 @@ class Agent(object):
         cons, trend   = estimate(analysis_data.transpose()[0], analysis_data.transpose()[1], 1)
 
         ## debug
+        '''
         print "trend: %3.3lf" % (trend)
         print "trend_rule: %3.3lf" % (self.rules['trend'])
         print "origin_price: %3.3lf, avg_oilprice: %3.3lf" % (origin_oilprice, avg_oilprice)
         print "high: %3.3lf" % (origin_oilprice * (1 + self.rules['delta']))
         print "low: %3.3lf" % (origin_oilprice * (1 - self.rules['delta']))
+        '''
 
         # change flag
         ## High
@@ -2141,13 +2168,15 @@ class Agent(object):
             self.change_sea_count     = 0
             self.route_change_date    = self.current_date
             self.retrofit_design_keys = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
+            change_route_period = calc_delta_from_origin(self.current_date)
+            self.change_route_period  = change_route_period if change_route_period != 0 else None
             if hasattr(self, 'world_scale_base'):
                 self.set_market_prices('B')
 
         return
 
     def should_route_change(self):
-        if hasattr(self, 'change_sea_mode'):
+        if hasattr(self, 'change_sea_mode') and (self.change_sea_mode is not None):
             if self.change_sea_mode == 'market_fluc':
                 ret_flag = True if self.check_route_fare_trend() else False
             elif self.change_sea_mode == 'market_fluc_ans':
@@ -2157,7 +2186,7 @@ class Agent(object):
         if not hasattr(self, 'change_route_period'):
             return False
 
-        if self.change_route_period == 0:
+        if (self.change_route_period == 0) or (self.change_route_period is None):
             return False
 
         # time elapsed
@@ -2182,11 +2211,13 @@ class Agent(object):
         next_fares        = calc_fare_with_params(self.world_scale_other.predicted_data[start_index_raw:]['ws'], self.flat_rate_other.predicted_data[flat_rate_induces]['fr'])
 
         # condition to change the route
-        if np.average(next_fares) > np.average(current_fares) * CHANGE_ROUTE_MARKET_RATE:
+        if np.average(next_fares) > np.average(current_fares):
             ret_flag = True
 
         # debug
+        '''
         print "fare trend: %3.3lf" % (np.average(next_fares) / np.average(current_fares))
+        '''
         
         return ret_flag
 
@@ -2217,7 +2248,9 @@ class Agent(object):
             ret_flag = True
 
         # debug
+        '''
         print "fare trend: %3.3lf" % (np.average(next_fares) / np.average(current_fares))
+        '''
 
         return ret_flag
 
@@ -2264,3 +2297,8 @@ class Agent(object):
         self.change_sea_flag   = True
         self.change_sea_count  = 1
         return
+
+    def check_different_market_prices(self):
+        world_scale_flag = all(self.world_scale_base.predicted_data == self.world_scale_other.predicted_data)
+        flat_rate_flag = all(self.flat_rate_base.predicted_data == self.flat_rate_other.predicted_data)
+        return world_scale_flag and flat_rate_flag

@@ -235,8 +235,7 @@ def run(options):
         # for route change
         agent.change_sea_flag     = True
         agent.change_route_prob   = CHANGE_ROUTE_PROB
-        '''
-        '''
+
         agent.calc_whole_simulation_m(3, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times)
         print 'done'
         sys.exit()
