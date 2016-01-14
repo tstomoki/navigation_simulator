@@ -81,18 +81,21 @@ def calc_whole_sim(result_dir_path):
     target_dir_path = "%s/rough" % (result_dir_path)
     target_dirs     = os.listdir(target_dir_path)
 
-    dt = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date'),
-                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20')})        
+    dt = np.dtype({'names': ('simulation_time', 'hull_id','engine_id','propeller_id','NPV', 'fuel_cost', 'base_design', 'retrofit_design', 'retrofit_date', 'change_route_date'),
+                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S20', 'S20', 'S20','S20')})        
     column_names = ["simulation_time",
                     "hull_id",
                     "engine_id",
                     "propeller_id",
                     "NPV",
                     "fuel_cost",
-                    "retrofit_date"]
-    npv_result = {}
+                    "retrofit_date",
+                    "change_route_date"]
+    npv_result      = {}
+    retrofit_result = {}
     for target_dir in target_dirs:
-        npv_result[target_dir] = {}
+        npv_result[target_dir]      = {}
+        retrofit_result[target_dir] = {}
         dir_path     = "%s/%s" % (target_dir_path, target_dir)
         files_in_dir = os.listdir(dir_path)
         target_files = [_f for _f in files_in_dir if _f[-4:] == '.csv']
@@ -107,20 +110,28 @@ def calc_whole_sim(result_dir_path):
                 data = np.atleast_1d(data)
             for _d in data:
                 tmp_result.append(_d)
-                npv_result[target_dir][_d['simulation_time']] = _d['NPV']
+                simulation_time = _d['simulation_time']
+                retrofit_result[target_dir][simulation_time] = {'NPV': _d['NPV'], 
+                                                                'change_route_date': _d['change_route_date'],
+                                                                'change_route_period': calc_delta_from_origin(_d['change_route_date']),
+                                                                'retrofit_date': _d['retrofit_date']}
+                npv_result[target_dir][simulation_time] = _d['NPV']
         tmp_result     = np.array(sorted(tmp_result, key=lambda x : x[0]))
         retrofit_count = len([_d for _d in tmp_result['retrofit_date'] if _d != '--'])
         ret_result[target_dir] = {'retrofit_count': retrofit_count,
                                   'simulation_count': len(tmp_result)}
-
     # display part
     print "\n%20s: %10d" % ('simulation count'.upper(), len(npv_result['route_a']))
     conduct_modes = [_e for _e in npv_result.keys()]
-    print "\n%15s %17s %15s %20s " % tuple(map(lambda x:x.upper(), conduct_modes))
+    try:
+        print "\n%5s" % ('sim'.upper()) + "%15s %17s %15s %20s %20s" % tuple(map(lambda x:x.upper(), conduct_modes)) + "%20s" % ('winner'.upper())
+    except:
+        set_trace()
     display_nums = npv_result['route_a'].keys()
     winner_count = dict.fromkeys(conduct_modes, 0)
+    
     for display_num in sorted(display_nums):
-        display_str = ''
+        display_str = "%5d" % (display_num)
         max_data = {conduct_modes[0]: npv_result[conduct_modes[0]][display_num]}
         for conduct_mode in conduct_modes:
             if npv_result[conduct_mode].has_key(display_num):
@@ -132,20 +143,61 @@ def calc_whole_sim(result_dir_path):
                 max_data = {conduct_mode: npv_result[conduct_mode][display_num]}
         max_key = max_data.keys()[0]
 
+        '''
         if (max_key == 'route_ab_prob'):
-            if npv_result.has_key('route_ab_market') and npv_result['route_ab_prob'][display_num] == max_data.values()[0]:
+            if npv_result.has_key('route_ab_market') and npv_result['route_ab_market'].has_key(display_num) and npv_result['route_ab_market'][display_num] == max_data.values()[0]:
                 winner_count[max_key] += 0.5        
                 winner_count['route_ab_market'] += 0.5        
-                print display_str + "%20s, %20s" % (max_key, 'route_ab_market')
+                display_str += "%20s, %20s" % (max_key, 'route_ab_market')
             else:
                 winner_count[max_key] += 1.0
-                print display_str + "%20s" % (max_key)
+                display_str += "%40s" % (max_key)
         else:
             winner_count[max_key] += 1
-            print display_str + "%20s" % (max_key)
+            display_str += "%40s" % (max_key)
 
+        prob_retrofit   = retrofit_result['route_ab_prob'][display_num] if retrofit_result['route_ab_prob'].has_key(display_num) else "-" * 10
+        market_retrofit = retrofit_result['route_ab_market'][display_num] if retrofit_result['route_ab_market'].has_key(display_num) else "-" * 10
+        market_retrofit += "%10s" % ('True' if prob_retrofit == market_retrofit else 'False')
+        '''
+        try:
+            prob_route_ch   = retrofit_result['route_ab_prob'][display_num]['change_route_period']
+            prob_retrofit   = retrofit_result['route_ab_prob'][display_num]['retrofit_date']
+
+            market_route_ch = retrofit_result['route_ab_market'][display_num]['change_route_period']
+            market_retrofit = retrofit_result['route_ab_market'][display_num]['retrofit_date']
+
+            ans_route_ch    = retrofit_result['route_ab_answer'][display_num]['change_route_period']
+            ans_retrofit    = retrofit_result['route_ab_answer'][display_num]['retrofit_date']
+
+            retrofit_str    = "\t(%10s: %10s, %10s) (%10s: %10s, %10s) (%10s: %10s, %10s)" % ('prob', prob_route_ch, prob_retrofit, 'market', market_route_ch, market_retrofit, 'ans', ans_route_ch, ans_retrofit)
+        except:
+            prob_route_ch   = "-" * 3
+            prob_retrofit   = "-" * 10
+            market_route_ch = "-" * 3
+            market_retrofit = "-" * 10
+            ans_route_ch    = "-" * 3
+            ans_retrofit    = "-" * 10
+            retrofit_str    = "\t(%10s: %10s, %10s) (%10s: %10s, %10s) (%10s: %10s, %10s)" % ('prob', prob_route_ch, prob_retrofit, 'market', market_route_ch, market_retrofit, 'ans', ans_route_ch, ans_retrofit)
+        print display_str + "%20s" % (retrofit_str)
     print "\n"
     print winner_count
+    
+    print "%30s" % ('average npv'.upper())
+    for conduct_mode in conduct_modes:
+        avg_npv = np.average(npv_result[conduct_mode].values())
+        print "%15s %10.3lf %4.3e" % (conduct_mode.upper(), avg_npv, avg_npv)
+
+    for conduct_mode, values in retrofit_result.items():
+        print conduct_mode
+        route_ch_dict = {}
+        for _k, _v in values.items():
+            change_route_period = _v['change_route_period']
+            if not route_ch_dict.has_key(change_route_period):
+                route_ch_dict[change_route_period] = 1.0
+            else:
+                route_ch_dict[change_route_period] += 1.0
+        print route_ch_dict
     return
 
 def aggregate_route_change_output(result_dir_path):
@@ -182,7 +234,7 @@ def aggregate_route_change_output(result_dir_path):
                 raise
 
             if target_key == 'flexible':
-                npv = data[0]['NPV'] - UPFRONT_COST_ROUTE - PRACTICE_PRICE_ROUTE
+                npv = data[0]['NPV'] - UPFRONT_COST_ROUTE - calc_practice_price(data[0]['base_design'], data[0]['retrofit_design'])
             else:
                 npv = data[0]['NPV']
             print "\t%20s: %10.3lf %15.3e %10s %10s" % (target_key, npv, npv, data[0]['retrofit_date'], data[0]['change_route_date'])
@@ -943,7 +995,8 @@ def draw_retrofit_result(result_dir_path):
                         if _d['retrofit_date'] == '--':
                             _d['NPV'] -= UPFRONT_COST
                         else:
-                            _d['NPV'] -= (UPFRONT_COST + PRACTICE_PRICE )
+                            practice_price = calc_practice_price(_d['base_design'], _d['retrofit_design'])
+                            _d['NPV'] -= (UPFRONT_COST + practice_price )
                         flexible_result.append(_d)
                 flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
                 retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
@@ -1077,7 +1130,7 @@ def draw_delta_histgram(json_dir_path):
                                 'delta': delta_dict.values()})
     panda_frame['delta'].hist(color="#5F9BFF", alpha=.5, bins=100)
     plt.ylim(0, 120)
-    plt.xlim(-1e7, 4e7)
+    plt.xlim(-1e7, 7e7)
     plt.savefig(output_filepath)
     plt.clf()
     plt.close()        
@@ -1138,7 +1191,8 @@ def draw_retrofit_route_result(result_dir_path):
                         if _d['retrofit_date'] == '--':
                             _d['NPV'] -= UPFRONT_COST_ROUTE
                         else:
-                            _d['NPV'] -= (UPFRONT_COST_ROUTE + PRACTICE_PRICE_ROUTE )
+                            practice_price = calc_practice_price(_d['base_design'], _d['retrofit_design'])
+                            _d['NPV'] -= (UPFRONT_COST_ROUTE + practice_price )
                         flexible_result.append(_d)
                 flexible_result = np.array(sorted(flexible_result, key=lambda x : x[0]))
                 retrofit_count = len([_d for _d in flexible_result['retrofit_date'] if _d != '--'])
@@ -1566,6 +1620,35 @@ def draw_compare_graph(comp_result):
     plt.legend(loc='upper left')    
     plt.savefig('./test.png')
     return
+
+def check_retrofitted_components(base_design, retrofit_design):
+    hull = engine = propeller = False
+
+    base_hull_id, base_engine_id, base_propeller_id             = get_component_ids_from_design_key(base_design) 
+    retrofit_hull_id, retrofit_engine_id, retrofit_propeller_id = get_component_ids_from_design_key(retrofit_design) 
+    
+    if base_hull_id != retrofit_hull_id:
+        hull = True
+    if base_engine_id != retrofit_engine_id:
+        engine = True
+    if base_propeller_id != retrofit_propeller_id:
+        propeller = True
+    return hull, engine, propeller
+
+def calc_practice_price(base_design, retrofit_design):
+    practice_price = 0
+    hull, engine, propeller = check_retrofitted_components(base_design, retrofit_design)
+    
+    if hull:
+        practice_price += PRACTICE_PRICES['hull']
+
+    if engine:
+        practice_price += PRACTICE_PRICES['engine']
+
+    if propeller:
+        practice_price += PRACTICE_PRICES['propeller']
+    return practice_price
+
 
 # authorize exeucation as main script
 if __name__ == '__main__':

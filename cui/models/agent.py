@@ -1323,7 +1323,6 @@ class Agent(object):
                                      NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
         return
 
-
     # conduct final simulation 
     def calc_whole_simulation_m(self, index, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times):
         debug_mode = False
@@ -1424,7 +1423,7 @@ class Agent(object):
             self.set_market_prices('A')
             # change route change periods
             np.random.seed(calc_seed(simulation_time))
-            self.change_sea_flag   = True
+            self.enable_change_route()
             self.change_route_prob = CHANGE_ROUTE_PROB
             self.set_change_route_period()
             np.random.seed(calc_seed(simulation_time))
@@ -1459,7 +1458,7 @@ class Agent(object):
             self.set_market_prices('A')
             # change route change periods
             np.random.seed(calc_seed(simulation_time))
-            self.change_sea_flag   = True
+            self.enable_change_route()
             self.reset_change_route_period()
             self.change_sea_mode   = 'market_fluc'
             base_design_key        = RETROFIT_DESIGNS['rough'][base_mode]
@@ -1487,6 +1486,41 @@ class Agent(object):
                                          self.propeller.base_data['id'],
                                          NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
                 
+            ### flexible for Route A + B based on market value (route_AB_market) ###
+
+            ### flexible for Route A + B based on answer of market value (route_AB_answer) ###
+            start_time   = time.clock()
+            conduct_mode = 'route_ab_answer'
+            self.set_market_prices('A')
+            # change route change periods
+            np.random.seed(calc_seed(simulation_time))
+            self.enable_change_route()
+            self.reset_change_route_period()
+            self.change_sea_mode   = 'market_fluc_ans'
+            base_design_key        = RETROFIT_DESIGNS['rough'][base_mode]
+            retrofit_design_keys   = { k:v for k,v in RETROFIT_DESIGNS['rough'].items() if not k == base_mode}
+            self.retrofit_mode     = RETROFIT_MODE['route_change_merged']
+            self.bf_prob           = self.load_bf_prob()
+            # set design
+            component_ids                          = get_component_ids_from_design_key(base_design_key)
+            self.hull, self.engine, self.propeller = get_component_from_id_array(map(int, component_ids), hull_list, engine_list, propeller_list)
+            # conduct simulation
+            NPV, fuel_cost       = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
+            ## write npv and fuel_cost file
+            output_dir_path  = "%s/%s" % (self.output_dir_path, conduct_mode)
+            output_file_path = "%s/simulation_result_core%d.csv" % (output_dir_path, index)
+            initializeDirHierarchy(output_dir_path)
+            lap_time         = convert_second(time.clock() - start_time)
+            # debug
+            if debug_mode:
+                self.display_debug_info('route A, B answer'.upper(), retrofit_design_keys)
+                sys.exit()
+            else:
+                write_csv(column_names, [simulation_time, 
+                                         self.hull.base_data['id'],
+                                         self.engine.base_data['id'],
+                                         self.propeller.base_data['id'],
+                                         NPV, fuel_cost, self.base_design, self.retrofit_design_human(), self.retrofit_date_human(), self.route_change_date, lap_time], output_file_path)            
             ### flexible for Route A + B based on market value (route_AB_market) ###
 
         return
@@ -1832,7 +1866,10 @@ class Agent(object):
 
         # avoid comparison with another route designs
         if self.after_route_change():
-            return True, 'middle'
+            if not retrofit_flag:
+                retrofit_flag = True
+                mode          = 'middle'
+            return retrofit_flag, mode
 
         # remove current mode
         if not (retrofit_flag and self.retrofit_design_keys.has_key(mode)):
@@ -2110,11 +2147,12 @@ class Agent(object):
         return
 
     def should_route_change(self):
-        if hasattr(self, 'change_sea_mode') and self.change_sea_mode == 'market_fluc':
-            if self.check_route_fare_trend():
-                return True
-            else:
-                return False
+        if hasattr(self, 'change_sea_mode'):
+            if self.change_sea_mode == 'market_fluc':
+                ret_flag = True if self.check_route_fare_trend() else False
+            elif self.change_sea_mode == 'market_fluc_ans':
+                ret_flag = True if self.check_route_fare_trend_ans() else False
+            return ret_flag
 
         if not hasattr(self, 'change_route_period'):
             return False
@@ -2125,6 +2163,33 @@ class Agent(object):
         # time elapsed
         return self.current_date > add_year(self.origin_date, self.change_route_period)
                  
+    def check_route_fare_trend_ans(self):
+        ret_flag = False
+        current_index_ws   = search_near_index(self.current_date, self.world_scale.predicted_data['date'])
+        start_index_raw    = np.where(self.world_scale.predicted_data['date']==current_index_ws)[0]
+        analysis_period_ws = self.world_scale.predicted_data[start_index_raw:]
+        other_world_sacle  = self.world_scale_other.predicted_data[start_index_raw:]
+
+        flat_rate_induces = []
+        for ws_date in analysis_period_ws['date']:
+            # current route
+            current_index_fr = search_near_index(str_to_date(ws_date), self.flat_rate.predicted_data['date'])
+            current_index_fr = np.where(self.flat_rate.predicted_data['date']==current_index_fr)[0]
+            flat_rate_induces.append(current_index_fr[0])
+
+        flat_rate_induces = np.array(flat_rate_induces)
+        current_fares     = calc_fare_with_params(analysis_period_ws['ws'], self.flat_rate.predicted_data[flat_rate_induces]['fr'])
+        next_fares        = calc_fare_with_params(self.world_scale_other.predicted_data[start_index_raw:]['ws'], self.flat_rate_other.predicted_data[flat_rate_induces]['fr'])
+
+        # condition to change the route
+        if np.average(next_fares) > np.average(current_fares) * CHANGE_ROUTE_MARKET_RATE:
+            ret_flag = True
+
+        # debug
+        print "fare trend: %3.3lf" % (np.average(next_fares) / np.average(current_fares))
+        
+        return ret_flag
+
     def check_route_fare_trend(self):
         ret_flag = False
         current_index_ws   = search_near_index(self.current_date, self.world_scale.predicted_data['date'])
@@ -2148,8 +2213,11 @@ class Agent(object):
         next_fares    = calc_fare_with_params(self.world_scale_other.predicted_data[start_index_raw:end_index_raw]['ws'], self.flat_rate_other.predicted_data[flat_rate_induces]['fr'])
 
         # condition to change the route
-        if np.average(next_fares) > np.average(current_fares):
+        if np.average(next_fares) > np.average(current_fares) * CHANGE_ROUTE_MARKET_RATE:
             ret_flag = True
+
+        # debug
+        print "fare trend: %3.3lf" % (np.average(next_fares) / np.average(current_fares))
 
         return ret_flag
 
@@ -2190,4 +2258,9 @@ class Agent(object):
         else:
             self.world_scale = self.world_scale_other
             self.flat_rate   = self.flat_rate_other
+        return
+
+    def enable_change_route(self):
+        self.change_sea_flag   = True
+        self.change_sea_count  = 1
         return
