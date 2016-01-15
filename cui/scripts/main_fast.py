@@ -42,8 +42,8 @@ def run(options):
     from_date                = '2004/01/01'
     to_date                  = '2016/01/01'
     oil_price_history_data   = load_monthly_history_data(from_date, to_date)
-    world_scale_history_data = load_world_scale_history_data()
-    flat_rate_history_data   = load_flat_rate_history_data()
+    world_scale_history_data = load_world_scale_history_data(from_date, to_date)
+    flat_rate_history_data   = load_flat_rate_history_data(from_date, to_date)
 
     # generate sinario
     base_sinario = Sinario(oil_price_history_data)
@@ -61,9 +61,13 @@ def run(options):
     scenario_seeds = {'high': 19917289, 'low': 19962436, 'stage': 19935671}
     if scenario_seeds is None:
         scenario_seeds = get_significant_scenarios_seeds(base_sinario, world_scale, flat_rate)
+
+    '''
+    # draw significant scenario
     draw_significant_scenario(base_sinario, world_scale, flat_rate, scenario_seeds)
     print 'scenario_seeds:'
     print scenario_seeds
+    '''
     
     # initialize directory 
     output_dir_path = "%s/%s" % (AGNET_LOG_DIR_PATH, generate_timestamp())
