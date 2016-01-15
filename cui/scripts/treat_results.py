@@ -129,7 +129,7 @@ def calc_whole_sim(result_dir_path):
         set_trace()
     display_nums = npv_result['route_a'].keys()
     winner_count = dict.fromkeys(conduct_modes, 0)
-    
+    winner_count_mag = dict.fromkeys(conduct_modes, 0)
     for display_num in sorted(display_nums):
         display_str = "%5d" % (display_num)
         max_data = {conduct_modes[0]: npv_result[conduct_modes[0]][display_num]}
@@ -143,11 +143,28 @@ def calc_whole_sim(result_dir_path):
                 max_data = {conduct_mode: npv_result[conduct_mode][display_num]}
         max_key = max_data.keys()[0]
 
-        '''
+        # calc 'route_ab_prob', 'route_ab_market', 'route_ab_answer'
+        if npv_result['route_ab_prob'].has_key(display_num):
+            tmp_result = {'key': 'route_ab_prob', 'val': npv_result['route_ab_prob'][display_num]}
+            for designated_mode in ['route_ab_market', 'route_ab_answer']:
+                if not npv_result[designated_mode].has_key(display_num):
+                    continue
+                tmp_result['val'] < npv_result[designated_mode][display_num]
+                if tmp_result['val'] < npv_result[designated_mode][display_num]:
+                    tmp_result['key'] = designated_mode
+                    tmp_result['val'] = npv_result[designated_mode][display_num]
+                elif tmp_result['val'] == npv_result[designated_mode][display_num]:
+                    tmp_result['key'] = "%s,%s" % (tmp_result['key'], designated_mode)
+                    tmp_result['val'] = npv_result[designated_mode][display_num]
+                
+        max_induces = tmp_result['key'].split(',')
+        for max_index in max_induces:
+            winner_count_mag[max_index] += 1
+
         if (max_key == 'route_ab_prob'):
             if npv_result.has_key('route_ab_market') and npv_result['route_ab_market'].has_key(display_num) and npv_result['route_ab_market'][display_num] == max_data.values()[0]:
-                winner_count[max_key] += 0.5        
-                winner_count['route_ab_market'] += 0.5        
+                winner_count[max_key] += 1.0
+                winner_count['route_ab_market'] += 1.0
                 display_str += "%20s, %20s" % (max_key, 'route_ab_market')
             else:
                 winner_count[max_key] += 1.0
@@ -158,8 +175,8 @@ def calc_whole_sim(result_dir_path):
 
         prob_retrofit   = retrofit_result['route_ab_prob'][display_num] if retrofit_result['route_ab_prob'].has_key(display_num) else "-" * 10
         market_retrofit = retrofit_result['route_ab_market'][display_num] if retrofit_result['route_ab_market'].has_key(display_num) else "-" * 10
-        market_retrofit += "%10s" % ('True' if prob_retrofit == market_retrofit else 'False')
-        '''
+        #market_retrofit += "%10s" % ('True' if prob_retrofit == market_retrofit else 'False')
+
         try:
             prob_route_ch   = retrofit_result['route_ab_prob'][display_num]['change_route_period']
             prob_retrofit   = retrofit_result['route_ab_prob'][display_num]['retrofit_date']
@@ -182,6 +199,7 @@ def calc_whole_sim(result_dir_path):
         print display_str + "%20s" % (retrofit_str)
     print "\n"
     print winner_count
+    print winner_count_mag
     
     print "%30s" % ('average npv'.upper())
     for conduct_mode in conduct_modes:
