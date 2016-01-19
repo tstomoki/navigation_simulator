@@ -64,6 +64,9 @@ class Agent(object):
         self.bf_prob          = self.load_bf_prob()
         self.change_sea_flag  = False
 
+        # set route
+        self.current_navigation_distance = NAVIGATION_DISTANCE_A
+
         if not (hull is None or engine is None or propeller is None):
             self.hull, self.engine, self.propeller = hull, engine, propeller
 
@@ -164,7 +167,7 @@ class Agent(object):
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0])
         self.origin_date         = self.operation_date_array[0]
         self.retire_date         = self.operation_date_array[-1]
-        self.round_trip_distance = NAVIGATION_DISTANCE * 2.0
+        self.round_trip_distance = self.current_navigation_distance * 2.0
         self.NPV                 = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
                                                          'formats': ('S20' , np.float)}))        
         self.fuel_cost           = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
@@ -184,7 +187,7 @@ class Agent(object):
         # dynamic variables
         self.current_date          = self.sinario.history_data['date'][-1]
         self.current_distance      = 0
-        self.left_distance_to_port = NAVIGATION_DISTANCE
+        self.left_distance_to_port = self.current_navigation_distance
         self.voyage_date           = self.origin_date
         self.previous_oilprice     = self.sinario.history_data[-2]['price']
         self.oilprice_ballast      = self.sinario.history_data[-1]['price']
@@ -270,18 +273,18 @@ class Agent(object):
             ## update with the distance on a day
             navigated_distance = knot2mileday(v_knot)
             updated_distance   = self.current_distance + knot2mileday(v_knot)
-            if (self.current_distance < NAVIGATION_DISTANCE) and (updated_distance >= NAVIGATION_DISTANCE):
+            if (self.current_distance < self.current_navigation_distance) and (updated_distance >= self.current_navigation_distance):
                 # ballast -> full
                 # calc distance to the port
-                navigated_distance = NAVIGATION_DISTANCE - self.current_distance                                
+                navigated_distance = self.current_navigation_distance - self.current_distance                                
                 # subtract unnavigated cash flow which depends on the distance
-                discounted_distance = updated_distance - NAVIGATION_DISTANCE
+                discounted_distance = updated_distance - self.current_navigation_distance
                 extra_fuel_cost = self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
                 CF_day -= extra_fuel_cost
                 C_fuel -= extra_fuel_cost
                 
-                self.current_distance      = NAVIGATION_DISTANCE
-                self.left_distance_to_port = NAVIGATION_DISTANCE
+                self.current_distance      = self.current_navigation_distance
+                self.left_distance_to_port = self.current_navigation_distance
                 # update oil price
                 self.update_oilprice_and_fare()
                 
@@ -317,7 +320,7 @@ class Agent(object):
                 self.update_oilprice_and_fare()
                 # reset current_distance
                 self.current_distance = 0
-                self.left_distance_to_port = NAVIGATION_DISTANCE
+                self.left_distance_to_port = self.current_navigation_distance
 
                 self.update_fuel_cost(C_fuel)
 
@@ -328,7 +331,7 @@ class Agent(object):
                 self.cash_flow     = 0
                 self.elapsed_days  = 0
                 self.voyage_date   = None
-                self.left_distance_to_port = NAVIGATION_DISTANCE
+                self.left_distance_to_port = self.current_navigation_distance
 
                 # dock-in flag
                 if self.update_dockin_flag():
@@ -604,8 +607,8 @@ class Agent(object):
             first_clause  = self.calc_left_distance() / knot2mileday(velocity_first)
             second_clause = 0
         else:
-            first_clause  = (self.calc_left_distance() - NAVIGATION_DISTANCE) / knot2mileday(velocity_first)
-            second_clause = NAVIGATION_DISTANCE / knot2mileday(velocity_second)
+            first_clause  = (self.calc_left_distance() - self.current_navigation_distance) / knot2mileday(velocity_first)
+            second_clause = self.current_navigation_distance / knot2mileday(velocity_second)
 
         ret_ND = self.elapsed_days + first_clause + second_clause
         return ret_ND
@@ -674,9 +677,9 @@ class Agent(object):
 
             fuel_cost  = first_clause
             # go navigation
-            fuel_cost += fuel_cost_ballast * ( (self.calc_left_distance() - NAVIGATION_DISTANCE) / knot2mileday(velocity_first) )
+            fuel_cost += fuel_cost_ballast * ( (self.calc_left_distance() - self.current_navigation_distance) / knot2mileday(velocity_first) )
             # return navigation
-            fuel_cost += fuel_cost_full * ( NAVIGATION_DISTANCE / knot2mileday(velocity_second) )
+            fuel_cost += fuel_cost_full * ( self.current_navigation_distance / knot2mileday(velocity_second) )
             # consider navigated 
             fuel_cost /= float(ND)
         else:
@@ -1220,6 +1223,7 @@ class Agent(object):
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
             self.retrofit_mode         = RETROFIT_MODE['none']
+            self.set_route_distance('A')
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, None)                        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/no_retrofit/%s" % (self.output_dir_path, base_design_key)
@@ -1238,6 +1242,7 @@ class Agent(object):
             start_time                 = time.clock()
             np.random.seed(calc_seed(COMMON_SEED_NUM))
             self.retrofit_mode         = retrofit_mode
+            self.set_route_distance('A')
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/flexible/%s" % (self.output_dir_path, base_design_key)
@@ -2302,3 +2307,12 @@ class Agent(object):
         world_scale_flag = all(self.world_scale_base.predicted_data == self.world_scale_other.predicted_data)
         flat_rate_flag = all(self.flat_rate_base.predicted_data == self.flat_rate_other.predicted_data)
         return world_scale_flag and flat_rate_flag
+
+    def set_route_distance(route):
+        if route == 'A':
+            self.current_navigation_distance = NAVIGATION_DISTANCE_A
+        elif route == 'B':
+            self.current_navigation_distance = NAVIGATION_DISTANCE_B
+        self.round_trip_distance   = self.current_navigation_distance * 2.0
+        self.left_distance_to_port = self.current_navigation_distance
+        return
