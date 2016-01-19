@@ -49,6 +49,7 @@ class Agent(object):
         self.bf_mode       = bf_mode
         self.icr           = DEFAULT_ICR_RATE
         self.operation_date_array = None
+        self.current_navigation_distance = NAVIGATION_DISTANCE_A
 
 
         if not hasattr(self, 'bf_info'):
@@ -164,7 +165,7 @@ class Agent(object):
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0])
         self.origin_date         = self.operation_date_array[0]
         self.retire_date         = self.operation_date_array[-1]
-        self.round_trip_distance = NAVIGATION_DISTANCE * 2.0
+        self.round_trip_distance = self.current_navigation_distance * 2.0
         self.NPV                 = np.array([],np.dtype({'names': ('navigation_finished_date', 'NPV_in_navigation'),
                                                          'formats': ('S20' , np.float)}))        
         self.fuel_cost           = np.array([],np.dtype({'names': ('navigation_finished_date', 'fuel_cost_in_navigation'),
@@ -184,7 +185,7 @@ class Agent(object):
         # dynamic variables
         self.current_date          = self.sinario.history_data['date'][-1]
         self.current_distance      = 0
-        self.left_distance_to_port = NAVIGATION_DISTANCE
+        self.left_distance_to_port = self.current_navigation_distance
         self.voyage_date           = self.origin_date
         self.previous_oilprice     = self.sinario.history_data[-2]['price']
         self.oilprice_ballast      = self.sinario.history_data[-1]['price']
@@ -270,18 +271,18 @@ class Agent(object):
             ## update with the distance on a day
             navigated_distance = knot2mileday(v_knot)
             updated_distance   = self.current_distance + knot2mileday(v_knot)
-            if (self.current_distance < NAVIGATION_DISTANCE) and (updated_distance >= NAVIGATION_DISTANCE):
+            if (self.current_distance < self.current_navigation_distance) and (updated_distance >= self.current_navigation_distance):
                 # ballast -> full
                 # calc distance to the port
-                navigated_distance = NAVIGATION_DISTANCE - self.current_distance                                
+                navigated_distance = self.current_navigation_distance - self.current_distance                                
                 # subtract unnavigated cash flow which depends on the distance
-                discounted_distance = updated_distance - NAVIGATION_DISTANCE
+                discounted_distance = updated_distance - self.current_navigation_distance
                 extra_fuel_cost = self.calc_fuel_cost_with_distance(discounted_distance, rpm, v_knot, hull, engine, propeller)
                 CF_day -= extra_fuel_cost
                 C_fuel -= extra_fuel_cost
                 
-                self.current_distance      = NAVIGATION_DISTANCE
-                self.left_distance_to_port = NAVIGATION_DISTANCE
+                self.current_distance      = self.current_navigation_distance
+                self.left_distance_to_port = self.current_navigation_distance
                 # update oil price
                 self.update_oilprice_and_fare()
                 
@@ -317,7 +318,7 @@ class Agent(object):
                 self.update_oilprice_and_fare()
                 # reset current_distance
                 self.current_distance = 0
-                self.left_distance_to_port = NAVIGATION_DISTANCE
+                self.left_distance_to_port = self.current_navigation_distance
 
                 self.update_fuel_cost(C_fuel)
 
@@ -328,7 +329,7 @@ class Agent(object):
                 self.cash_flow     = 0
                 self.elapsed_days  = 0
                 self.voyage_date   = None
-                self.left_distance_to_port = NAVIGATION_DISTANCE
+                self.left_distance_to_port = self.current_navigation_distance
 
                 # dock-in flag
                 if self.update_dockin_flag():
@@ -604,8 +605,8 @@ class Agent(object):
             first_clause  = self.calc_left_distance() / knot2mileday(velocity_first)
             second_clause = 0
         else:
-            first_clause  = (self.calc_left_distance() - NAVIGATION_DISTANCE) / knot2mileday(velocity_first)
-            second_clause = NAVIGATION_DISTANCE / knot2mileday(velocity_second)
+            first_clause  = (self.calc_left_distance() - self.current_navigation_distance) / knot2mileday(velocity_first)
+            second_clause = self.current_navigation_distance / knot2mileday(velocity_second)
 
         ret_ND = self.elapsed_days + first_clause + second_clause
         return ret_ND
@@ -674,9 +675,9 @@ class Agent(object):
 
             fuel_cost  = first_clause
             # go navigation
-            fuel_cost += fuel_cost_ballast * ( (self.calc_left_distance() - NAVIGATION_DISTANCE) / knot2mileday(velocity_first) )
+            fuel_cost += fuel_cost_ballast * ( (self.calc_left_distance() - self.current_navigation_distance) / knot2mileday(velocity_first) )
             # return navigation
-            fuel_cost += fuel_cost_full * ( NAVIGATION_DISTANCE / knot2mileday(velocity_second) )
+            fuel_cost += fuel_cost_full * ( self.current_navigation_distance / knot2mileday(velocity_second) )
             # consider navigated 
             fuel_cost /= float(ND)
         else:
@@ -2164,15 +2165,21 @@ class Agent(object):
         
         if self.should_route_change():
             # beaufort mode
-            self.bf_prob              = self.load_bf_prob(True)
-            self.change_sea_count     = 0
-            self.route_change_date    = self.current_date
-            self.retrofit_design_keys = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
-            change_route_period = calc_delta_from_origin(self.current_date)
+            self.bf_prob                     = self.load_bf_prob(True)
+            self.change_distance()
+            self.change_sea_count            = 0
+            self.route_change_date           = self.current_date
+            self.retrofit_design_keys        = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
+            change_route_period              = calc_delta_from_origin(self.current_date)
             self.change_route_period  = change_route_period if change_route_period != 0 else None
             if hasattr(self, 'world_scale_base'):
                 self.set_market_prices('B')
+        return
 
+    def change_distance(self):
+        self.current_navigation_distance = NAVIGATION_DISTANCE_B
+        self.round_trip_distance         = self.current_navigation_distance * 2.0
+        self.left_distance_to_port       = self.current_navigation_distance
         return
 
     def should_route_change(self):
