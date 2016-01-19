@@ -233,7 +233,7 @@ SFOC_BASE_DEC = 9
 
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H1E2P1285', 'dec': 'H1E3P257', 'inc': 'H2E1P514'},
                      'rough': {'low': 'H1E2P514','high': 'H1E3P514', 'middle': 'H1E3P1285'}}
-RETROFIT_DESIGNS_FOR_ROUTE_CHANGE = {'rough': {'low': 'H2E2P514','high': 'H2E3P1285', 'middle': 'H2E2P514'}}
+RETROFIT_DESIGNS_FOR_ROUTE_CHANGE = {'rough': {'low': 'H2E2P514','high': 'H2E3P1285', 'middle': 'H2E3P514'}}
 
 TARGET_DESIGNS = {'calm': ['low', 'high', 'dec'],
                   'rough': ['middle']}
@@ -271,7 +271,7 @@ UPFRONT_COST_ROUTE   = 600000
 SIGNIFICANT_SENARIO_MODES_WITH_MONTE = ['high', 'low', 'stage']
 
 # simulate count
-SIMULATE_COUNT = 1000
+SIMULATE_COUNT = 100
 
 # for actual 
 CHANGE_ROUTE_PERIODS_RAW = range(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)
