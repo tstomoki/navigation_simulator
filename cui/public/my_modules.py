@@ -1704,8 +1704,9 @@ def calc_fare_with_params(world_scale, flat_rate):
     return world_scale * ( flat_rate / 100.0)
 
 def calc_delta_from_origin(target_date):
-    if len(target_date) == 0:
-        return 0
+    if not isinstance(target_date, datetime.date):
+        if len(target_date) == 0:
+            return 0
     origin_date = str_to_date('2015/01/01')
     delta_years = 0
     possible_deltas = np.arange(0, VESSEL_LIFE_TIME, DOCK_IN_PERIOD)

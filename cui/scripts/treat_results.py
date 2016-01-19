@@ -1147,8 +1147,8 @@ def draw_delta_histgram(json_dir_path):
     panda_frame = pd.DataFrame({'design_key': delta_dict.keys(),
                                 'delta': delta_dict.values()})
     panda_frame['delta'].hist(color="#5F9BFF", alpha=.5, bins=100)
-    plt.ylim(0, 120)
-    plt.xlim(-1e7, 7e7)
+    plt.ylim(0, 160)
+    plt.xlim(-1e7, 5e7)
     plt.savefig(output_filepath)
     plt.clf()
     plt.close()        

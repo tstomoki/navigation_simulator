@@ -24,7 +24,7 @@ NOHUP_LOG_DIR_PATH    = '../nohup'
 # for multiprocessing
 import getpass
 current_user = getpass.getuser()
-PROC_NUM = 7 if current_user == 'tsaito' else 3
+PROC_NUM = 15 if current_user == 'tsaito' else 3
 # for multiprocessing
 
 VESSEL_LIFE_TIME         = 15
@@ -34,8 +34,6 @@ DEFAULT_PREDICT_YEARS    = OPERATION_DURATION_YEARS
 
 # navigation infomation [mile]
 NAVIGATION_DISTANCE = 6590
-## for dev
-#NAVIGATION_DISTANCE = 1000
 
 DERIVE_SINARIO_MODE   = {'high': 0,
                          'low': 1,
@@ -234,8 +232,8 @@ SFOC_BASE_DEC = 9
 # RETROFIT DESIGNS
 
 RETROFIT_DESIGNS = { 'calm' : {'low': 'H2E1P514' ,'high': 'H1E2P1285', 'dec': 'H1E3P257', 'inc': 'H2E1P514'},
-                     'rough': {'low': 'H1E1P0','high': 'H1E2P514', 'middle': 'H1E1P514'}}
-RETROFIT_DESIGNS_FOR_ROUTE_CHANGE = {'rough': {'low': 'H2E3P514','high': 'H2E2P1285', 'middle': 'H2E3P1285'}}
+                     'rough': {'low': 'H1E2P514','high': 'H1E3P514', 'middle': 'H1E3P1285'}}
+RETROFIT_DESIGNS_FOR_ROUTE_CHANGE = {'rough': {'low': 'H2E2P514','high': 'H2E3P1285', 'middle': 'H2E2P514'}}
 
 TARGET_DESIGNS = {'calm': ['low', 'high', 'dec'],
                   'rough': ['middle']}
@@ -258,17 +256,13 @@ BASE_DELTA = {'origin': 0.0, 'end': 0.5}
 PROPELLERS = {'0': 0, '257': 1, '514': 2, '771': 3, '1028': 4, '1285': 5}
 
 # FOR REALOPTION ANALYSIS
-UPFRONT_COST   = 1100000
-PRACTICE_PRICE = 20000
+UPFRONT_COST   = 300000
 
 # practice prices
 PRACTICE_PRICES = {'hull': 30000, 'engine': 20000, 'propeller': 10000}
 
 # for WHOLE RETROFIT
-'''
-UPFRONT_COST   = 500000
-PRACTICE_PRICE = 50000
-'''
+UPFRONT_COST   = 597000
 
 # FOR REALOPTION ANALYSIS (sea)
 UPFRONT_COST_ROUTE   = 600000

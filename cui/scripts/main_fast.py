@@ -87,7 +87,7 @@ def run(options):
 
     if final_mode == 'route_fluc':
         # init market fluc as middle(stage)
-        fixed_seed    = scenario_seeds['stage']
+        fixed_seed = scenario_seeds['stage']
         np.random.seed(fixed_seed)
         generate_market_scenarios(base_sinario, world_scale, flat_rate, scenario_mode, simulation_duration_years)
         
@@ -153,9 +153,9 @@ def run(options):
         agent.change_sea_flag   = True
         agent.change_route_prob = CHANGE_ROUTE_PROB
         agent.output_dir_path   = output_dir_path
-        
+
         '''
-        agent.calc_flexible_design_m_route_change(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_periods, base_design_key, retrofit_design_key, retrofit_mode)
+        agent.calc_flexible_design_m_route_change_monte(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, retrofit_mode)
         sys.exit()
         '''
 
@@ -292,12 +292,12 @@ def run(options):
                                                      scenario_mode, BF_MODE[bf_mode])
                         agent.rules          = {'trend': trend, 'delta': delta}
                         agent.output_dir_path = "%s/%s/%s/%s_design" % (output_dir_path, dir_name, bf_mode, case_mode)
-                            
+
                         '''
                         agent.calc_flexible_design_m(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_keys, retrofit_mode)
                         sys.exit()
                         '''
-                        
+        
                         # multi processing #
                         # initialize
                         pool                  = mp.Pool(PROC_NUM)
