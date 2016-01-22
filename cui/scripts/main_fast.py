@@ -143,7 +143,6 @@ def run(options):
         simulation_times           = SIMULATE_COUNT
         conducted_simulation_count = 0
         devided_simulation_times   = np.array_split(range(simulation_times)[conducted_simulation_count:], PROC_NUM)
-
         agent                = Agent(base_sinario,
                                      world_scale,
                                      flat_rate,
@@ -155,7 +154,7 @@ def run(options):
         agent.output_dir_path   = output_dir_path
 
         '''
-        agent.calc_flexible_design_m_route_change_monte(0, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, retrofit_mode)
+        agent.calc_flexible_design_m_route_change_monte(1, hull_list, engine_list, propeller_list, simulation_duration_years, devided_simulation_times, base_design_key, retrofit_design_key, retrofit_mode)
         sys.exit()
         '''
 

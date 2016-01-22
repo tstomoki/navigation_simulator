@@ -45,8 +45,10 @@ def run(options):
         #compare_acutal_sea(npv_list)
     if options.fuel_cost:
         draw_fuel_cost(result_dir_path)
-    if options.retrofit:
+    if options.retrofit == 'True':
         draw_retrofit_result(result_dir_path)
+    if options.retrofit == 'count':
+        count_retrofit_result(result_dir_path)
     if options.sensitivity:
         draw_sensitivity_result(result_dir_path, json_file_path)
     if count_simulation_mode:
@@ -260,6 +262,27 @@ def aggregate_route_change_output(result_dir_path):
             data = None
         delta = npv_result['flexible'] - npv_result['no_retrofit']
         print "\t%20s: %10.3lf %15.3e" % ('delta'.upper(), delta, delta)
+    return
+
+def count_retrofit_result(result_dir_path):
+    dt   = np.dtype({'names': ('scenario_num','hull_id','engine_id','propeller_id','NPV','fuel_cost','base_design','retrofit_design','retrofit_date','change_route_date'),
+                     'formats': (np.int64, np.int64, np.int64, np.int64, np.float, np.float, 'S15', 'S15', 'S15', 'S15')})
+    target_dir_path = "%s/rough/middle_design/flexible" % (result_dir_path)
+    files           = os.listdir(target_dir_path)
+    target_files    = [_f for _f in files if _f[-4:] == '.csv' and not _f == 'initial_design.csv']
+    count = 0
+    for target_file in target_files:
+        target_file_path = "%s/%s" % (target_dir_path, target_file)
+        data = np.genfromtxt(target_file_path,
+                             delimiter=',',
+                             dtype=dt,
+                             skiprows=1)
+        if data.ndim == 0:
+            data = np.atleast_1d(data)
+        count += len(data)
+
+    print "%30s: %4d" % ('simulation count'.upper(), SIMULATE_COUNT)
+    print "%30s: %4d (%3.2lf[%%])" % ('current count'.upper(), count, float(count) / SIMULATE_COUNT * 100)
     return
 
 def count_simulation(result_dir_path):
@@ -1147,7 +1170,7 @@ def draw_delta_histgram(json_dir_path):
     panda_frame = pd.DataFrame({'design_key': delta_dict.keys(),
                                 'delta': delta_dict.values()})
     panda_frame['delta'].hist(color="#5F9BFF", alpha=.5, bins=100)
-    plt.ylim(0, 160)
+    plt.ylim(0, 50)
     plt.xlim(-1e7, 5e7)
     plt.savefig(output_filepath)
     plt.clf()
@@ -1266,6 +1289,11 @@ def draw_retrofit_route_result(result_dir_path):
                     no_retrofit_npv = ("%17.3lf" % nr_result['NPV'])
                     flexible_npv    = ("%17.3lf" % f_result['NPV'])
                     if (flexible_npv > no_retrofit_npv):
+                        # work around
+                        if f_result['retrofit_date'] == '--':
+                            delta_dict[simulate_index] = -1 * UPFRONT_COST_ROUTE
+                            judgement = 'no_retrofit'
+                            continue
                         judgement = 'flexible'
                         effective_count += 1
                     else:

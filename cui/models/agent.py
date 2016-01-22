@@ -1147,6 +1147,8 @@ class Agent(object):
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
             self.retrofit_mode         = RETROFIT_MODE['none']
+            self.set_route_distance('A')
+            self.bf_prob               = self.load_bf_prob()
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, None)                        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/no_retrofit/%s/simulate%d" % (self.output_dir_path, base_design_key, self.simulate_log_index)
@@ -1168,6 +1170,8 @@ class Agent(object):
             np.random.seed(calc_seed(simulation_time))
             generate_market_scenarios(self.sinario, self.world_scale, self.flat_rate, self.sinario_mode, simulation_duration_years)
             self.retrofit_mode         = retrofit_mode
+            self.set_route_distance('A')
+            self.bf_prob               = self.load_bf_prob()
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_keys)        
 
             ## write npv and fuel_cost file
@@ -1216,14 +1220,16 @@ class Agent(object):
             self.output_dir_path     = "%s/period_%d" % (self.output_dir_path, change_route_period)
             initializeDirHierarchy(self.output_dir_path)
             self.simulate_log_index  = COMMON_SEED_NUM
+            np.random.seed(calc_seed(COMMON_SEED_NUM))
 
             # for no retrofit design
             start_time                 = time.clock()
-            np.random.seed(calc_seed(COMMON_SEED_NUM))
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
             self.retrofit_mode         = RETROFIT_MODE['none']
             self.set_route_distance('A')
+            self.bf_prob               = self.load_bf_prob()
+            np.random.seed(calc_seed(COMMON_SEED_NUM))
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, None)                        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/no_retrofit/%s" % (self.output_dir_path, base_design_key)
@@ -1243,6 +1249,8 @@ class Agent(object):
             np.random.seed(calc_seed(COMMON_SEED_NUM))
             self.retrofit_mode         = retrofit_mode
             self.set_route_distance('A')
+            self.bf_prob               = self.load_bf_prob()
+            np.random.seed(calc_seed(COMMON_SEED_NUM))
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/flexible/%s" % (self.output_dir_path, base_design_key)
@@ -1291,6 +1299,9 @@ class Agent(object):
             end_date                   = add_year(str_to_date(self.sinario.predicted_data['date'][0]), simulation_duration_years)
             self.operation_date_array  = generate_operation_date(self.sinario.predicted_data['date'][0], end_date)            
             self.retrofit_mode         = RETROFIT_MODE['none']
+            self.set_route_distance('A')
+            self.bf_prob               = self.load_bf_prob()
+            np.random.seed(calc_seed(COMMON_SEED_NUM))
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, None)                        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/no_retrofit/%s" % (self.output_dir_path, base_design_key)
@@ -1310,6 +1321,9 @@ class Agent(object):
             start_time                 = time.clock()
             np.random.seed(calc_seed(simulation_time))
             self.retrofit_mode         = retrofit_mode
+            self.set_route_distance('A')
+            self.bf_prob               = self.load_bf_prob()
+            np.random.seed(calc_seed(simulation_time))
             NPV, fuel_cost             = self.simmulate(None, None, None, None, None, retrofit_design_key)        
             ## write npv and fuel_cost file
             output_dir_path            = "%s/flexible/%s" % (self.output_dir_path, base_design_key)
@@ -2170,6 +2184,7 @@ class Agent(object):
         if self.should_route_change():
             # beaufort mode
             self.bf_prob              = self.load_bf_prob(True)
+            self.set_route_distance('B')
             self.change_sea_count     = 0
             self.route_change_date    = self.current_date
             self.retrofit_design_keys = RETROFIT_DESIGNS_FOR_ROUTE_CHANGE['rough']
@@ -2308,7 +2323,7 @@ class Agent(object):
         flat_rate_flag = all(self.flat_rate_base.predicted_data == self.flat_rate_other.predicted_data)
         return world_scale_flag and flat_rate_flag
 
-    def set_route_distance(route):
+    def set_route_distance(self, route):
         if route == 'A':
             self.current_navigation_distance = NAVIGATION_DISTANCE_A
         elif route == 'B':
